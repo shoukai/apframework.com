@@ -35,9 +35,10 @@ module.exports = {
         70: '70',
         80: '80',
       },
-      typography: ({ theme }) => ({
+      typography: (theme) => ({
         DEFAULT: {
           css: {
+            fontFamily: 'AlimamaDongFangDaKai, sans-serif',
             a: {
               color: theme('colors.primary.500'),
               '&:hover': {
