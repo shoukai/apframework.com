@@ -1,0 +1,155 @@
+---
+title: COLA Light 使用及体验
+date: '2024-12-08'
+tags: ['COLA', 'DDD', '随手记', '架构']
+draft: false
+summary: 'COLA (Clean Object-Oriented and Layered Architecture) Light 使用及体验'
+---
+
+# COLA Light 使用及体验
+
+新建项目工程时，看到公司现存工程结构有一定规则及约定，但是不成体系，而且不统一。计划统一下工程目录标准，翻了下目前主流几种 DDD 目录层次结构的 Github，发现 COLA 出了 5.0 版本，5.0 更新内容说明如下
+
+> 1. 支持 jdk17 和 SpringBoot 3.x
+> 2. 增加 cola-archetype-light，支持新的基于package轻量级分层架构
+> 3. 增加 cola-component-unittest组件，支持新的单元测试
+> 4. 增强 cola-component-test-container组件，支持 Junit5的Extension
+> 
+
+因为团队之前见到过使用 4.0 的项目，并且由于 COLA 使用多模块限制分层的严格要求，印象比较深刻，抽时间深入看了一下，并记录下使用过程及体验。
+
+# 1. 背景概念
+
+## 1.1 背景知识
+
+### **分层架构**
+
+分层架构是一种常见的模式，它将系统分解成一系列的层次，每个层次都有特定的职责。分层架构可以进一步细分为宽松分层（也称为松散分层）和严格分层（也称为严格分层）。
+
+- 宽松分层（松散分层）：在宽松分层架构中，层次之间的界限不是非常严格，上层可以较为自由地访问下层的组件。
+- 严格分层（严格分层）：在严格分层架构中，每个层次都有明确的职责，并且只能通过定义好的接口与相邻层次交互。
+
+# 2. 实践操作
+
+COLA 提供了三种模式
+
+- cola-archetype-light
+- cola-archetype-service
+- cola-archetype-web
+
+![image.png](/static/images/2024-12-08-COLA-Light/image.png)
+
+并提供了 maven archetype，虽然 README 没有提及 cola-archetype-light 的命令和使用方式，但是替换名称是可以使用的。
+
+```jsx
+mvn archetype:generate \
+    -DgroupId=com.alibaba.cola.demo.light \
+    -DartifactId=cola-archetype-light-demo \
+    -Dversion=1.0.0-SNAPSHOT \
+    -Dpackage=com.alibaba.demo \
+    -DarchetypeArtifactId=cola-archetype-light \
+    -DarchetypeGroupId=com.alibaba.cola \
+    -DarchetypeVersion=5.0.0
+```
+
+创建后，执行 `mvn install -DskipTests` 报错
+
+```jsx
+[ERROR] Failed to execute goal on project cola-archetype-light-demo: Could not resolve dependencies for project com.alibaba.cola.demo.light:cola-archetype-light-demo:jar:1.0.0-SNAPSHOT: Failed to collect dependencies at com.alibaba.cola:cola-component-test-container:jar:4.4.0-SNAPSHOT
+```
+
+打开源码，看到是 `cola-component-test-container` 使用了 `4.4.0-SNAPSHOT` 报错。
+
+到 [`mvnrepository.com`](http://mvnrepository.com/) 找了下  `cola-component-test-container` 替换为 5.0.0 版本后，编译通过
+
+![image.png](/static/images/2024-12-08-COLA-Light/image%201.png)
+
+使用开发工具导入后，目录结构如下：
+
+![image.png](/static/images/2024-12-08-COLA-Light/image%202.png)
+
+依赖的 COLA 包只有：测试容器组件。
+
+```xml
+<!-- Unit Test Support start-->
+<dependency>
+	<groupId>com.alibaba.cola</groupId>
+	<artifactId>cola-component-test-container</artifactId>
+	<version>5.0.0</version>
+</dependency>
+```
+
+如果不关注测试框架或者有团队内部测试框架规范，直接去掉即可。
+
+其他 pom.xml 内容，依据团队要求或者个人喜欢进行调整及修改。
+
+# 3. 进一步探索
+
+## 3.1 层次划分
+
+回顾领域驱动建模步骤，《如何落地业务建模》课程中，将领域模型建模方法总结为：
+
+> 两关联一循环
+> * 两关联：模型与软件实现关联、统一语言与模型关联；
+> * 一循环：提炼知识的循环；
+> 
+
+之所以要回顾这些原则，是因为无论是分层架构还是 COLA 架构，它们的核心都在于以业务需求为导向，解耦外部依赖，并分离业务复杂度与技术复杂度。铭记使用 COLA 架构的初衷，结合实际业务场景和架构原则，我们能够更有效地将架构理念落到实处。通过这样的实践，我们不仅能够构建出更加灵活和可维护的系统，还能确保技术解决方案能够真正响应业务需求。
+
+COLA cola-archetype-light 分层架构如下：
+
+![image.png](/static/images/2024-12-08-COLA-Light/image%203.png)
+
+为了验证分层架构，逐层删除：test → adapter → application → infrastructure ，工程均未出现编译报错现象。
+
+实际使用过程中，按照 VO、DTO、DO、Entity 定义，仍然有 Bean 属性定义重复、Bean 多次拷贝等问题，需要依据实际情况进行权衡与取舍。
+
+## 3.2 层次说明
+
+适配器层（Adapter Layer）：
+
+- 作用：也称为接口层，负责将外部请求适配到应用层可以理解的命令。
+- 职责：提供系统的输入和输出接口，如RESTful API、Web界面、命令行界面等，将用户的操作转换为应用层的命令，并将应用层的响应转换为用户可以理解的格式。
+- 特点：作为系统的边界，确保系统的内部结构不受外部变化的影响，同时也保护内部逻辑不被外部直接访问。
+
+应用层（Application Layer）：
+
+- 作用：作为领域层和用户界面层之间的中介，负责协调业务逻辑的执行。
+- 职责：接收来自用户界面层的请求，将其转换为领域层可以理解的命令，然后调用领域层的方法来执行业务逻辑。
+- 特点：不包含业务逻辑，而是定义了如何使用领域层的服务和实体来完成特定的业务操作。
+
+领域层（Domain Layer）：
+
+- 作用：这是整个架构的核心，包含了业务逻辑和业务规则。
+- 职责：定义业务实体（Entity）、值对象（Value Object）、聚合（Aggregate）、领域服务（Domain Service）和聚合根（Aggregate Root）。
+- 特点：专注于业务领域的问题，封装业务逻辑，确保业务规则的一致性和完整性。
+
+基础设施层（Infrastructure Layer）：
+
+- 作用：这一层提供了技术实现的细节，包括与外部世界的直接交互，如数据库、文件系统、网络资源等。
+- 职责：实现领域层和应用层定义的接口和类，提供具体的技术实现，例如数据库访问对象（Repository）、消息传递机制、文件处理等。
+- 特点：与业务逻辑解耦，关注于技术实现，使得业务逻辑可以独立于技术选择。
+
+层次核心部分是领域层，即：模型与软件实现关联部分，业务积累和迭代部分都在这一层进行展现。如果当前限界上下文内非单一聚合根，可以考虑采用多目录形式进行分割，更加清晰明了。
+
+## 3.3 工具组件
+
+COLA 还提供了一些工具组件
+
+| 名称 | 说明 |
+| --- | --- |
+| cola-component-dto | 定义了DTO格式，包括分页 |
+| cola-component-exception | 定义了异常格式 |
+| cola-component-statemachine | 状态机组件 |
+| cola-component-domain-starter | Spring托管的领域实体组件 |
+| cola-component-catchlog-starter | 异常处理和日志组件 |
+| cola-component-extension-starter | 扩展点组件 |
+| cola-component-test-container | 测试容器组件 |
+
+如上工具，代码都较为精炼，三方依赖极少，如果团队无技术标准要求和内部约定的组件标准，可以使用如上工具组件作为快速落地的实践工具。
+
+# 4. 获取资源
+
+本文资料来源：
+
+- COLA： [https://github.com/alibaba/COLA](https://github.com/alibaba/COLA)
