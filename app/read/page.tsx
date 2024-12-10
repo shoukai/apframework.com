@@ -86,19 +86,19 @@ const Bookrack: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 bg-gradient-to-b from-gray-50 to-white min-h-screen">
+    <div className="container mx-auto px-4 py-6 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {shelfYearList.map((year) => (
         <div key={year.yearIndex} className="mb-10">
-          <h2 className="text-3xl font-bold mb-6 pb-3 border-b-2 border-gray-200 text-gray-800 tracking-tight flex items-center">
+          <h2 className="text-3xl font-bold mb-6 pb-3 border-b-2 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 tracking-tight flex items-center">
             <span className="bg-gradient-to-r from-blue-600 to-blue-400 text-transparent bg-clip-text">{year.yearIndex}</span>
-            <span className="ml-3 text-2xl text-gray-600">年度阅读</span>
+            <span className="ml-3 text-2xl text-gray-600 dark:text-gray-300">年度阅读</span>
           </h2>
           {year.monthShelf.map((month) => (
             <div key={month.monthIndex} className="mb-8">
-              <h3 className="text-xl font-semibold mb-4 text-gray-700 pl-3 border-l-4 border-blue-500 flex items-center bg-blue-50/50 py-1.5 rounded-r-lg">
-                <span className="text-blue-600">{month.monthIndex.toString().slice(4)}</span>
-                <span className="ml-2 text-gray-600">月</span>
-                <span className="ml-4 text-sm text-gray-500 font-normal">· {month.books.length} 本书</span>
+              <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 pl-3 border-l-4 border-blue-500 flex items-center bg-blue-50/50 dark:bg-blue-900/20 py-1.5 rounded-r-lg">
+                <span className="text-blue-600 dark:text-blue-400">{month.monthIndex.toString().slice(4)}</span>
+                <span className="ml-2 text-gray-600 dark:text-gray-300">月</span>
+                <span className="ml-4 text-sm text-gray-500 dark:text-gray-400 font-normal">· {month.books.length} 本书</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
                 {month.books.map((book) => (
@@ -113,7 +113,7 @@ const Bookrack: React.FC = () => {
                   >
                     {visibleBooks.has(book.id) ? (
                       <Card
-                        className="max-w-[180px] group hover:scale-105 transition-all duration-300 bg-white relative overflow-hidden"
+                        className="max-w-[180px] group hover:scale-105 transition-all duration-300 bg-white dark:bg-gray-800 relative overflow-hidden"
                         isFooterBlurred
                         radius="sm"
                         style={{
@@ -122,21 +122,21 @@ const Bookrack: React.FC = () => {
                           borderRadius: '20px',
                         }}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 dark:from-blue-900/10 dark:via-transparent dark:to-purple-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                         <CardHeader className="pb-0 pt-2 px-3 flex-col items-start z-10 rounded-t-lg">
                           <div className="w-full">
-                            <h4 className="font-bold text-sm line-clamp-1 group-hover:text-blue-600 transition-colors font-sans tracking-tight">
+                            <h4 className="font-bold text-sm line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors font-sans tracking-tight dark:text-gray-100">
                               {book.name}
                             </h4>
-                            <div className="flex items-center gap-1.5 mt-1 text-gray-500 text-xs">
+                            <div className="flex items-center gap-1.5 mt-1 text-gray-500 dark:text-gray-400 text-xs">
                               <span className="flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
-                                {new Date(book.readTime).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
+                                <span className="text-gray-600 dark:text-gray-300">{new Date(book.readTime).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>
                               </span>
                               {book.tags && (
-                                <span className="bg-blue-50 text-blue-600 px-1 py-0.5 rounded text-[10px] max-w-[80px] truncate">
+                                <span className="bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-1 py-0.5 rounded text-[10px] max-w-[80px] truncate">
                                   {book.tags.split(',')[0]}
                                 </span>
                               )}
@@ -173,22 +173,22 @@ const Bookrack: React.FC = () => {
                                   </div>
                                 ) : (
                                   <div className="w-[180px] h-[240px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                    <span className="text-gray-400">暂无封面</span>
+                                    <span className="text-gray-400 dark:text-gray-600">暂无封面</span>
                                   </div>
                                 )}
                               </a>
                             )}
                           </div>
                         </CardBody>
-                        <CardFooter className="absolute bg-black/40 bottom-0 z-10 border-t-1 border-default-600 dark:border-default-100 w-full justify-center rounded-b-lg overflow-hidden backdrop-blur-sm py-0.5">
+                        <CardFooter className="absolute bg-black/40 dark:bg-white/10 bottom-0 z-10 border-t-1 border-default-600 dark:border-default-100 w-full justify-center rounded-b-lg overflow-hidden backdrop-blur-sm py-0.5">
                           <div className="flex items-center justify-center gap-2 w-full">
                             <div className="flex items-center gap-1">
-                              <span className="text-white/90 text-[10px] font-semibold">豆瓣</span>
-                              <span className="text-white font-bold bg-white/10 px-1.5 py-0.5 rounded-sm text-[10px]">{book.doubanScore}</span>
+                              <span className="text-white/90 dark:text-gray-400 text-[10px] font-semibold">豆瓣</span>
+                              <span className="text-white dark:text-gray-200 font-bold bg-white/10 dark:bg-gray-800/10 px-1.5 py-0.5 rounded-sm text-[10px]">{book.doubanScore}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-white/90 text-[10px] font-semibold">出版</span>
-                              <span className="text-white font-bold bg-white/10 px-1.5 py-0.5 rounded-sm text-[10px]">
+                              <span className="text-white/90 dark:text-gray-400 text-[10px] font-semibold">出版</span>
+                              <span className="text-white dark:text-gray-200 font-bold bg-white/10 dark:bg-gray-800/10 px-1.5 py-0.5 rounded-sm text-[10px]">
                                 {new Date(book.publishTime).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}
                               </span>
                             </div>
@@ -196,7 +196,7 @@ const Bookrack: React.FC = () => {
                         </CardFooter>
                       </Card>
                     ) : (
-                      <div className="max-w-[180px] h-[320px] bg-gray-100 animate-pulse rounded-[20px]" />
+                      <div className="max-w-[180px] h-[320px] bg-gray-100 dark:bg-gray-800 animate-pulse rounded-[20px]" />
                     )}
                   </div>
                 ))}
