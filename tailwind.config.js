@@ -47,7 +47,7 @@ module.exports = {
               code: { color: theme('colors.primary.400') },
             },
             'h1,h2': {
-              fontWeight: '700',
+              fontWeight: 'normal',
               letterSpacing: theme('letterSpacing.tight'),
             },
             h3: {
