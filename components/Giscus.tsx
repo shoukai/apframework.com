@@ -14,10 +14,10 @@ export default function Giscus() {
 
     const script = document.createElement('script')
     script.src = 'https://giscus.app/client.js'
-    script.setAttribute('data-repo', 'shoukai/apframework.com') // 替换为你的 GitHub 用户名/仓库名
-    script.setAttribute('data-repo-id', '897344566') // GitHub repository ID
-    script.setAttribute('data-category', 'message') // 替换为你想使用的 discussion 分类
-    script.setAttribute('data-category-id', '43354423') // 替换为分类 ID
+    script.setAttribute('data-repo', 'shoukai/apframework.com')
+    script.setAttribute('data-repo-id', '897344566')
+    script.setAttribute('data-category', 'Announcements')
+    script.setAttribute('data-category-id', '43354423')
     script.setAttribute('data-mapping', 'pathname')
     script.setAttribute('data-strict', '0')
     script.setAttribute('data-reactions-enabled', '1')
@@ -25,6 +25,7 @@ export default function Giscus() {
     script.setAttribute('data-input-position', 'bottom')
     script.setAttribute('data-theme', commentsTheme)
     script.setAttribute('data-lang', 'zh-CN')
+    script.setAttribute('data-loading', 'lazy')
     script.setAttribute('crossorigin', 'anonymous')
     script.async = true
 
@@ -49,7 +50,7 @@ export default function Giscus() {
       {enableLoadComments && (
         <button onClick={LoadComments}>加载评论</button>
       )}
-      <div className="giscus" id="giscus-comments" />
+      <div id="giscus-comments" className="giscus-frame-container" />
     </div>
   )
 }

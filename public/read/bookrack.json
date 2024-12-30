@@ -8,8 +8,279 @@
         "yearIndex": 2024,
         "monthShelf": [
           {
+            "monthIndex": 202412,
+            "books": [
+              {
+                "id": 349,
+                "name": "生成式AI入门与AWS实战",
+                "bookLinkUrl": "https://book.douban.com/subject/36906611/",
+                "bookImageUrl": "s34872154.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2024-5",
+                "doubanScore": "9.3",
+                "personalScore": "5.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 350,
+                "name": "企业架构驱动数字化转型：以架构为中心的端到端转型方法论",
+                "bookLinkUrl": "https://book.douban.com/subject/36637583/",
+                "bookImageUrl": "s34692163.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2023-11",
+                "doubanScore": "0.0",
+                "personalScore": "5.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 351,
+                "name": "后资本主义生活",
+                "bookLinkUrl": "https://book.douban.com/subject/36986333/",
+                "bookImageUrl": "s34923529.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2024-9-1",
+                "doubanScore": "7.1",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 352,
+                "name": "智人之上",
+                "bookLinkUrl": "https://book.douban.com/subject/37001305/",
+                "bookImageUrl": "s34941172.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2024-9",
+                "doubanScore": "8.1",
+                "personalScore": "4.0",
+                "tags": "历史；人类学；社会学；思维；社会；社科；AI；科学；信息；人工智能；",
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 353,
+                "name": "设计，几何：AI时代的设计师生存手册",
+                "bookLinkUrl": "https://book.douban.com/subject/36872509/",
+                "bookImageUrl": "s34855745.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2024-4-1",
+                "doubanScore": "0.0",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 354,
+                "name": "视觉之外",
+                "bookLinkUrl": "https://book.douban.com/subject/35021013/",
+                "bookImageUrl": "s33612234.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2020-5",
+                "doubanScore": "7.2",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 355,
+                "name": "YES！产品经理（上、下册）",
+                "bookLinkUrl": "https://book.douban.com/subject/6838110/",
+                "bookImageUrl": "s6953362.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2011-9-1",
+                "doubanScore": "7.3",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 356,
+                "name": "增长奇迹之后",
+                "bookLinkUrl": "https://book.douban.com/subject/37089003/",
+                "bookImageUrl": "s34988769.jpg",
+                "readTime": "2024-12-21 00:00:00",
+                "publishTime": "2024-9",
+                "doubanScore": "0.0",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 357,
+                "name": "大模型RAG实战",
+                "bookLinkUrl": "https://book.douban.com/subject/37104428/",
+                "bookImageUrl": "s34998464.jpg",
+                "readTime": "2024-12-17 00:00:00",
+                "publishTime": "2024-9-15",
+                "doubanScore": "7.5",
+                "personalScore": "4.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 358,
+                "name": "做难而正确的事",
+                "bookLinkUrl": "https://book.douban.com/subject/37054102/",
+                "bookImageUrl": "s34981838.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-10-1",
+                "doubanScore": "7.6",
+                "personalScore": "5.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 359,
+                "name": "如何度过每天的24小时",
+                "bookLinkUrl": "https://book.douban.com/subject/37033117/",
+                "bookImageUrl": "s34974294.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-10",
+                "doubanScore": "6.4",
+                "personalScore": "3.0",
+                "tags": "成长；",
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 360,
+                "name": "更重要的是过好今天",
+                "bookLinkUrl": "https://book.douban.com/subject/36818098/",
+                "bookImageUrl": "s34819890.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-3",
+                "doubanScore": "6.5",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 361,
+                "name": "表层的真理",
+                "bookLinkUrl": "https://book.douban.com/subject/36752177/",
+                "bookImageUrl": "s34774266.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-3-1",
+                "doubanScore": "8.0",
+                "personalScore": "4.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 362,
+                "name": "去遇见",
+                "bookLinkUrl": "https://book.douban.com/subject/36940661/",
+                "bookImageUrl": "s34895211.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-7-4",
+                "doubanScore": "6.6",
+                "personalScore": "3.0",
+                "tags": "旅行；随笔；女性；",
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 363,
+                "name": "精通API架构：设计、运维与演进 [英]詹姆斯·高夫",
+                "bookLinkUrl": "https://book.douban.com/subject/36975373/",
+                "bookImageUrl": "s34915901.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": null,
+                "doubanScore": "0.0",
+                "personalScore": "4.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 364,
+                "name": "无边界学习",
+                "bookLinkUrl": "https://book.douban.com/subject/36839904/",
+                "bookImageUrl": "s34833338.jpg",
+                "readTime": "2024-12-08 00:00:00",
+                "publishTime": "2024-5",
+                "doubanScore": "5.3",
+                "personalScore": "4.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              },
+              {
+                "id": 365,
+                "name": "新质生产力：看懂未来经济走势",
+                "bookLinkUrl": "https://book.douban.com/subject/36975077/",
+                "bookImageUrl": "s34915590.jpg",
+                "readTime": "2024-12-06 00:00:00",
+                "publishTime": null,
+                "doubanScore": "0.0",
+                "personalScore": "3.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202412,
+                "yearIndex": 2024
+              }
+            ]
+          },
+          {
             "monthIndex": 202411,
             "books": [
+              {
+                "id": 366,
+                "name": "毛泽东选集 第四卷",
+                "bookLinkUrl": "https://book.douban.com/subject/1139359/",
+                "bookImageUrl": "s5731254.jpg",
+                "readTime": "2024-11-30 00:00:00",
+                "publishTime": "1991",
+                "doubanScore": "9.4",
+                "personalScore": "5.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202411,
+                "yearIndex": 2024
+              },
+              {
+                "id": 367,
+                "name": "架构思维：从程序员到CTO",
+                "bookLinkUrl": "https://book.douban.com/subject/36804982/",
+                "bookImageUrl": "s34815723.jpg",
+                "readTime": "2024-11-30 00:00:00",
+                "publishTime": "2024-3",
+                "doubanScore": "9.1",
+                "personalScore": "5.0",
+                "tags": null,
+                "notes": [],
+                "yearMonthIndex": 202411,
+                "yearIndex": 2024
+              },
               {
                 "id": 10,
                 "name": "隐藏的潜能",
@@ -33,7 +304,7 @@
                 "publishTime": "2024-6-30",
                 "doubanScore": "6.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202411,
                 "yearIndex": 2024
@@ -47,7 +318,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202411,
                 "yearIndex": 2024
@@ -61,7 +332,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202411,
                 "yearIndex": 2024
@@ -75,7 +346,7 @@
                 "publishTime": "2023-2",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202411,
                 "yearIndex": 2024
@@ -89,7 +360,7 @@
                 "publishTime": "2019-4",
                 "doubanScore": "6.3",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202411,
                 "yearIndex": 2024
@@ -108,7 +379,7 @@
                 "publishTime": "2018-10",
                 "doubanScore": "8.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -122,7 +393,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -150,7 +421,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "7.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -164,7 +435,7 @@
                 "publishTime": "2024-7",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -184,48 +455,6 @@
                 "yearIndex": 2024
               },
               {
-                "id": 22,
-                "name": "风起陇西",
-                "bookLinkUrl": "https://book.douban.com/subject/36087703/",
-                "bookImageUrl": "s34363639.jpg",
-                "readTime": "2024-10-25 00:00:00",
-                "publishTime": "2022-10",
-                "doubanScore": "6.7",
-                "personalScore": "3.0",
-                "tags": "",
-                "notes": [],
-                "yearMonthIndex": 202410,
-                "yearIndex": 2024
-              },
-              {
-                "id": 23,
-                "name": "白帝城之夜",
-                "bookLinkUrl": "https://book.douban.com/subject/36087702/",
-                "bookImageUrl": "s34363640.jpg",
-                "readTime": "2024-10-25 00:00:00",
-                "publishTime": "2022-10",
-                "doubanScore": "6.8",
-                "personalScore": "3.0",
-                "tags": "",
-                "notes": [],
-                "yearMonthIndex": 202410,
-                "yearIndex": 2024
-              },
-              {
-                "id": 24,
-                "name": "官渡杀人事件",
-                "bookLinkUrl": "https://book.douban.com/subject/36087701/",
-                "bookImageUrl": "s34363638.jpg",
-                "readTime": "2024-10-25 00:00:00",
-                "publishTime": "2022-10",
-                "doubanScore": "6.6",
-                "personalScore": "3.0",
-                "tags": "",
-                "notes": [],
-                "yearMonthIndex": 202410,
-                "yearIndex": 2024
-              },
-              {
                 "id": 25,
                 "name": "Kubernetes快速入门（第2版）",
                 "bookLinkUrl": "https://book.douban.com/subject/36783187/",
@@ -234,7 +463,7 @@
                 "publishTime": "2024-2",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -248,7 +477,7 @@
                 "publishTime": "2024-4",
                 "doubanScore": "9.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -262,7 +491,7 @@
                 "publishTime": "2019-8-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -276,7 +505,7 @@
                 "publishTime": "2023-10-16",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -304,7 +533,7 @@
                 "publishTime": "2024-5",
                 "doubanScore": "6.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -318,7 +547,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -332,7 +561,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -346,7 +575,7 @@
                 "publishTime": "2017-10",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202410,
                 "yearIndex": 2024
@@ -365,7 +594,7 @@
                 "publishTime": "2023-12",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -379,7 +608,7 @@
                 "publishTime": null,
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -393,7 +622,7 @@
                 "publishTime": "2022-7-1",
                 "doubanScore": "9.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -407,7 +636,7 @@
                 "publishTime": "2018-12",
                 "doubanScore": "6.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -421,7 +650,7 @@
                 "publishTime": "2019-6",
                 "doubanScore": "7.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -435,7 +664,7 @@
                 "publishTime": "2023-6-29",
                 "doubanScore": "8.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -449,7 +678,7 @@
                 "publishTime": "2022-10",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -463,7 +692,7 @@
                 "publishTime": "2022-4-10",
                 "doubanScore": "7.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -477,7 +706,7 @@
                 "publishTime": "2023-10-30",
                 "doubanScore": "7.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -491,7 +720,7 @@
                 "publishTime": "2015-12",
                 "doubanScore": "7.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -505,7 +734,7 @@
                 "publishTime": "2023-11",
                 "doubanScore": "7.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -519,7 +748,7 @@
                 "publishTime": "2021-5",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -533,7 +762,7 @@
                 "publishTime": "2022-1",
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -547,7 +776,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -561,7 +790,7 @@
                 "publishTime": "2018-6",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -575,7 +804,7 @@
                 "publishTime": "2019-10-1",
                 "doubanScore": "9.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -589,7 +818,7 @@
                 "publishTime": "2017-12",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -603,7 +832,7 @@
                 "publishTime": "2020-8-24",
                 "doubanScore": "6.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -617,7 +846,7 @@
                 "publishTime": "2013-9-1",
                 "doubanScore": "7.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -631,7 +860,7 @@
                 "publishTime": "2018-5-1",
                 "doubanScore": "7.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -659,7 +888,7 @@
                 "publishTime": "2024-4",
                 "doubanScore": "6.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -673,7 +902,7 @@
                 "publishTime": "2023-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -687,7 +916,7 @@
                 "publishTime": "2016-8",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -701,7 +930,7 @@
                 "publishTime": "2011-1-1",
                 "doubanScore": "9.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -715,7 +944,7 @@
                 "publishTime": "2020-5",
                 "doubanScore": "6.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -757,7 +986,7 @@
                 "publishTime": "2024-4-20",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -771,7 +1000,7 @@
                 "publishTime": "2024-1",
                 "doubanScore": "7.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -785,7 +1014,7 @@
                 "publishTime": "2024-8",
                 "doubanScore": "8.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -799,7 +1028,7 @@
                 "publishTime": "2020-4",
                 "doubanScore": "5.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -813,7 +1042,7 @@
                 "publishTime": "2022-10",
                 "doubanScore": "8.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -827,7 +1056,7 @@
                 "publishTime": "2024-4-1",
                 "doubanScore": "8.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -841,7 +1070,7 @@
                 "publishTime": "2013-1-1",
                 "doubanScore": "8.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -855,7 +1084,7 @@
                 "publishTime": "2023-6",
                 "doubanScore": "9.0",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202409,
                 "yearIndex": 2024
@@ -888,7 +1117,7 @@
                 "publishTime": "2022-11",
                 "doubanScore": "6.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -902,7 +1131,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -916,7 +1145,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -930,7 +1159,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -944,7 +1173,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -958,7 +1187,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -972,7 +1201,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1000,7 +1229,7 @@
                 "publishTime": "2016-10",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1014,7 +1243,7 @@
                 "publishTime": "2010-8",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1028,7 +1257,7 @@
                 "publishTime": "2016-10",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1042,7 +1271,7 @@
                 "publishTime": "2016",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1056,7 +1285,7 @@
                 "publishTime": "2013-6-1",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1070,7 +1299,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1098,7 +1327,7 @@
                 "publishTime": "2018-2",
                 "doubanScore": "9.2",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1112,7 +1341,7 @@
                 "publishTime": "2021-7",
                 "doubanScore": "9.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1126,7 +1355,7 @@
                 "publishTime": "2022-9-5",
                 "doubanScore": "8.9",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202408,
                 "yearIndex": 2024
@@ -1145,7 +1374,7 @@
                 "publishTime": "2016-10",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202407,
                 "yearIndex": 2024
@@ -1159,7 +1388,7 @@
                 "publishTime": "2019-3",
                 "doubanScore": "8.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202407,
                 "yearIndex": 2024
@@ -1173,7 +1402,7 @@
                 "publishTime": "2019-6",
                 "doubanScore": "7.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202407,
                 "yearIndex": 2024
@@ -1201,7 +1430,7 @@
                 "publishTime": "2024-3",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202407,
                 "yearIndex": 2024
@@ -1220,7 +1449,7 @@
                 "publishTime": "2024-5-6",
                 "doubanScore": "7.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202406,
                 "yearIndex": 2024
@@ -1239,7 +1468,7 @@
                 "publishTime": "2024-3",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202405,
                 "yearIndex": 2024
@@ -1258,7 +1487,7 @@
                 "publishTime": "2019-7",
                 "doubanScore": "8.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202404,
                 "yearIndex": 2024
@@ -1277,7 +1506,7 @@
                 "publishTime": "2024-1",
                 "doubanScore": "7.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1305,7 +1534,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1319,7 +1548,7 @@
                 "publishTime": "2024-1",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1333,7 +1562,7 @@
                 "publishTime": "2024-1",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1347,7 +1576,7 @@
                 "publishTime": "2013-9-1",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1361,7 +1590,7 @@
                 "publishTime": "2020-7",
                 "doubanScore": "7.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1375,7 +1604,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1389,7 +1618,7 @@
                 "publishTime": "2020-9-1",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1403,7 +1632,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1417,7 +1646,7 @@
                 "publishTime": "2018-7",
                 "doubanScore": "6.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202403,
                 "yearIndex": 2024
@@ -1436,7 +1665,7 @@
                 "publishTime": "2023-4",
                 "doubanScore": "6.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1450,7 +1679,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1464,7 +1693,7 @@
                 "publishTime": "2023-3-1",
                 "doubanScore": "7.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1478,7 +1707,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1492,7 +1721,7 @@
                 "publishTime": "2023-11",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1506,7 +1735,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1520,7 +1749,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202402,
                 "yearIndex": 2024
@@ -1539,7 +1768,7 @@
                 "publishTime": "2023-11",
                 "doubanScore": "8.0",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202401,
                 "yearIndex": 2024
@@ -1553,7 +1782,7 @@
                 "publishTime": "2015-2",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202401,
                 "yearIndex": 2024
@@ -1567,7 +1796,7 @@
                 "publishTime": "2023-9-1",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202401,
                 "yearIndex": 2024
@@ -1591,7 +1820,7 @@
                 "publishTime": null,
                 "doubanScore": "8.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1605,7 +1834,7 @@
                 "publishTime": "2018-10-1",
                 "doubanScore": "7.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1619,7 +1848,7 @@
                 "publishTime": "2019-7-25",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1633,7 +1862,7 @@
                 "publishTime": "1998-11",
                 "doubanScore": "8.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1647,7 +1876,7 @@
                 "publishTime": "2023-1",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1661,7 +1890,7 @@
                 "publishTime": "2022-8-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1675,7 +1904,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "7.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1689,7 +1918,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1703,7 +1932,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1717,7 +1946,7 @@
                 "publishTime": "2019-10",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1731,7 +1960,7 @@
                 "publishTime": "2022-7",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1745,7 +1974,7 @@
                 "publishTime": "2020-11",
                 "doubanScore": "5.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1759,7 +1988,7 @@
                 "publishTime": "2021-9",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1773,7 +2002,7 @@
                 "publishTime": "2020-3-28",
                 "doubanScore": "8.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1787,7 +2016,7 @@
                 "publishTime": "2022-8",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1801,7 +2030,7 @@
                 "publishTime": "2021-9",
                 "doubanScore": "6.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1815,7 +2044,7 @@
                 "publishTime": "2022-5",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1829,7 +2058,7 @@
                 "publishTime": "2020-4-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1843,7 +2072,7 @@
                 "publishTime": "2023-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1857,7 +2086,7 @@
                 "publishTime": "2021-1",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1871,7 +2100,7 @@
                 "publishTime": "2019-1",
                 "doubanScore": "8.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1885,7 +2114,7 @@
                 "publishTime": "2022-1",
                 "doubanScore": "7.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202312,
                 "yearIndex": 2023
@@ -1904,7 +2133,7 @@
                 "publishTime": "2023-11",
                 "doubanScore": "6.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1918,7 +2147,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1932,7 +2161,7 @@
                 "publishTime": "2023-7-7",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1946,7 +2175,7 @@
                 "publishTime": "2020-6",
                 "doubanScore": "6.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1960,7 +2189,7 @@
                 "publishTime": "2021-4",
                 "doubanScore": "7.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1974,7 +2203,7 @@
                 "publishTime": "2021-4",
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -1988,7 +2217,7 @@
                 "publishTime": "2020-8",
                 "doubanScore": "7.3",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2002,7 +2231,7 @@
                 "publishTime": "2020-8",
                 "doubanScore": "7.8",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2016,7 +2245,7 @@
                 "publishTime": "2020-8",
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2030,7 +2259,7 @@
                 "publishTime": "2021-4",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2044,7 +2273,7 @@
                 "publishTime": "2020-8",
                 "doubanScore": "7.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2058,7 +2287,7 @@
                 "publishTime": "2020-8",
                 "doubanScore": "7.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2072,7 +2301,7 @@
                 "publishTime": "2019-10",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2086,7 +2315,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2100,7 +2329,7 @@
                 "publishTime": "2019-5-31",
                 "doubanScore": "6.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2114,7 +2343,7 @@
                 "publishTime": null,
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2128,7 +2357,7 @@
                 "publishTime": "2023-9",
                 "doubanScore": "6.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2142,7 +2371,7 @@
                 "publishTime": "2019-1-1",
                 "doubanScore": "8.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2156,7 +2385,7 @@
                 "publishTime": "2018-7-1",
                 "doubanScore": "8.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2170,7 +2399,7 @@
                 "publishTime": "2014-7",
                 "doubanScore": "7.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2184,7 +2413,7 @@
                 "publishTime": "2015-8",
                 "doubanScore": "7.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2198,7 +2427,7 @@
                 "publishTime": "2022-8-29",
                 "doubanScore": "7.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2212,7 +2441,7 @@
                 "publishTime": "2023-10",
                 "doubanScore": "5.7",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2226,7 +2455,7 @@
                 "publishTime": "2023-6",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2240,7 +2469,7 @@
                 "publishTime": "2019-12",
                 "doubanScore": "8.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2254,7 +2483,7 @@
                 "publishTime": "2023-1-1",
                 "doubanScore": "8.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202311,
                 "yearIndex": 2023
@@ -2273,7 +2502,7 @@
                 "publishTime": "2021-11",
                 "doubanScore": "7.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202310,
                 "yearIndex": 2023
@@ -2287,7 +2516,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "6.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202310,
                 "yearIndex": 2023
@@ -2306,7 +2535,7 @@
                 "publishTime": "2023-5-1",
                 "doubanScore": "7.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202309,
                 "yearIndex": 2023
@@ -2325,7 +2554,7 @@
                 "publishTime": "2016-11",
                 "doubanScore": "7.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202308,
                 "yearIndex": 2023
@@ -2339,7 +2568,7 @@
                 "publishTime": "2013-5",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202308,
                 "yearIndex": 2023
@@ -2353,7 +2582,7 @@
                 "publishTime": "2014-6-1",
                 "doubanScore": "8.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202308,
                 "yearIndex": 2023
@@ -2367,7 +2596,7 @@
                 "publishTime": "2015-1",
                 "doubanScore": "8.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202308,
                 "yearIndex": 2023
@@ -2386,7 +2615,7 @@
                 "publishTime": "2021-4",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2400,7 +2629,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2414,7 +2643,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2428,7 +2657,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2442,7 +2671,7 @@
                 "publishTime": "2017-10",
                 "doubanScore": "7.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2456,7 +2685,7 @@
                 "publishTime": "2021-11",
                 "doubanScore": "9.1",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202307,
                 "yearIndex": 2023
@@ -2475,7 +2704,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202306,
                 "yearIndex": 2023
@@ -2489,7 +2718,7 @@
                 "publishTime": "2023-5",
                 "doubanScore": "7.2",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202306,
                 "yearIndex": 2023
@@ -2508,7 +2737,7 @@
                 "publishTime": "2021-8-16",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202305,
                 "yearIndex": 2023
@@ -2541,7 +2770,7 @@
                 "publishTime": "1991-6",
                 "doubanScore": "9.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202304,
                 "yearIndex": 2023
@@ -2560,7 +2789,7 @@
                 "publishTime": "2012-5",
                 "doubanScore": "8.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202302,
                 "yearIndex": 2023
@@ -2574,7 +2803,7 @@
                 "publishTime": "2018-4",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202302,
                 "yearIndex": 2023
@@ -2588,7 +2817,7 @@
                 "publishTime": "2013-4",
                 "doubanScore": "9.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202302,
                 "yearIndex": 2023
@@ -2602,7 +2831,7 @@
                 "publishTime": "2022-8",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202302,
                 "yearIndex": 2023
@@ -2621,7 +2850,7 @@
                 "publishTime": "2016-1",
                 "doubanScore": "8.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202301,
                 "yearIndex": 2023
@@ -2645,7 +2874,7 @@
                 "publishTime": "2018-3-1",
                 "doubanScore": "7.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2659,7 +2888,7 @@
                 "publishTime": "2022-10",
                 "doubanScore": "7.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2673,7 +2902,7 @@
                 "publishTime": "2021-4-19",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2687,7 +2916,7 @@
                 "publishTime": "2015-12-1",
                 "doubanScore": "7.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2701,7 +2930,7 @@
                 "publishTime": "2019-3",
                 "doubanScore": "8.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2715,7 +2944,7 @@
                 "publishTime": "2019-12",
                 "doubanScore": "6.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2729,7 +2958,7 @@
                 "publishTime": "2018-2",
                 "doubanScore": "8.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2743,7 +2972,7 @@
                 "publishTime": "2021-12-30",
                 "doubanScore": "7.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2757,7 +2986,7 @@
                 "publishTime": "2019-6",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2771,7 +3000,7 @@
                 "publishTime": "2020-9",
                 "doubanScore": "8.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2785,7 +3014,7 @@
                 "publishTime": "2018-3-1",
                 "doubanScore": "6.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2799,7 +3028,7 @@
                 "publishTime": "2021-8-20",
                 "doubanScore": "7.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2813,7 +3042,7 @@
                 "publishTime": "2021-6-30",
                 "doubanScore": "9.2",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2827,7 +3056,7 @@
                 "publishTime": "2021-8",
                 "doubanScore": "7.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202212,
                 "yearIndex": 2022
@@ -2846,7 +3075,7 @@
                 "publishTime": "2022-9-1",
                 "doubanScore": "7.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2860,7 +3089,7 @@
                 "publishTime": "2020-4",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2874,7 +3103,7 @@
                 "publishTime": "2020-4-15",
                 "doubanScore": "9.2",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2888,7 +3117,7 @@
                 "publishTime": "2021-9",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2902,7 +3131,7 @@
                 "publishTime": "2021-10-25",
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2916,7 +3145,7 @@
                 "publishTime": "2017-2-1",
                 "doubanScore": "6.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2930,7 +3159,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2944,7 +3173,7 @@
                 "publishTime": "2022-1",
                 "doubanScore": "5.6",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2958,7 +3187,7 @@
                 "publishTime": "2022-1",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2972,7 +3201,7 @@
                 "publishTime": "2007-11",
                 "doubanScore": "8.6",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -2986,7 +3215,7 @@
                 "publishTime": "2019-4",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3000,7 +3229,7 @@
                 "publishTime": null,
                 "doubanScore": "5.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3014,7 +3243,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3028,7 +3257,7 @@
                 "publishTime": "2016-8",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3042,7 +3271,7 @@
                 "publishTime": "2022-2",
                 "doubanScore": "6.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3056,7 +3285,7 @@
                 "publishTime": "2012-2",
                 "doubanScore": "6.1",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3070,7 +3299,7 @@
                 "publishTime": "2021-11",
                 "doubanScore": "8.2",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3084,7 +3313,7 @@
                 "publishTime": "2020-3",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3098,7 +3327,7 @@
                 "publishTime": "2022-3-1",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3112,7 +3341,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3126,7 +3355,7 @@
                 "publishTime": "2020-4",
                 "doubanScore": "7.6",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3140,7 +3369,7 @@
                 "publishTime": "2021-1-1",
                 "doubanScore": "7.6",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3154,7 +3383,7 @@
                 "publishTime": "2010-12-10",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3168,7 +3397,7 @@
                 "publishTime": "2020-7",
                 "doubanScore": "8.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3182,7 +3411,7 @@
                 "publishTime": "2022-10",
                 "doubanScore": "5.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3196,7 +3425,7 @@
                 "publishTime": "2022-2",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3210,7 +3439,7 @@
                 "publishTime": "2022-11",
                 "doubanScore": "0.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3224,7 +3453,7 @@
                 "publishTime": "2007-11",
                 "doubanScore": "8.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3238,7 +3467,7 @@
                 "publishTime": "2022-8-1",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3252,7 +3481,7 @@
                 "publishTime": "2020-8-28",
                 "doubanScore": "8.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3266,7 +3495,7 @@
                 "publishTime": "2022-8",
                 "doubanScore": "7.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3280,7 +3509,7 @@
                 "publishTime": "2019-1",
                 "doubanScore": "8.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3294,7 +3523,7 @@
                 "publishTime": "2019-7",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3308,7 +3537,7 @@
                 "publishTime": "2022-10-1",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3322,7 +3551,7 @@
                 "publishTime": "2021-10-9",
                 "doubanScore": "6.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3336,7 +3565,7 @@
                 "publishTime": "2013-3",
                 "doubanScore": "8.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3350,7 +3579,7 @@
                 "publishTime": "2008-9",
                 "doubanScore": "8.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3364,7 +3593,7 @@
                 "publishTime": "2017-9",
                 "doubanScore": "4.9",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3378,7 +3607,7 @@
                 "publishTime": "2022-10",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3392,7 +3621,7 @@
                 "publishTime": "2022-9",
                 "doubanScore": "7.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3406,7 +3635,7 @@
                 "publishTime": "2022-5",
                 "doubanScore": "6.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3420,7 +3649,7 @@
                 "publishTime": "2022-7",
                 "doubanScore": "0.0",
                 "personalScore": "0.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3434,7 +3663,7 @@
                 "publishTime": null,
                 "doubanScore": "3.3",
                 "personalScore": "0.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202211,
                 "yearIndex": 2022
@@ -3453,7 +3682,7 @@
                 "publishTime": "2022-5-1",
                 "doubanScore": "7.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3467,7 +3696,7 @@
                 "publishTime": "2017-10-1",
                 "doubanScore": "7.3",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3481,7 +3710,7 @@
                 "publishTime": "2022-3",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3495,7 +3724,7 @@
                 "publishTime": "2021-10",
                 "doubanScore": "6.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3509,7 +3738,7 @@
                 "publishTime": "2021-8",
                 "doubanScore": "7.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3523,7 +3752,7 @@
                 "publishTime": "2020-6-1",
                 "doubanScore": "7.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3537,7 +3766,7 @@
                 "publishTime": "2018-12",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3551,7 +3780,7 @@
                 "publishTime": "2022-5",
                 "doubanScore": "6.5",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3565,7 +3794,7 @@
                 "publishTime": "2019-5",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3579,7 +3808,7 @@
                 "publishTime": "2019-12",
                 "doubanScore": "9.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3593,7 +3822,7 @@
                 "publishTime": "2021-2-23",
                 "doubanScore": "7.0",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3607,7 +3836,7 @@
                 "publishTime": "2020-5",
                 "doubanScore": "7.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3621,7 +3850,7 @@
                 "publishTime": "2021-4",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3635,7 +3864,7 @@
                 "publishTime": "2016-7-1",
                 "doubanScore": "8.6",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3649,7 +3878,7 @@
                 "publishTime": "2020-1-1",
                 "doubanScore": "6.9",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3663,7 +3892,7 @@
                 "publishTime": "2021-1",
                 "doubanScore": "7.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3677,7 +3906,7 @@
                 "publishTime": "2018-12",
                 "doubanScore": "6.7",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3691,7 +3920,7 @@
                 "publishTime": "2017-10",
                 "doubanScore": "7.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3705,7 +3934,7 @@
                 "publishTime": "2019-1",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3719,7 +3948,7 @@
                 "publishTime": "2011-1",
                 "doubanScore": "8.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3733,7 +3962,7 @@
                 "publishTime": "2016-5",
                 "doubanScore": "8.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3747,7 +3976,7 @@
                 "publishTime": "2014-9",
                 "doubanScore": "8.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3761,7 +3990,7 @@
                 "publishTime": "2010/11/08",
                 "doubanScore": "7.7",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3775,7 +4004,7 @@
                 "publishTime": "2014-5",
                 "doubanScore": "8.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202210,
                 "yearIndex": 2022
@@ -3794,7 +4023,7 @@
                 "publishTime": "2021-5",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202209,
                 "yearIndex": 2022
@@ -3813,7 +4042,7 @@
                 "publishTime": "2010-4-1",
                 "doubanScore": "9.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202207,
                 "yearIndex": 2022
@@ -3827,7 +4056,7 @@
                 "publishTime": "2007-3",
                 "doubanScore": "9.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202207,
                 "yearIndex": 2022
@@ -3841,7 +4070,7 @@
                 "publishTime": "2016-10",
                 "doubanScore": "8.4",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202207,
                 "yearIndex": 2022
@@ -3855,7 +4084,7 @@
                 "publishTime": "2020-7",
                 "doubanScore": "8.9",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202207,
                 "yearIndex": 2022
@@ -3874,7 +4103,7 @@
                 "publishTime": "2022-2",
                 "doubanScore": "7.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3888,7 +4117,7 @@
                 "publishTime": "2022-4",
                 "doubanScore": "6.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3902,7 +4131,7 @@
                 "publishTime": null,
                 "doubanScore": "0.0",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3916,7 +4145,7 @@
                 "publishTime": "2013-2",
                 "doubanScore": "9.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3930,7 +4159,7 @@
                 "publishTime": "2022-3",
                 "doubanScore": "0.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3944,7 +4173,7 @@
                 "publishTime": "2022-1",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3958,7 +4187,7 @@
                 "publishTime": "2021-1",
                 "doubanScore": "9.1",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3972,7 +4201,7 @@
                 "publishTime": "2015-7-1",
                 "doubanScore": "9.3",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -3986,7 +4215,7 @@
                 "publishTime": "2015-4",
                 "doubanScore": "8.5",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -4000,7 +4229,7 @@
                 "publishTime": "2020-12-1",
                 "doubanScore": "7.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -4014,7 +4243,7 @@
                 "publishTime": "2018-12-1",
                 "doubanScore": "7.0",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202206,
                 "yearIndex": 2022
@@ -4033,7 +4262,7 @@
                 "publishTime": "2017-4-1",
                 "doubanScore": "8.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4047,7 +4276,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "7.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4061,7 +4290,7 @@
                 "publishTime": "2021-5-1",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4075,7 +4304,7 @@
                 "publishTime": "2019-12",
                 "doubanScore": "7.9",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4089,7 +4318,7 @@
                 "publishTime": "2021-6-6",
                 "doubanScore": "7.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4103,7 +4332,7 @@
                 "publishTime": "2018-11",
                 "doubanScore": "9.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4117,7 +4346,7 @@
                 "publishTime": "2018-2",
                 "doubanScore": "8.4",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202205,
                 "yearIndex": 2022
@@ -4136,7 +4365,7 @@
                 "publishTime": "2021-11-22",
                 "doubanScore": "7.4",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4150,7 +4379,7 @@
                 "publishTime": "2012-4",
                 "doubanScore": "8.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4164,7 +4393,7 @@
                 "publishTime": "2016-10",
                 "doubanScore": "6.9",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4178,7 +4407,7 @@
                 "publishTime": null,
                 "doubanScore": "6.7",
                 "personalScore": "3.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4192,7 +4421,7 @@
                 "publishTime": "2021-9-27",
                 "doubanScore": "7.7",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4206,7 +4435,7 @@
                 "publishTime": "2020-12",
                 "doubanScore": "6.1",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4220,7 +4449,7 @@
                 "publishTime": "2010-10",
                 "doubanScore": "8.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202204,
                 "yearIndex": 2022
@@ -4239,7 +4468,7 @@
                 "publishTime": "2020-7-1",
                 "doubanScore": "8.5",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202203,
                 "yearIndex": 2022
@@ -4253,7 +4482,7 @@
                 "publishTime": "2014-4-8",
                 "doubanScore": "7.3",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202203,
                 "yearIndex": 2022
@@ -4267,7 +4496,7 @@
                 "publishTime": "2021-8",
                 "doubanScore": "9.1",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202203,
                 "yearIndex": 2022
@@ -4281,7 +4510,7 @@
                 "publishTime": "2021-7",
                 "doubanScore": "7.8",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202203,
                 "yearIndex": 2022
@@ -4295,7 +4524,7 @@
                 "publishTime": "2020-5",
                 "doubanScore": "8.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202203,
                 "yearIndex": 2022
@@ -4319,7 +4548,7 @@
                 "publishTime": "2019-1",
                 "doubanScore": "6.2",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202108,
                 "yearIndex": 2021
@@ -4333,7 +4562,7 @@
                 "publishTime": "2016-11",
                 "doubanScore": "7.8",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202108,
                 "yearIndex": 2021
@@ -4347,7 +4576,7 @@
                 "publishTime": "2021-8",
                 "doubanScore": "7.7",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202108,
                 "yearIndex": 2021
@@ -4361,7 +4590,7 @@
                 "publishTime": "2015-6",
                 "doubanScore": "8.1",
                 "personalScore": "5.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202108,
                 "yearIndex": 2021
@@ -4380,7 +4609,7 @@
                 "publishTime": "2013-1",
                 "doubanScore": "6.6",
                 "personalScore": "4.0",
-                "tags": "",
+                "tags": null,
                 "notes": [],
                 "yearMonthIndex": 202107,
                 "yearIndex": 2021
