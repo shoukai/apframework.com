@@ -2766,6 +2766,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@next/swc-darwin-x64@npm:^15.2.4":
+  version: 15.2.4
+  resolution: "@next/swc-darwin-x64@npm:15.2.4"
+  checksum: 077d1b967f432c8a357900a411a23a0480df216e4c69ec1513fe2d25d7495e6dbb98aaf2f9f605e1412ec637bbdb7501f0a18b93fdc58514309b4f4a80c464c1
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@next/swc-linux-arm64-gnu@npm:15.0.2":
   version: 15.0.2
   resolution: "@next/swc-linux-arm64-gnu@npm:15.0.2"
@@ -14800,6 +14808,7 @@ react@rc:
   dependencies:
     "@headlessui/react": 2.2.0
     "@next/bundle-analyzer": 15.0.2
+    "@next/swc-darwin-x64": ^15.2.4
     "@nextui-org/react": latest
     "@svgr/webpack": ^8.0.1
     "@tailwindcss/forms": ^0.5.9
