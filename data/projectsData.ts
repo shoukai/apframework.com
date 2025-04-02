@@ -7,20 +7,16 @@ interface Project {
 
 const projectsData: Project[] = [
   {
-    title: 'TODO 1',
-    description: `What if you could look up any information in the world? Webpages, images, videos
-    and more. Google has many features to help you find exactly what you're looking
-    for.`,
-    imgSrc: '/static/images/google.png',
-    href: 'https://www.google.com',
+    title: 'shoukai.github.io',
+    description: `过往博客：人生在于体会，今时哪及昔时。`,
+    imgSrc: '/static/images/project-shoukai.github.png',
+    href: 'https://shoukai.github.io/',
   },
   {
-    title: 'TODO 2',
-    description: `Imagine being able to travel back in time or to the future. Simple turn the knob
-    to the desired date and press "Go". No more worrying about lost keys or
-    forgotten headphones with this simple yet affordable solution.`,
-    imgSrc: '/static/images/time-machine.jpg',
-    href: '/blog/the-time-machine',
+    title: 'Awesome LLM Resourses',
+    description: `An awesome & curated list of the best LLMOps tools for developers.`,
+    imgSrc: '/static/images/project-awesome-llm-resourses.png',
+    href: 'https://github.com/shoukai/awesome-llm-resourses',
   },
 ]
 
