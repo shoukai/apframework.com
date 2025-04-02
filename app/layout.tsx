@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     url: './',
     siteName: siteMetadata.title,
     images: [siteMetadata.socialBanner],
-    locale: 'en_US',
+    locale: siteMetadata.locale,
     type: 'website',
   },
   alternates: {
@@ -56,6 +56,7 @@ export const metadata: Metadata = {
     title: siteMetadata.title,
     card: 'summary_large_image',
     images: [siteMetadata.socialBanner],
+    description: siteMetadata.description,
   },
 }
 
