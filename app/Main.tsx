@@ -14,7 +14,7 @@ export default function Home({ posts }) {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div>
           {/* Hero section with background image */}
-          <div className="relative overflow-hidden rounded-xl mb-8 shadow-lg">
+          <div className="relative overflow-hidden rounded-xl mb-5 shadow-lg">
             <div className="h-80 md:h-[28rem]">
               <Image
                 src="/static/images/main.jpeg"
@@ -43,7 +43,7 @@ export default function Home({ posts }) {
           </div>
           
           {/* Navigation links */}
-          <div className="py-6">
+          <div className="pt-3 pb-8">
             <HomeLinks />
           </div>
         </div>

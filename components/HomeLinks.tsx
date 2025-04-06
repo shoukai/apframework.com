@@ -46,20 +46,30 @@ const LINKS = [
 
 export default function HomeLinks() {
   return (
-    <div className="flex flex-col gap-3 py-6">
-      {LINKS.map(({ title, href, type, ariaLabel }) => (
-        <Link
-          key={title}
-          href={href}
-          className="flex items-center gap-2 text-lg text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
-          aria-label={ariaLabel}
-        >
-          <span className="text-xl">{getIconForLink(type)}</span>
-          <span className="border-b border-dashed border-gray-400 hover:border-primary-500 dark:border-gray-600 dark:hover:border-primary-400">
-            {title}
-          </span>
-        </Link>
-      ))}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {LINKS.map(({ title, href, type, ariaLabel }) => {
+        const [mainTitle, subtitle] = title.split(' | ')
+        return (
+          <Link
+            key={title}
+            href={href}
+            className="group flex items-start gap-4 p-5 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-200 dark:hover:border-primary-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-all duration-300 shadow-sm hover:shadow"
+            aria-label={ariaLabel}
+          >
+            <span className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-gray-50 dark:bg-gray-800 text-primary-500 dark:text-primary-400 rounded-xl group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-300 transition-colors duration-300 text-2xl">
+              {getIconForLink(type)}
+            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-medium text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300">
+                {mainTitle}
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {subtitle}
+              </span>
+            </div>
+          </Link>
+        )
+      })}
     </div>
   )
 }
