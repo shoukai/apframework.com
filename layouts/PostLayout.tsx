@@ -1,4 +1,6 @@
-import { ReactNode } from 'react'
+"use client"
+
+import { ReactNode, useEffect, useState } from 'react'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog, Authors } from 'contentlayer/generated'
 import Comments from '@/components/Comments'
@@ -10,10 +12,10 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import Giscus from '@/components/Giscus'
+import TOC from '@/components/TOC'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
-const discussUrl = (path) =>
-  `https://mobile.twitter.com/search?q=${encodeURIComponent(`${siteMetadata.siteUrl}/${path}`)}`
+
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   weekday: 'long',
@@ -33,6 +35,47 @@ interface LayoutProps {
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
+  
+  // Extract headings from the children for TOC
+  const [toc, setToc] = useState<Array<{ id: string; text: string; level: number }>>([]);
+  
+  useEffect(() => {
+    const headingElements = Array.from(document.querySelectorAll('h2, h3, h4, h5, h6'));
+    const headings = headingElements.map((element, index) => {
+      // If element doesn't have an ID, generate one based on its text content
+      if (!element.id) {
+        const text = element.textContent || '';
+        // Create a CSS-safe ID by removing problematic characters and ensuring it starts with a letter
+        let id = text
+          .toLowerCase()
+          .trim()
+          .replace(/[\s.。，,：:（）()]/g, '-') // Replace spaces and punctuation with hyphens
+          .replace(/-+/g, '-')                // Replace multiple hyphens with a single one
+          .replace(/^-+|-+$/g, '')           // Remove leading and trailing hyphens
+          .replace(/[^a-z0-9-_]/g, '');      // Remove any other non-alphanumeric characters except hyphens and underscores
+        
+        // Ensure the ID starts with a letter (required for valid HTML IDs)
+        if (!/^[a-z]/.test(id)) {
+          id = 'h-' + id;
+        }
+        
+        // Add the ID to the element if it doesn't have one
+        if (id) {
+          element.id = id;
+        } else {
+          // Fallback ID if text content doesn't generate a valid ID
+          element.id = `heading-${index}`;
+        }
+      }
+      
+      return {
+        id: element.id,
+        text: element.textContent || '',
+        level: parseInt(element.tagName.substring(1), 10),
+      };
+    });
+    setToc(headings);
+  }, [children]);
 
   return (
     <SectionContainer>
@@ -46,7 +89,10 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   <dt className="sr-only">Published on</dt>
                   <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
                     <time dateTime={date}>
-                      {new Date(date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
+                      {/* Use a more controlled date format to avoid hydration errors */}
+                      {new Date(date).getFullYear()}年
+                      {new Date(date).getMonth() + 1}月
+                      {new Date(date).getDate()}日
                     </time>
                   </dd>
                 </div>
@@ -96,13 +142,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             </dl>
             <div className="divide-y divide-gray-200 dark:divide-gray-700 xl:col-span-3 xl:row-span-2 xl:pb-0">
               <div className="prose max-w-none pb-8 pt-10 dark:prose-invert">{children}</div>
-              <div className="pb-6 pt-6 text-sm text-gray-700 dark:text-gray-300">
-                <Link href={discussUrl(path)} rel="nofollow">
-                  Discuss on Twitter
-                </Link>
-                {` • `}
-                <Link href={editUrl(filePath)}>View on GitHub</Link>
-              </div>
+
               {siteMetadata.comments && (
                 <div
                   className="pb-6 pt-6 text-center text-gray-700 dark:text-gray-300"
@@ -126,6 +166,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                     </div>
                   </div>
                 )}
+
                 {(next || prev) && (
                   <div className="flex justify-between py-4 xl:block xl:space-y-8 xl:py-8">
                     {prev && prev.path && (
@@ -160,6 +201,17 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   &larr; Back to the blog
                 </Link>
               </div>
+              
+              {/* TOC Component */}
+              <div className="pt-6">
+                <h3 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  目录大纲
+                </h3>
+                <div className="mt-4">
+                  <TOC toc={toc} />
+                </div>
+              </div>
+              
               {/* 添加 Giscus 评论组件 */}
               <div className="pt-8">
                 <Giscus />
