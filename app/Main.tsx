@@ -4,6 +4,7 @@ import HomeLinks from '@/components/HomeLinks'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
+import Image from 'next/image'
 
 const MAX_DISPLAY = 5
 
@@ -11,17 +12,40 @@ export default function Home({ posts }) {
   return (
     <>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        <div className="space-y-2 pb-8 pt-6 md:space-y-5">
-          <h1 className="text-3xl font-normal leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
-            Shoukai Discovery Tour
-          </h1>
-          <p className="text-lg leading-7 text-gray-500 dark:text-gray-400 text-right">
-            人生在于体会，今时哪及昔时 -- 木心
-          </p>
-          <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
-            互联网架构师 | 技术管理者 | AI 技术探索者 | 终身阅读者
-          </p>
-          <HomeLinks />
+        <div>
+          {/* Hero section with background image */}
+          <div className="relative overflow-hidden rounded-xl mb-8 shadow-lg">
+            <div className="h-80 md:h-[28rem]">
+              <Image
+                src="/static/images/main.jpeg"
+                alt="Shoukai Discovery Tour"
+                fill
+                className="object-cover object-center"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-black/20 to-transparent"></div>
+            </div>
+            
+            <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
+              <div className="self-end bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-white shadow-sm border border-white/20">
+                人生在于体会，今时哪及昔时 -- 木心
+              </div>
+              
+              <div className="bg-black/20 backdrop-blur-md p-5 md:p-6 rounded-xl max-w-xl border border-white/10 shadow-xl">
+                <h1 className="text-3xl font-normal leading-9 tracking-tight text-white sm:text-4xl sm:leading-10 md:text-5xl md:leading-14 mb-3">
+                  Shoukai Discovery Tour
+                </h1>
+                <p className="text-lg leading-7 text-gray-100">
+                  互联网架构师 | 技术管理者 | AI 技术探索者 | 终身阅读者
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Navigation links */}
+          <div className="py-6">
+            <HomeLinks />
+          </div>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {!posts.length && 'No posts found.'}
@@ -54,7 +78,7 @@ export default function Home({ posts }) {
                             ))}
                           </div>
                         </div>
-                        <div className="prose max-w-none text-gray-500 dark:text-gray-400">
+                        <div className="prose max-w-none text-gray-600 dark:text-gray-400">
                           {summary}
                         </div>
                       </div>
@@ -76,7 +100,7 @@ export default function Home({ posts }) {
         </ul>
       </div>
       {posts.length > MAX_DISPLAY && (
-        <div className="flex justify-end text-base font-medium leading-6">
+        <div className="flex justify-end text-base font-medium leading-6 mt-4">
           <Link
             href="/blog"
             className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
