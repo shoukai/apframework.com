@@ -1,5 +1,6 @@
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
+import HomeLinks from '@/components/HomeLinks'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
@@ -14,9 +15,13 @@ export default function Home({ posts }) {
           <h1 className="text-3xl font-normal leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
             Shoukai Discovery Tour
           </h1>
-          <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
-            {siteMetadata.description}
+          <p className="text-lg leading-7 text-gray-500 dark:text-gray-400 text-right">
+            人生在于体会，今时哪及昔时 -- 木心
           </p>
+          <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
+            互联网架构师 | 技术管理者 | AI 技术探索者 | 终身阅读者
+          </p>
+          <HomeLinks />
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {!posts.length && 'No posts found.'}

@@ -4,7 +4,7 @@ const siteMetadata = {
   author: 'Shoukai Huang',
   headerText: 'Recording Technology and Life',
   headerTitle: 'Ap Framework',
-  description: '人生在于体会，今时哪及昔时',
+  description: 'Shoukai 技术博客，软件架构、AI、领域驱动、开源软件、阅读笔记',
   language: 'zh',
   theme: 'system', // system, dark or light
   siteUrl: 'https://apframework.com',
