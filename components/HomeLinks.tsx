@@ -51,7 +51,7 @@ export default function HomeLinks() {
         <Link
           key={title}
           href={href}
-          className="flex items-center gap-2 text-lg hover:text-primary-500 dark:hover:text-primary-400"
+          className="flex items-center gap-2 text-lg text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
           aria-label={ariaLabel}
         >
           <span className="text-xl">{getIconForLink(type)}</span>
