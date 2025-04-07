@@ -36,9 +36,21 @@ const Header = () => {
               <Link
                 key={link.title}
                 href={link.href}
-                className="block font-medium text-gray-900 hover:text-primary-500 dark:text-gray-100 dark:hover:text-primary-400"
+                className="flex items-center gap-1.5 font-medium text-gray-900 hover:text-primary-500 dark:text-gray-100 dark:hover:text-primary-400"
               >
-                {link.title}
+                {link.icon && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="h-4 w-4"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
+                  </svg>
+                )}
+                <span>{link.title}</span>
               </Link>
             ))}
         </div>
