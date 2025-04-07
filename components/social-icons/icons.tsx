@@ -2,6 +2,7 @@ import { SVGProps } from 'react'
 
 // Icons taken from: https://simpleicons.org/
 // To add a new icon, add a new function here and add it to components in social-icons/index.tsx
+// Icons optimized for modern rendering and visual appeal
 
 export function Facebook(svgProps: SVGProps<SVGSVGElement>) {
   return (
