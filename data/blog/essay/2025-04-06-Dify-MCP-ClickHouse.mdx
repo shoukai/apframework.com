@@ -274,6 +274,9 @@ mcp dev mcp_clickhouse/mcp_server.py
 ```bash
 mcp-proxy --sse-host=0.0.0.0 --sse-port=8080 --pass-environment -- mcp run mcp_clickhouse/mcp_server.py
 ```
+Dify 通过 UI 进行配置
+
+![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image11.png)
 
 ### 2.6 RAG 配置
 
@@ -453,6 +456,8 @@ def main(arg1: str) -> dict:
 ### 3.4 效果验证
 
 本文使用 Dify 的对话框，通过自然语言的方式，输入用户需求，大模型理解后，输出 ClickHouse 的 SQL 语句，Dify 通过 MCP 协议访问 ClickHouse 并得到查询结果，根据结果生成图表和数据情况分析。
+
+![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image12.png)
 
 预祝配置过程中顺利
 
