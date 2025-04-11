@@ -5,9 +5,9 @@ tags: ['Prophet', 'Facebook', '时间序列预测', '数据分析', '机器学�
 draft: false
 summary: '全面解析Meta(原Facebook)开源的Prophet时间序列预测工具，从理论原理到实际应用。学习如何利用Prophet的加法模型进行商品价格预测，掌握数据预处理、模型配置与结果分析的完整流程，附带Python代码示例与详细解释。'
 ---
+![价格预测趋势图示例](/static/images/2025-04-02-Facebook-Prophet/image.png)
 <div className="table-of-contents">
-
-## 文章目录
+<h2 className="mt-2 mb-2">文章目录</h2>
 
 - [1. 基础研究](#1-基础研究)
   - [1.1 背景知识](#11-背景知识)
@@ -398,8 +398,6 @@ fig1.savefig('price_forecast.png', dpi=300, bbox_inches='tight')
 fig2.savefig('forecast_components.png', dpi=300, bbox_inches='tight')
 ```
 
-![价格预测趋势图示例](/static/images/2025-04-02-Facebook-Prophet/image.png)
-
 通过组件分解图，我们可以清晰地看到价格变化中的：
 
 - **趋势组件**：长期价格走势
@@ -491,7 +489,7 @@ def plot_price_prediction(model, forecast, history, product_name, output_file):
 
 得到预测图形如下
 
-![image.png](/static/images/2025-04-02-Facebook-Prophet/image.png)
+![价格预测趋势图示例](/static/images/2025-04-02-Facebook-Prophet/image.png)
 
 # 4. 获取资源
 
