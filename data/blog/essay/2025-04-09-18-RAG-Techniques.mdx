@@ -1,15 +1,43 @@
 ---
-title: DIY and Test 18 RAG Techniques
+title: '18种RAG技术实战对比：从简单RAG到自适应RAG全面解析'
 date: '2025-04-09'
-tags: ['RAG', 'HyDE', 'RSE', 'self_rag', 'adaptive_rag', 'reranker', 'graph_rag', 'hierarchy_rag', 'crag', "AI", "随手记"]
+tags: ['RAG技术', 'HyDE', 'RSE', '自我RAG', '自适应RAG', '重排序器', '图RAG', '层次RAG', 'CRAG', 'LLM应用', '检索增强生成', 'AI开发', '大语言模型']
 draft: false
-summary: 'Medium 看到一篇 RAG 文章，测试了 18 种 RAG 技术，从不同维度展示了 RAG 实现思路，而且未使用框架，可以作为理解 RAG 较好的入门教程'
+summary: '详细解析18种RAG技术实现与对比，从基础RAG到高级自适应RAG，展示不同维度的实现思路。全文使用基础库而非框架构建，附带完整代码示例，是理解RAG技术原理与实践的理想入门指南。'
 ---
-Medium 看到一篇 RAG 文章，测试了 18 种 RAG 技术，从不同维度展示了 RAG 实现思路，而且未使用框架，可以作为理解 RAG 较好的入门教程，多次阅读后翻译了一下。
+# 18种RAG技术实战对比与实现
 
-**翻译自： Testing 18 RAG Techniques to Find the Best**
+> *本文是对一篇测试18种RAG技术的英文文章的翻译整理，文章从不同维度展示了RAG实现思路，全部使用基础库而非框架构建，非常适合作为理解RAG技术的入门教程。*
 
-[https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f](https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f)
+**目录**
+- [原文信息](#原文信息)
+- [GitHub仓库](#github-仓库)
+- [测试查询和LLMs](#测试查询和-llms)
+- [结论：最有效的技术](#结论最有效的技术)
+- [开始导入库](#开始导入库)
+- [01-简单的RAG](#01-简单的-rag)
+- [02-语义分块](#02-语义分块)
+- [03-分层索引](#03-分层索引)
+- [04-融合RAG](#04-融合-rag)
+- [05-CRAG](#05-crag)
+- [06-反馈循环RAG](#06-反馈循环-rag)
+- [07-自适应RAG](#07-自适应-rag)
+- [08-重排序器](#08-重排序器)
+- [09-图RAG](#09-图-rag)
+- [10-层次RAG](#10-层次-rag)
+- [11-HyDE RAG](#11-hyde-rag)
+- [12-CRAG](#12-crag)
+- [13-反馈循环RAG](#13-反馈循环-rag)
+- [14-自适应RAG](#14-自适应-rag)
+- [15-重排序器](#15-重排序器)
+- [16-图RAG](#16-图-rag)
+- [17-层次RAG](#17-层次-rag)
+- [18-HyDE RAG](#18-hyde-rag)
+- [结论](#结论)
+
+## 原文信息
+
+**翻译自：[Testing 18 RAG Techniques to Find the Best](https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f)**
 
 从都知道的简单 RAG 方法开始，然后测试更先进的技术，如 CRAG、Fusion、HyDE 等！
 
@@ -24,7 +52,7 @@ Medium 看到一篇 RAG 文章，测试了 18 种 RAG 技术，从不同维度�
 
 所有分步笔记本均可在此处找到：
 
-[https://github.com/FareedKhan-dev/all-rag-techniques](https://github.com/FareedKhan-dev/all-rag-techniques)
+**[https://github.com/FareedKhan-dev/all-rag-techniques](https://github.com/FareedKhan-dev/all-rag-techniques)**
 
 代码库组织如下：
 
@@ -48,6 +76,8 @@ Medium 看到一篇 RAG 文章，测试了 18 种 RAG 技术，从不同维度�
 ```
 
 ## **测试查询和 LLMs**
+
+为了全面评估各种RAG技术的效果，作者设计了一套完整的测试环境：
 
 为了测试每种技术，我们需要四样东西：
 
@@ -76,16 +106,17 @@ making it crucial to balance data volume with fairness and quality.
 
 ## **结论：最有效的技术！**
 
-在我们的测试查询中测试了 18 种不同的 RAG 技术之后，最好将它写在顶部，而不是在最后提供它。
+> 💡 **经过18种RAG技术的对比测试，自适应RAG（Adaptive RAG）以0.86的最高分明显胜出**
 
-> **Adaptive RAG 以 0.86** 的最高分明显胜出。
-> 
+在我们的测试查询中测试了 18 种不同的 RAG 技术之后，最好将它写在顶部，而不是在最后提供它。
 
 通过智能地对查询进行分类，并为每种问题类型选择最合适的检索策略，Adaptive RAG 比其他方法表现出更好的性能。它能够在事实、分析、观点和上下文策略之间动态切换，从而能够以惊人的准确性处理各种信息需求。
 
 虽然分层索引（0.84）、融合（0.83）和 CRAG（0.824）等技术的表现也很出色，但自适应 RAG 的灵活性使其在实际应用中占据优势。
 
 ## **开始导入库**
+
+首先需要克隆代码仓库并安装必要的依赖项：
 
 让我们首先克隆我的 repo 以便安装所需的依赖项并开始工作。
 
@@ -103,6 +134,8 @@ pip install -r requirements.txt
 ```
 
 ## **01-简单的 RAG**
+
+让我们从最基础的RAG实现开始，理解其工作原理并评估其效果：
 
 让我们从最简单的 RAG 开始。首先，我们将直观地了解它的工作原理，然后对其进行测试和评估。
 
@@ -194,6 +227,8 @@ true response, and not perfectly aligned.
 让我们继续讨论下一个方法。
 
 ## **02-语义分块**
+
+> 🔍 **语义分块通过理解内容含义来智能划分文本，而不是简单地按固定大小切分**
 
 在我们的简单 RAG 方法中，我们只是将文本切成固定大小的块。这很粗糙！它可能会将一个句子分成两半，或者将不相关的句子组合在一起。
 
@@ -1743,12 +1778,24 @@ CRAG*检测和纠正*检索失败的能力使其比标准 RAG 更加可靠。
 
 ## **结论**
 
+通过对18种RAG技术的全面测试与比较，我们可以得出以下关键结论：
+
+1. **自适应RAG**（Adaptive RAG）以0.86的评分成为最佳技术，其动态切换检索策略的能力使其在处理各类查询时表现出色
+
+2. **分层索引**（0.84）、**融合RAG**（0.83）和**CRAG**（0.824）紧随其后，也展现了良好的性能
+
+3. 简单RAG虽然实现容易，但效果有限，需要结合更先进的技术才能满足复杂应用需求
+
+4. 选择合适的RAG技术应根据具体应用场景、数据特性和性能需求综合考虑
+
+这些技术的实现代码都可以在[GitHub仓库](https://github.com/FareedKhan-dev/all-rag-techniques)中找到，为开发者提供了宝贵的学习和实践资源。
+
 经过测试的 18 种 RAG 技术代表了提高检索质量的多种方法，从简单的分块策略到自适应 RAG 等高级方法。
 
 虽然简单 RAG 提供了基线，但分层索引（0.84）、融合（0.83）和 CRAG（0.824）等更复杂的方法通过解决检索挑战的不同方面，表现明显优于它。
 
 自适应 RAG 通过根据查询类型智能地选择检索策略而成为最佳表现者（0.86），这表明具有上下文感知能力的灵活系统能够针对各种信息需求提供最佳结果。
 
-## 备注
+## 资料
 
-翻译来源：[https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f](https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f)
+* **翻译自：[Testing 18 RAG Techniques to Find the Best](https://levelup.gitconnected.com/testing-18-rag-techniques-to-find-the-best-094d166af27f)**
