@@ -49,9 +49,17 @@ module.exports = {
             'h1,h2': {
               fontWeight: 'normal',
               letterSpacing: theme('letterSpacing.tight'),
+              marginTop: '1.5rem',
+              marginBottom: '1rem',
             },
             h3: {
               fontWeight: '600',
+              marginTop: '1.25rem',
+              marginBottom: '0.75rem',
+            },
+            'h4,h5,h6': {
+              marginTop: '1rem',
+              marginBottom: '0.5rem',
             },
             code: {
               color: theme('colors.indigo.500'),
