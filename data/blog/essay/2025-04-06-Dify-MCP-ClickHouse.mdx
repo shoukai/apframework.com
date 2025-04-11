@@ -1,13 +1,24 @@
 ---
-title: Dify 中使用 MCP 协议访问 ClickHouse 搭建记录
+title: Dify 中使用 MCP 协议访问 ClickHouse 搭建完整教程
 date: '2025-04-06'
-tags: ['Dify', 'MCP', 'ClickHouse', 'ECharts', 'RAG', "随手记"]
+tags: ['Dify', 'MCP', 'ClickHouse', 'ECharts', 'RAG', '数据可视化', 'AI应用开发', '大语言模型', 'LLM工具集成', '数据分析']
 draft: false
-summary: '在 Dify 中，使用 MCP 及 MCP Proxy 访问 ClickHouse 搭建过程记录'
+summary: '详细记录如何在 Dify 大语言模型应用开发平台中，通过 MCP 协议及 MCP Proxy 连接 ClickHouse 数据库，实现数据分析与可视化的完整教程。包含环境配置、服务部署和实际应用案例。'
 ---
+![Dify 首页](/static/images/2025-04-06-Dify-MCP-ClickHouse/image.png)
 
+在本教程中，我将详细介绍如何在 Dify 平台中通过 MCP 协议连接 ClickHouse 数据库，实现数据分析和可视化功能。这个集成方案可以帮助开发者在 AI 应用中轻松访问和分析大规模数据，提升 LLM 应用的数据处理能力。
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image.png)
+## 目录
+
+- [1. Dify 介绍](#1-dify-介绍)
+  - [1.1 Dify 产品路线图](#11-dify-产品路线图)
+  - [1.2 开源协议](#12-开源协议)
+  - [1.3 归属公司](#13-归属公司)
+- [2. Dify 环境配置](#2-dify-环境配置)
+  - [2.1 Dify 安装](#21-dify-安装)
+  - [2.2 模型配置](#22-模型配置)
+  - [2.3 MCP 配置](#23-mcp-配置)
 
 ## 1. Dify 介绍
 
@@ -23,7 +34,7 @@ Dify [官方手册](https://docs.dify.ai/zh-hans) 介绍如下
 
 Main Roadmap ，内容来源：[https://roadmap.dify.ai/roadmap](https://roadmap.dify.ai/roadmap)
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%201.png)
+![Dify产品路线图和未来发展计划](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%201.png)
 
 ### 1.2 开源协议
 
@@ -87,11 +98,11 @@ b.您贡献的代码可能会被用于商业用途，包括但不限于其云业
 
 从爱企查获得信息，品牌归属为：苏州语灵人工智能科技有限公司
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%202.png)
+![Dify归属公司-苏州语灵人工智能科技有限公司信息](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%202.png)
 
 目前公司处于创业期，融资情况（20250406），公司以 Dify 产品为主，后续会有持续的商业资源投入，开源社区无人维护风险较低。
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%203.png)
+![Dify公司融资情况和发展阶段](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%203.png)
 
 ## 2. Dify 环境配置
 
@@ -172,13 +183,13 @@ http://localhost
 
 本文在 Dify 中连接 MCP Server，使用的 MCP 工具是 Dify 市场的：MCP SSE 插件。
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%204.png)
+![Dify市场中的MCP SSE插件界面](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%204.png)
 
 MCP SSE：通过 HTTP with SSE 传输使用 MCP 协议来发现和调用工具。
 
 插件主页：[https://marketplace.dify.ai/plugins/junjiem/mcp_sse](https://marketplace.dify.ai/plugins/junjiem/mcp_sse) 
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%205.png)
+![MCP SSE插件详细配置页面](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%205.png)
 
 插件支持 sse 方式访问 MCP Server，不支持本地方式
 
@@ -234,7 +245,7 @@ CLICKHOUSE_PASSWORD=clickhouse
 
 运行`uv sync`以安装依赖项（Python 相关环境），值得注意的是，Python 版本是：3.13
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%206.png)
+![MCP服务配置示例和多服务器设置界面](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%206.png)
 
 版本低的话，需要升级 Python 版本，最新版本是 3.13.2，
 
@@ -267,7 +278,7 @@ mcp dev mcp_clickhouse/mcp_server.py
 
 本文使用的是：SSE to stdio，原理示意图如下：
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%207.png)
+![ClickHouse数据库连接配置界面](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%207.png)
 
 安装环境后，通过命令启动
 
@@ -276,13 +287,13 @@ mcp-proxy --sse-host=0.0.0.0 --sse-port=8080 --pass-environment -- mcp run mcp_c
 ```
 Dify 通过 UI 进行配置
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image11.png)
+![ClickHouse查询示例和数据结构展示](/static/images/2025-04-06-Dify-MCP-ClickHouse/image11.png)
 
 ### 2.6 RAG 配置
 
 为了让大模型更好的理解 SQL，可以将 ClickHouse 的建表语句导入到了知识库中
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/74eb7ab0-5451-4e46-8d00-40717c742431.png)
+![ClickHouse与MCP集成的数据流程图](/static/images/2025-04-06-Dify-MCP-ClickHouse/74eb7ab0-5451-4e46-8d00-40717c742431.png)
 
 官方手册地址：[https://docs.dify.ai/zh-hans/guides/knowledge-base](https://docs.dify.ai/zh-hans/guides/knowledge-base)
 
@@ -311,7 +322,7 @@ Dify 工作流分为两种类型：
 
 本文使用的方式是 Workflow，界面截图参考官网如下
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%208.png)
+![Dify应用中集成ClickHouse的实际效果展示](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%208.png)
 
 工作流配置文档较多，使用方式也较为灵活，如下是本文在配置过程中参考的一些文档，可以对工作流有大体的了解。
 
@@ -451,15 +462,42 @@ def main(arg1: str) -> dict:
 
 调试完成之后点击右上角的发布，可以将该工作流保存并快速发布成为不同类型的应用。
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%209.png)
+![数据可视化结果展示-ECharts图表](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%209.png)
 
 ### 3.4 效果验证
 
 本文使用 Dify 的对话框，通过自然语言的方式，输入用户需求，大模型理解后，输出 ClickHouse 的 SQL 语句，Dify 通过 MCP 协议访问 ClickHouse 并得到查询结果，根据结果生成图表和数据情况分析。
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image12.png)
+![数据分析结果和统计信息展示](/static/images/2025-04-06-Dify-MCP-ClickHouse/image12.png)
+
+## 4. 总结与展望
+
+在本教程中，我们详细介绍了如何在 [Dify](https://dify.ai) 平台中通过 MCP 协议连接 ClickHouse 数据库，实现数据分析和可视化功能。这种集成方案为开发者提供了强大的数据处理能力，使 AI 应用能够轻松访问和分析大规模数据。
+
+### 主要成果
+
+- 成功部署 Dify 平台并配置大语言模型
+- 通过 MCP SSE 插件连接 ClickHouse 数据库
+- 实现了数据查询、分析和可视化功能
+- 构建了完整的工作流，支持交互式数据分析
+
+### 未来可能的扩展
+
+- 集成更多数据源，如 MySQL、PostgreSQL 等
+- 优化查询性能，支持更复杂的数据分析场景
+- 增强可视化能力，支持更多图表类型
+- 结合 RAG 技术，实现更智能的数据分析和问答功能
+
+如果您对 AI 应用开发感兴趣，可以参考我的其他文章：
+- [大语言模型应用开发实践](/tags/ai)
+- [数据可视化最佳实践](/tags/rag)
+
+希望本教程对您有所帮助，如有问题或建议，欢迎在评论区留言讨论！
 
 预祝配置过程中顺利
 
-![image.png](/static/images/2025-04-06-Dify-MCP-ClickHouse/image%2010.png)
-Photo by [Luke Thornton](https://unsplash.com/@lukethornton?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash) on [Unsplash](https://unsplash.com/photos/a-sign-that-says-well-done-you-did-it-XD0v0OezcQ0?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash)
+<div className="text-center">
+  <img src="/static/images/2025-04-06-Dify-MCP-ClickHouse/image%2010.png" alt="Good Job" />
+  <p>Good Job（Photo by [Luke Thornton](https://unsplash.com/@lukethornton?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash) on [Unsplash](https://unsplash.com/photos/a-sign-that-says-well-done-you-did-it-XD0v0OezcQ0?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash)
+）</p>
+</div>
