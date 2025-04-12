@@ -70,7 +70,8 @@ const TOC = ({ toc }: TOCProps) => {
 
   return (
     <div>
-      <div className="max-h-[calc(100vh-20rem)] overflow-auto">
+      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">目录大纲</h2>
+      <div className="max-h-[calc(100vh-8rem)] overflow-auto">
         <div className="flex flex-col space-y-2 text-sm">
           {toc.map((heading, index) => (
             <a
