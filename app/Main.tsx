@@ -36,7 +36,7 @@ export default function Home({ posts }) {
                   Shoukai Discovery Tour
                 </h1>
                 <p className="text-lg leading-7 text-gray-100">
-                  互联网架构师 | 技术管理者 | AI 技术探索者 | 终身阅读者
+                  互联网架构 | 技术管理 | AI 技术探索 | 终身阅读
                 </p>
               </div>
             </div>

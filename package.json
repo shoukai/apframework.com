@@ -60,7 +60,7 @@
     "eslint-config-next": "15.0.2",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.0",
-    "husky": "^9.0.0",
+    "husky": "^9.1.7",
     "lint-staged": "^13.0.0",
     "prettier": "^3.0.0",
     "prettier-plugin-tailwindcss": "^0.5.11",
@@ -68,10 +68,10 @@
   },
   "lint-staged": {
     "*.+(js|jsx|ts|tsx)": [
-      "eslint --fix"
+      "npx eslint --fix"
     ],
     "*.+(js|jsx|ts|tsx|json|css|md|mdx)": [
-      "prettier --write"
+      "npx prettier --write"
     ]
   },
   "packageManager": "yarn@3.6.1"
