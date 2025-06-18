@@ -1,0 +1,908 @@
+---
+title: '深入浅出 Python MCP SDK: 构建可扩展的分布式服务端与客户端'
+date: '2025-06-11'
+tags: ['Python', 'MCP', 'Streamable HTTP', '异步编程', '服务器开发', '客户端开发', 'ASGI', '分布式系统', '实时通信']
+draft: false
+summary: '本文系统化探讨 Model Context Protocol (MCP) Python SDK 的核心原理与实现机制，从 Streamable HTTP 传输协议到异步服务器与客户端开发全过程。通过电灯开关服务的实战案例，详解 ASGI 集成、资源管理、工具调用与会话管理等核心技术，为开发者提供构建高性能分布式应用的实用指南。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-06-11-Python-MCP/arnold-francisca-nPhl2x4fk2s-unsplash.jpg" alt="Python MCP" />
+  <p>Python MCP（Photo by <a href="https://unsplash.com/@clark_fransa?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Arnold Francisca</a> on <a href="https://unsplash.com/photos/black-laptop-computer-on-white-surface-nPhl2x4fk2s?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>)</p>
+</div>
+
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+## 概述
+
+Model Context Protocol (MCP) 是一个专为大型语言模型设计的开放协议，旨在解决AI模型与外部工具、数据源交互的挑战。在之前的文章中，我们已经介绍了MCP的基本原理和Java SDK的使用。本文将聚焦于Python MCP SDK，详细讲解如何使用Python构建MCP服务器和客户端，实现大语言模型与外部工具的无缝连接。
+
+Python作为AI和数据科学领域的主流语言，拥有丰富的生态系统和工具链。Python MCP SDK提供了一套简洁、高效的API，使开发者能够快速构建安全、可扩展的AI应用。本文将通过一个简单的电灯开关服务示例，展示如何使用Python MCP SDK构建实用的AI应用。
+
+## 第一章：MCP 与 Streamable HTTP
+
+### 1.1 MCP 协议回顾
+
+Model Context Protocol (MCP) 是一个为大型语言模型（LLMs）量身打造的开放协议，旨在搭建模型与外部世界之间的标准化桥梁。在AI应用日益复杂的今天，安全、高效的模型-工具交互成为关键挑战，MCP正是应这一挑战而生。
+
+MCP协议的核心由三大功能支柱构成：
+
+1. **工具（Tools）**：模型可调用的功能性接口，使其能够执行具体操作，如控制智能设备、查询数据库或发送邮件等。
+
+2. **资源（Resources）**：可被客户端访问的结构化数据，通过URI唯一标识，可以是静态文件或动态生成的内容。
+
+3. **提示词（Prompts）**：专为特定任务设计的指导模板，帮助模型生成更精准、更相关的输出。
+
+MCP协议的核心价值在于：
+
+- **统一标准**：提供一致的接口规范，简化集成流程
+- **安全可控**：精细的权限管理与访问控制
+- **灵活扩展**：支持多种传输协议和通信模式
+- **跨平台兼容**：不同语言实现可无缝协作
+
+### 1.2 Streamable HTTP 传输机制
+
+Streamable HTTP是MCP生态系统中的核心传输机制，它巧妙地融合了HTTP协议的普遍兼容性与流式传输的实时交互能力。与传统的“请求-等待-响应”模式不同，Streamable HTTP允许数据在生成的同时即时传递，打破了必须等待完整响应的限制。
+
+这种传输机制在AI应用场景中具有独特优势：
+
+- **实时响应**：大型语言模型生成的内容可以流式传递，用户无需等待完整结果
+- **长连接支持**：适用于需要持续通信的复杂交互场景
+- **进度反馈**：长时间运行的工具可实时报告执行状态
+- **资源效率**：通过流式处理减少内存占用和响应延迟
+
+Streamable HTTP在MCP中的实现充分考虑了现代Web应用的需求，为开发者提供了一种灵活、高效的方式来构建响应迅速、交互丰富的AI应用。
+
+### 1.3 Streamable HTTP vs SSE
+
+Streamable HTTP和Server-Sent Events (SSE)都是实现服务器向客户端推送数据的技术，但它们有一些关键区别：
+
+| 特性 | Streamable HTTP | SSE |
+|------|----------------|------|
+| 协议 | 基于标准HTTP | 基于HTTP的专用协议 |
+| 内容类型 | 灵活，通常为`application/json` | 固定为`text/event-stream` |
+| 消息格式 | 自定义，通常为JSON | 特定格式（`event:`、`data:`等） |
+| 双向通信 | 支持（通过多个HTTP请求） | 仅服务器到客户端 |
+| 重连机制 | 需要自行实现 | 内置自动重连 |
+| 浏览器支持 | 所有现代浏览器 | 大多数现代浏览器（IE除外） |
+| 跨域支持 | 需要CORS配置 | 需要CORS配置 |
+| 适用场景 | 复杂交互，需要自定义格式 | 简单的服务器推送更新 |
+
+Streamable HTTP在MCP中的优势：
+
+1. **灵活性**：可以自定义消息格式和协议细节
+2. **兼容性**：几乎所有HTTP客户端都支持
+3. **双向通信**：可以实现更复杂的交互模式
+4. **状态管理**：支持有状态和无状态两种模式
+5. **扩展性**：易于扩展和定制化
+
+MCP Python SDK提供了对Streamable HTTP的完整支持，使开发者能够轻松构建基于此传输机制的应用。
+
+### 1.4 Streamable HTTP 技术原理
+
+Streamable HTTP在MCP协议中的实现采用了灵活的双向通信架构，其核心工作原理如下：
+
+1. **通信协议层**：
+   - 客户端通过HTTP POST请求发送JSON-RPC格式的消息
+   - 服务器可根据需要返回单一JSON响应或启动SSE流
+   - 双向通信通过结合POST和GET请求实现
+
+2. **数据传输模式**：
+   - **即时模式**：单一JSON响应（`Content-Type: application/json`），适用于简单、快速的交互
+   - **流式模式**：SSE流（`Content-Type: text/event-stream`），适用于长时间、持续的数据传输
+
+3. **交互模式创新**：
+   - 客户端可以发起请求并接收流式响应
+   - 服务器可以主动发起通知和请求
+   - 支持复杂的多轮对话和并行交互
+
+这种设计使得Streamable HTTP在以下场景中表现出色：
+
+- **大模型流式生成**：实时展示生成过程，提升用户体验
+- **复杂工具调用**：实时反馈执行状态和中间结果
+- **分布式系统集成**：支持多终端、多服务的协同工作
+- **高并发场景**：高效处理大量并发连接和请求
+
+### 1.5 会话管理与状态维护
+
+Streamable HTTP支持有状态会话，以在多个请求之间维护上下文：
+
+1. **会话初始化**：服务器可以在初始化期间通过在`Mcp-Session-Id`头部中包含会话ID来分配会话
+2. **会话持久性**：客户端必须在所有后续请求中使用`Mcp-Session-Id`头部包含会话ID
+3. **会话终止**：可以通过发送带有会话ID的HTTP DELETE请求来显式终止会话
+
+会话管理在MCP中的重要性：
+- 允许服务器在多个请求之间保持状态
+- 提供更连贯的用户体验
+- 支持复杂的交互模式
+- 减少重复初始化的开销
+- 提高安全性，通过会话ID验证请求
+
+### 1.6 可恢复性与重传机制
+
+Streamable HTTP传输支持连接中断后的恢复和消息重传，这对于不稳定网络环境下的应用尤为重要：
+
+1. **消息序列号**：每个消息都有唯一的序列号，用于跟踪已接收的消息
+2. **断点恢复**：客户端可以在重新连接时指定最后接收的消息序列号
+3. **消息缓存**：服务器可以缓存已发送的消息，以便在客户端请求时重新发送
+
+可恢复性的关键优势：
+- **提高可靠性**：即使在网络不稳定的情况下也能保证消息传递
+- **无缝体验**：用户在连接中断后可以继续之前的会话
+- **资源效率**：避免重新处理已完成的请求
+- **状态一致性**：确保客户端和服务器状态同步
+
+### 1.7 Streamable HTTP 在 MCP 中的架构设计
+
+Streamable HTTP在MCP中的架构设计遵循以下原则：
+
+1. **分层设计**：
+   - 传输层：处理HTTP连接和消息传递
+   - 会话层：管理会话状态和上下文
+   - 应用层：处理业务逻辑和工具调用
+
+2. **事件驱动模型**：
+   - 服务器可以主动推送事件和通知
+   - 客户端可以实时响应服务器事件
+   - 支持异步处理和并行操作
+
+3. **安全考虑**：
+   - 会话认证和授权
+   - 消息加密和完整性验证
+   - 防止跨站请求伪造(CSRF)攻击
+   - 限速和资源保护
+
+4. **性能优化**：
+   - 连接池管理
+   - 消息批处理
+   - 选择性响应压缩
+   - 缓存策略
+
+通过这些机制，Streamable HTTP在MCP中提供了一种强大而灵活的传输方式，适用于各种复杂的AI应用场景。它结合了HTTP的普遍兼容性和流式传输的实时性，为大语言模型与外部工具的交互提供了理想的通信基础。
+
+
+## 第二章：MCP Python SDK 生态系统
+
+### 2.1 MCP Python 实现概览
+
+Model Context Protocol 在 Python 生态中有两种主要实现：官方的 Python SDK（`modelcontextprotocol/python-sdk`）和社区驱动的 FastMCP 2.0。这两种实现为开发者提供了不同层次的抽象和灵活性，可以根据项目需求选择合适的工具。
+
+#### 官方 Python SDK
+
+官方 MCP Python SDK 提供了完整的协议实现，包含两个主要 API 层次：
+
+- **Server API**：低级服务器接口，提供对 MCP 协议的完全控制
+- **FastMCP API**：高级服务器接口，通过装饰器简化工具和资源定义
+
+这个 SDK 专注于协议的完整性和标准合规性，适合需要精确控制协议行为的场景。
+
+#### FastMCP 2.0
+
+FastMCP 2.0 是一个独立的实现，专注于开发体验和易用性：
+
+> "The fast, Pythonic way to build MCP servers and clients."
+
+它提供了更符合 Python 风格的 API，简化了 MCP 服务器和客户端的构建过程，特别适合快速原型开发和生产部署。
+
+### 2.2 核心组件与架构
+
+MCP Python 实现采用模块化设计，主要包含以下核心组件：
+
+1. **服务器组件**
+   - **FastMCP**：高级服务器 API，提供简洁的装饰器接口
+   - **Server**：低级服务器 API，提供协议级别的完全控制
+
+2. **客户端组件**
+   - **ClientSession**：管理与服务器的会话和通信
+   - **Transport**：处理不同传输机制的连接
+
+3. **通用组件**
+   - **类型系统**：定义协议消息和数据结构
+   - **认证模块**：提供多种认证方法
+   - **工具与资源抽象**：统一接口定义和管理
+
+这种分层架构使开发者能够根据需求选择合适的抽象级别，从高级 API 的简便性到低级 API 的完全控制。
+
+### 2.3 安装与环境配置
+
+安装 MCP Python SDK 非常简单。推荐使用 [uv](https://docs.astral.sh/uv/) 来管理 Python 项目，因为它提供了更快的包安装和依赖管理。
+
+如果还没有创建 uv 管理的项目，可以按照以下步骤创建：
+
+```bash
+uv init mcp-project
+cd mcp-project
+```
+
+然后将 MCP 添加到项目依赖中：
+
+```bash
+uv add "mcp[cli]"
+```
+
+如果使用 pip 进行依赖管理，可以使用：
+
+```bash
+pip install "mcp[cli]"
+```
+
+安装完成后，可以使用 `mcp` 命令行工具来运行和管理 MCP 服务器：
+
+```bash
+uv run mcp
+```
+
+### 2.4 快速入门示例
+
+下面是一个简单的 MCP 服务器示例，它暴露了一个计算器工具和一些数据：
+
+```python
+# server.py
+from mcp.server.fastmcp import FastMCP
+
+# 创建 MCP 服务器
+mcp = FastMCP("Demo")
+
+
+# 添加一个加法工具
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """将两个数字相加"""
+    return a + b
+
+
+# 添加一个动态问候资源
+@mcp.resource("greeting://{name}")
+def get_greeting(name: str) -> str:
+    """获取个性化问候"""
+    return f"Hello, {name}!"
+```
+
+可以使用 MCP Inspector 进行测试：
+
+```bash
+mcp dev server.py
+```
+
+使用 Transport Type： `STDIO` 方式，Command： `UV` ，Arguments： `run --with mcp mcp run server.py` 
+
+![MCP Inspector](/static/images/2025-06-11-Python-MCP/iShot_2025-06-11_23.39.35.png)
+
+这个简单的示例展示了MCP Python SDK的核心功能，包括工具定义和资源暴露。
+
+### 2.5 MCP SDK 与 FastMCP 2.0 对比
+
+| 特性 | 官方 MCP Python SDK | FastMCP 2.0 |
+|------|-------------------|------------|
+| 定位 | 完整协议实现 | 开发者友好的实现 |
+| API 风格 | 提供高低两级 API | 专注于简洁的 Pythonic API |
+| 装饰器支持 | 基本装饰器 | 增强的装饰器和上下文管理 |
+| 类型系统 | 严格遵循协议规范 | 增强的类型推断和验证 |
+| 异步支持 | 基本异步功能 | 全面的异步优化 |
+| 部署选项 | 标准部署 | 简化的部署流程 |
+| 文档 | 协议为中心 | 用例为中心 |
+
+两种实现都提供了完整的 MCP 功能，选择哪一种主要取决于项目需求和开发者偏好。对于快速开发和简洁代码，FastMCP 2.0 可能是更好的选择；而对于需要精确控制协议行为的场景，官方 SDK 可能更为合适。
+
+### 2.6 生态系统与工具链
+
+MCP Python 生态系统不仅包括核心 SDK，还包括一系列配套工具：
+
+- **MCP CLI**：命令行工具，用于管理和测试 MCP 服务器
+- **MCP Inspector**：可视化调试工具，用于检查和测试 MCP 服务
+- **MCP Playground**：交互式环境，用于快速原型开发
+- **MCP Extensions**：扩展库，提供额外功能和集成
+
+这些工具共同构成了一个完整的开发环境，使 MCP 应用的开发、测试和部署变得更加高效。
+
+在下一章中，我们将深入探讨如何使用 MCP Python SDK 构建功能完善的服务器应用。
+
+## 第三章：MCP Python Server 实战开发
+
+在本章中，我们将深入探讨如何使用官方 MCP Python SDK 构建实用的服务器应用。我们将重点关注 Streamable HTTP 传输机制的实现，并通过一个功能完善的智能电灯控制服务示例，展示 MCP 服务器的实际应用场景。
+
+### 3.1 基于 Streamable HTTP 的服务器架构
+
+Streamable HTTP 作为 MCP 生态系统中的核心传输机制，为开发者提供了强大的实时数据交互能力。它通过 HTTP 协议实现流式传输，允许服务器在处理过程中持续向客户端推送数据，特别适合需要实时反馈和长连接交互的应用场景。
+
+官方 MCP Python SDK 提供了专业的 `StreamableHTTPSessionManager` 类来实现这一传输机制。该类设计为与现代 ASGI 服务器框架（如 Starlette 和 Uvicorn）无缝集成，确保高性能、可扩展的 HTTP 流式传输能力。
+
+以下是一个基于Streamable HTTP的无状态MCP服务器的基本结构：
+
+```python
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator
+
+from mcp.server.lowlevel import Server
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.types import Receive, Scope, Send
+
+# 创建MCP服务器
+app = Server("my-mcp-server")
+
+# 定义工具和资源
+# 例如: @app.call_tool(), @app.read_resource() 等
+
+# 创建无状态会话管理器
+session_manager = StreamableHTTPSessionManager(
+    app=app,
+    event_store=None,  # 无状态模式不需要事件存储
+    json_response=False,  # 使用SSE流而不JSON响应
+    stateless=True,  # 启用无状态模式
+)
+
+# 处理Streamable HTTP请求
+async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
+    await session_manager.handle_request(scope, receive, send)
+
+# 定义生命周期管理
+@contextlib.asynccontextmanager
+async def lifespan(app: Starlette) -> AsyncIterator[None]:
+    async with session_manager.run():
+        yield
+
+# 创建ASGI应用
+starlette_app = Starlette(
+    routes=[Mount("/mcp", app=handle_streamable_http)],
+    lifespan=lifespan,
+)
+
+# 启动服务器
+import uvicorn
+uvicorn.run(starlette_app, host="127.0.0.1", port=3000)
+```
+
+上述代码展示了一个基于 Streamable HTTP 的无状态 MCP 服务器的核心架构。这种设计采用了现代 ASGI 框架的异步编程模型，实现了高效的请求处理和资源管理。
+
+无状态模式（stateless=True）是该架构的一个重要特点，它意味着每个请求都会创建一个全新的临时连接，不会在请求之间保存会话状态。这种设计非常适合水平扩展的分布式部署环境，可以在多节点集群中实现负载均衡和高可用性。
+
+### 3.2 智能电灯控制服务实现
+
+为了展示 MCP 服务器的实际应用，我们将实现一个功能完善的智能电灯控制服务。这个示例将展示如何将 MCP 的核心概念——工具和资源——应用到实际场景中，允许用户查询电灯状态、控制电灯开关，并获取状态变更的实时反馈。
+
+首先，我们需要创建一个结构良好的项目目录：
+
+```bash
+mkdir -p mcp-light-switch/mcp_light_switch
+touch mcp-light-switch/pyproject.toml
+touch mcp-light-switch/mcp_light_switch/__init__.py
+touch mcp-light-switch/mcp_light_switch/server.py
+```
+
+接下来，我们在 `pyproject.toml` 中定义项目元数据和依赖关系：
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-light-switch"
+version = "0.1.0"
+description = "MCP Light Switch Server Example"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=0.1.0",
+    "uvicorn>=0.24.0",
+    "starlette>=0.31.0",
+]
+
+[project.scripts]
+mcp-light-switch = "mcp_light_switch.server:main"
+```
+
+现在，我们在 `mcp_light_switch/server.py` 中实现智能电灯控制服务的核心功能：
+
+```python
+import asyncio
+import contextlib
+import logging
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
+import click
+import mcp.types as types
+from mcp.server.lowlevel import Server
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.types import Receive, Scope, Send
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# 电灯状态类
+@dataclass
+class LightState:
+    is_on: bool = False
+    last_changed: str = "Never"  # 最后一次状态变更时间
+
+# 全局电灯状态
+light_state = LightState()
+
+def create_mcp_server() -> Server:
+    """创建并配置MCP服务器"""
+    app = Server("mcp-light-switch")
+
+    @app.call_tool()
+    async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+        """处理工具调用"""
+        ctx = app.request_context
+        result = ""
+
+        # 根据工具名称执行相应操作
+        if name == "turn-on-light":
+            result = turn_on_light()
+        elif name == "turn-off-light":
+            result = turn_off_light()
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+
+        # 发送日志消息
+        await ctx.session.send_log_message(
+            level="info",
+            data=f"执行工具: {name}, 结果: {result}",
+            logger="light_switch",
+            related_request_id=ctx.request_id,
+        )
+
+        # 返回结果
+        return [
+            types.TextContent(
+                type="text",
+                text=result,
+            )
+        ]
+
+    @app.list_tools()
+    async def list_tools() -> List[types.Tool]:
+        """列出可用工具"""
+        return [
+            types.Tool(
+                name="turn-on-light",
+                description="打开电灯",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                },
+            ),
+            types.Tool(
+                name="turn-off-light",
+                description="关闭电灯",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                },
+            ),
+        ]
+
+    @app.read_resource()
+    async def get_resource(uri: str) -> types.ReadResourceResult:
+        """获取资源"""
+        # 打印接收到的URI以便调试
+        logger.info(f"Received resource URI request: {uri}")
+        
+        # 使用标准URL格式
+        if uri == "https://light.example/status":
+            # 返回当前电灯状态
+            return types.ReadResourceResult(
+                content=types.TextContent(
+                    type="text",
+                    text=get_light_status_text(),
+                ),
+                metadata={
+                    "content-type": "text/plain",
+                },
+            )
+        else:
+            logger.error(f"Unknown resource URI: {uri}")
+            raise ValueError(f"Unknown resource URI: {uri}")
+
+    @app.list_resources()
+    async def list_resources() -> List[types.Resource]:
+        """列出可用资源"""
+        return [
+            types.Resource(
+                uri="light://status",
+                description="当前电灯状态",
+                name="light_status",
+            ),
+        ]
+
+    return app
+
+def turn_on_light() -> str:
+    """打开电灯"""
+    global light_state
+    if light_state.is_on:
+        return "电灯已经是打开状态"
+    
+    light_state.is_on = True
+    light_state.last_changed = asyncio.get_event_loop().time()
+    logger.info("电灯已打开")
+    return "电灯已打开"
+
+def turn_off_light() -> str:
+    """关闭电灯"""
+    global light_state
+    if not light_state.is_on:
+        return "电灯已经是关闭状态"
+    
+    light_state.is_on = False
+    light_state.last_changed = asyncio.get_event_loop().time()
+    logger.info("电灯已关闭")
+    return "电灯已关闭"
+
+def get_light_status_text() -> str:
+    """获取电灯状态文本描述"""
+    global light_state
+    status = "开启" if light_state.is_on else "关闭"
+    return f"电灯状态: {status}\n最后变更: {light_state.last_changed}"
+
+@click.command()
+@click.option("--port", default=3000, help="服务器监听端口")
+@click.option("--host", default="127.0.0.1", help="服务器监听地址")
+@click.option("--json-response", is_flag=True, help="使用JSON响应而不是SSE流")
+def main(port: int, host: str, json_response: bool) -> int:
+    """启动MCP电灯开关服务器"""
+    # 创建MCP服务器
+    app = create_mcp_server()
+    
+    # 创建会话管理器
+    session_manager = StreamableHTTPSessionManager(
+        app=app,
+        event_store=None,
+        json_response=json_response,
+        stateless=True,
+    )
+    
+    # 处理Streamable HTTP请求
+    async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
+        await session_manager.handle_request(scope, receive, send)
+    
+    # 定义生命周期管理
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+        async with session_manager.run():
+            logger.info(f"MCP电灯开关服务器已启动! 访问: http://{host}:{port}/mcp")
+            yield
+            logger.info("MCP电灯开关服务器已关闭")
+    
+    # 创建ASGI应用
+    starlette_app = Starlette(
+        debug=True,
+        routes=[Mount("/mcp", app=handle_streamable_http)],
+        lifespan=lifespan,
+    )
+    
+    # 启动服务器
+    import uvicorn
+    uvicorn.run(starlette_app, host=host, port=port)
+    return 0
+
+if __name__ == "__main__":
+    main()
+```
+
+这个完整示例实现了一个功能完善的智能电灯控制服务，它展示了 MCP 协议的核心功能：
+
+1. **工具集成（Tools）**：
+   - `turn-on-light`：控制电灯开启，并返回状态反馈
+   - `turn-off-light`：控制电灯关闭，并返回状态反馈
+
+2. **资源暴露（Resources）**：
+   - `https://light.example/status`：提供电灯当前状态和变更历史
+
+3. **日志与状态反馈**：
+   - 通过 `send_log_message` 实现实时操作日志
+   - 记录状态变更时间戳信息
+
+### 3.3 部署与运行服务
+
+当服务代码实现完成后，我们可以使用现代 Python 包管理工具 uv 来部署和运行这个 MCP 服务器。uv 提供了更快的依赖解析和安装速度，非常适合开发环境。
+
+首先，确保已安装 uv：
+
+```bash
+pip install uv
+```
+
+然后，在项目目录中安装依赖并启动服务器：
+
+```bash
+cd mcp-light-switch
+uv pip install -e .
+uv run mcp_light_switch/server.py
+```
+
+服务成功启动后，将在 http://127.0.0.1:3000/mcp 端点提供 MCP 服务。开发者可以使用 MCP 客户端或 MCP Inspector 工具与服务进行交互测试。
+
+这个完整的智能电灯控制服务示例展示了如何使用官方 MCP Python SDK 构建一个功能完善的服务器应用。它充分利用了 MCP 的工具调用和资源访问能力，并通过 Streamable HTTP 传输机制实现了高效的实时交互。
+
+![电灯开关 MCP Server 运行效果](/static/images/2025-06-11-Python-MCP/iShot_2025-06-11_23.54.34.png)
+
+在下一章中，我们将探讨如何实现 MCP 客户端，以与我们创建的服务进行交互。
+
+## 第四章：MCP Python Client 实战开发
+
+在前面的章节中，我们已经了解了如何使用MCP Python SDK构建服务器应用。在本章中，我们将探讨如何与MCP服务器进行交互，首先介绍MCP Inspector调试工具，然后实现一个基于Streamable HTTP传输机制的客户端应用。
+
+### 4.1 MCP Inspector 工具
+
+在开发MCP应用时，调试和测试是非常重要的环节。MCP提供了一个强大的调试工具——MCP Inspector，它可以帮助开发者连接、测试和调试MCP服务器。
+
+#### 4.1.1 MCP Inspector 概述
+
+MCP Inspector是一个基于Web的工具，可以连接到任何MCP服务器，并提供以下功能：
+
+- 浏览服务器提供的工具和资源
+- 调用工具并查看结果
+- 访问资源并查看内容
+- 监控服务器日志和事件
+- 测试服务器的各种功能
+
+Inspector是一个独立的工具，不需要安装在服务器或客户端上，可以通过npm包使用。
+
+#### 4.1.2 安装和启动 Inspector
+
+使用npm安装MCP Inspector非常简单：
+
+```bash
+npm install -g @modelcontextprotocol/inspector
+```
+
+或者，你可以直接使用npx运行Inspector，无需全局安装：
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+启动后，Inspector将在浏览器中打开，默认地址为http://localhost:3001。
+
+#### 4.1.3 使用 Inspector 连接服务器
+
+启动Inspector后，你可以通过界面连接到MCP服务器。在连接页面中，你需要提供以下信息：
+
+1. **服务器URL**：MCP服务器的URL，例如`http://localhost:3000/mcp`
+2. **传输类型**：选择传输机制，例如“Streamable HTTP”
+3. **认证信息**：如果服务器需要认证，提供相应的认证信息
+
+连接成功后，Inspector将显示服务器的信息，包括可用的工具和资源。
+
+#### 4.1.4 使用 Inspector 测试电灯开关服务器
+
+现在，让我们使用Inspector来测试我们的电灯开关服务器。首先，确保电灯开关服务器已经启动。
+
+然后，启动Inspector：
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+在Inspector界面中，按照以下步骤连接到服务器：
+
+1. 在连接页面中，输入服务器URL：`http://localhost:3000/mcp`
+2. 选择传输类型：“Streamable HTTP”
+3. 点击“Connect”按钮
+
+连接成功后，你可以在Inspector界面中看到以下内容：
+
+- **Tools**选项卡：显示可用的工具，包括`turn-on-light`和`turn-off-light`
+- **Resources**选项卡：显示可用的资源，包括`light://status`
+- **Events**选项卡：显示服务器发送的事件和日志信息
+
+你可以通过Inspector执行以下操作：
+
+1. **调用工具**：
+   - 在Tools选项卡中，选择要调用的工具
+   - 填写工具参数（如果有）
+   - 点击“Call Tool”按钮
+   - 查看工具调用结果和日志
+
+2. **访问资源**：
+   - 在Resources选项卡中，选择要访问的资源
+   - 点击“Get Resource”按钮
+   - 查看资源内容
+
+3. **监控事件**：
+   - 在Events选项卡中，查看服务器发送的事件和日志信息
+   - 过滤特定类型的事件
+
+通过Inspector，你可以方便地测试和调试MCP服务器，确保其功能正常工作。
+
+### 4.2 MCP Client 开发
+
+除了使用Inspector进行调试外，我们还可以开发自己的MCP客户端应用，以编程方式与MCP服务器交互。
+
+#### 4.2.1 MCP Client 概述
+
+MCP Python SDK提供了一个灵活、强大的客户端组件——`Client`类，它是应用程序与MCP服务器交互的核心桥梁。通过`Client`，应用程序可以无缝地连接到MCP服务器，调用各种工具、访问资源并处理服务器发送的事件。
+
+正如我们在代码示例中看到的，创建一个MCP客户端非常简单：
+
+```python
+from fastmcp import Client
+
+# 创建客户端，自动使用StreamableHttpTransport连接HTTP URL
+client = Client("http://localhost:3000/mcp")
+```
+
+`Client`类支持多种传输机制，包括stdio、SSE和Streamable HTTP，并会根据URL自动选择最适合的传输方式。对于HTTP URL，它会自动使用`StreamableHttpTransport`，无需开发者进行额外配置。
+
+MCP Client的核心功能包括：
+
+1. **连接管理**：自动建立、维护和重连与MCP服务器的连接，处理各种网络异常
+
+2. **工具调用**：提供直观的API来调用服务器的工具并处理返回结果，如代码中的`await client.list_tools()`
+
+3. **资源访问**：简化资源读取操作，支持同步和异步访问模式
+
+4. **事件处理**：提供异步流式接口来接收和处理服务器发送的各类事件
+
+5. **会话管理**：通过异步上下文管理器（`async with client:`）优雅地管理客户端会话的生命周期
+
+#### 4.2.2 Streamable HTTP 传输
+
+正如在第一章中介绍的，Streamable HTTP是一种结合了HTTP的普遍兼容性和流式传输实时性优势的传输机制。MCP Python SDK提供了`StreamableHttpTransport`类，它实现了基于Streamable HTTP的客户端传输。
+
+`StreamableHttpTransport`的主要特点包括：
+
+1. **自动重连**：在连接断开时自动尝试重新连接
+2. **流式处理**：支持服务器的流式响应
+3. **HTTP兼容性**：可以与任何支持HTTP的服务器通信
+4. **代理支持**：支持通过HTTP和SOCKS代理连接
+5. **自定义头部**：支持添加自定义HTTP头部
+
+对于HTTP URL，`Client`类会自动使用`StreamableHttpTransport`，无需显式指定。这使得连接到基于HTTP的MCP服务器变得非常简单。
+
+#### 4.2.3 安装客户端依赖
+
+使用MCP客户端需要安装相应的依赖。推荐使用`uv`进行依赖管理：
+
+```bash
+uv add fastmcp
+```
+
+如果需要使用HTTP代理功能，还需要安装额外的依赖：
+
+```bash
+uv pip install "httpx[socks]"
+```
+
+#### 4.2.4 电灯开关客户端示例
+
+现在，让我们创建一个客户端来与我们在第三章中实现的电灯开关服务器进行交互。首先，创建一个新的Python文件`mcp_simple_client/client.py`：
+
+```python
+from fastmcp import Client
+import asyncio
+
+async def main():
+    # 创建客户端并连接到电灯开关服务器
+    client = Client("http://localhost:3000/mcp")
+    
+    async with client:
+        # 列出可用的工具
+        tools = await client.list_tools()
+        print(f"\n可用的工具: {tools}")
+        
+        # 列出可用的资源
+        resources = await client.list_resources()
+        print(f"\n可用的资源: {resources}")
+        
+        # 读取电灯状态
+        status = await client.read_resource("light://status")
+        print(f"\n当前电灯状态: {status}")
+        
+        # 打开电灯
+        print("\n打开电灯...")
+        result = await client.call_tool("turn-on-light")
+        print(f"结果: {result}")
+        
+        # 再次读取电灯状态
+        status = await client.read_resource("light://status")
+        print(f"\n电灯状态现在是: {status}")
+        
+        # 关闭电灯
+        print("\n关闭电灯...")
+        result = await client.call_tool("turn-off-light")
+        print(f"结果: {result}")
+        
+        # 再次读取电灯状态
+        status = await client.read_resource("light://status")
+        print(f"\n电灯状态现在是: {status}")
+
+# 运行客户端
+asyncio.run(main())
+```
+
+这个客户端应用执行以下操作：
+
+1. 创建一个`Client`实例并连接到电灯开关服务器
+2. 列出服务器提供的工具和资源
+3. 读取电灯的当前状态
+4. 调用`turn-on-light`工具打开电灯
+5. 再次读取电灯状态以验证变化
+6. 调用`turn-off-light`工具关闭电灯
+7. 再次读取电灯状态以验证变化
+
+#### 4.2.5 运行客户端
+
+要运行客户端，首先确保电灯开关服务器已经启动。然后，使用以下命令运行客户端：
+
+```bash
+uv run python mcp_simple_client/client.py
+```
+
+运行结果将显示如下：
+
+```
+可用的工具: ['turn-on-light', 'turn-off-light']
+
+可用的资源: ['light://status']
+
+当前电灯状态: {'status': 'off'}
+
+打开电灯...
+结果: {'success': True}
+
+电灯状态现在是: {'status': 'on'}
+
+关闭电灯...
+结果: {'success': True}
+
+电灯状态现在是: {'status': 'off'}
+```
+
+这个简单的示例展示了MCP客户端如何与服务器进行交互。客户端可以列出工具和资源、调用工具和访问资源，实现了与服务器的完整交互周期。
+
+## 第五章：总结与展望
+
+在这一技术旅程中，我们深入探索了Model Context Protocol及其Python SDK的全谱。从协议的理论基础到实战应用，我们已经揭示MCP如何为分布式系统和实时通信带来革命性的变化。本文的核心内容包括：
+
+1. **MCP协议基础**：介绍了MCP的核心概念、设计原则和架构组件
+2. **Streamable HTTP传输**：探讨了其工作原理、优势和实现机制
+3. **服务器开发**：详细介绍了如何使用MCP Python SDK构建服务器应用
+4. **客户端开发**：展示了如何使用MCP Inspector和MCP Python SDK与服务器交互
+
+我们的电灯开关服务实例展示了MCP的实战价值——实现了从服务器到客户端的完整交互周期，包括资源访问、工具调用和状态管理。这个看似简单的示例展示了MCP协议的强大能力和灵活性。
+
+### 5.1 MCP的核心价值
+
+MCP协议及其Python SDK为现代分布式系统带来了五大关键价值：
+
+- **标准化通信**：建立了服务间交互的通用语言，消除了集成障碍
+- **简化开发**：通过优雅的抽象和异步API，显著降低了开发复杂性
+- **实时交互**：基于流式通信的双向数据传输，实现了真正的实时响应
+- **架构灵活性**：支持多种传输机制，适应不同的部署场景和性能需求
+- **生态系统兼容**：跨平台、跨语言的无缝集成能力
+
+### 5.2 未来应用与发展路径
+
+展望未来，MCP协议及其Python SDK将在以下领域开辟新天地：
+
+1. **智能系统集成**：为大型语言模型和其他AI服务提供统一的交互标准，加速智能应用落地
+2. **物联网生态系统**：构建跨设备、跨平台的统一控制协议，实现设备的无缝协作
+3. **云原生架构**：为微服务、Serverless和容器化应用提供高效的通信机制
+4. **实时协作平台**：支持低延迟、高并发的数据同步和状态共享
+5. **跨语言生态系统**：连接Python、Java、JavaScript等不同语言的服务，打造无缝集成的技术生态
+
+## 结语
+
+本文展示的MCP Python SDK仅仅是这一强大协议的冠上一珠。我们鼓励读者从本文中获取灵感，在自己的项目中实践MCP的理念和技术。无论是构建分布式系统、开发实时应用，还是集成智能服务，MCP都能为您提供强大的支持。
+
+随着MCP生态系统的不断扩展，我们期待看到更多创新的应用和集成方案。让我们一起拥抱这一技术变革，在分布式系统和实时通信的新时代中开创新的可能性。
+
+## 参考资料
+
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports)
+- [FastMCP 2.0](https://gofastmcp.com/tutorials/mcp)
+- [python-sdk](https://github.com/modelcontextprotocol/python-sdk)
