@@ -29,14 +29,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: siteMetadata.title,
     description: siteMetadata.description,
-    url: './',
+    url: siteMetadata.siteUrl,
     siteName: siteMetadata.title,
     images: [siteMetadata.socialBanner],
     locale: siteMetadata.locale,
     type: 'website',
   },
   alternates: {
-    canonical: './',
+    canonical: siteMetadata.siteUrl,
     types: {
       'application/rss+xml': `${siteMetadata.siteUrl}/feed.xml`,
     },

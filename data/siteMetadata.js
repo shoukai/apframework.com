@@ -16,6 +16,7 @@ const siteMetadata = {
   github: 'https://github.com/shoukai',
   x: 'https://x.com/skhuang315067',
   // twitter: 'https://x.com/skhuang315067',
+  jike: 'https://okjk.co/dJheTr',
   rss: '/feed.xml',
   // facebook: 'https://facebook.com',
   // youtube: 'https://youtube.com',

@@ -120,3 +120,13 @@ export function Rss(svgProps: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function Jike(svgProps: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" {...svgProps}>
+      <title>Jike</title>
+      <path d="M315.5 130H178.5V299L115.5 313.5V450.5L315.5 434.5V130Z" fill="currentColor" />
+      <path d="M300 150V320C300 345 297 365 291 380C286 395 276 405 261 415C246 425 226 430 201 430C180 430 160 427 142 422V355C155 358 166 360 177 360C190 360 199 357 204 351C210 345 212 333 212 320V150H300Z" fill="white" />
+    </svg>
+  )
+}

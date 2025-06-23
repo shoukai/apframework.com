@@ -30,6 +30,9 @@ export default function Footer() {
           {siteMetadata.threads && (
             <SocialIcon kind="threads" href={siteMetadata.threads} size={6} />
           )}
+          {siteMetadata.jike && (
+            <SocialIcon kind="jike" href={siteMetadata.jike} size={6} />
+          )}
           {siteMetadata.rss && (
             <SocialIcon kind="rss" href={siteMetadata.rss} size={6} />
           )}
