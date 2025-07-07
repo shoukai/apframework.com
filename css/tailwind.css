@@ -4,7 +4,9 @@
 
 @font-face {
   font-family: 'AlimamaDongFangDaKai';
-  src: url('/static/fonts/AlimamaDongFangDaKai-Regular.woff2') format('woff2'),
+  src: url('https://cdn.apframework.com/apframework/fonts/AlimamaDongFangDaKai-Regular.woff2') format('woff2'),
+       url('/static/fonts/AlimamaDongFangDaKai-Regular.woff2') format('woff2'),
+       url('https://cdn.apframework.com/apframework/fonts/AlimamaDongFangDaKai-Regular.woff') format('woff'),
        url('/static/fonts/AlimamaDongFangDaKai-Regular.woff') format('woff');
   font-weight: normal;
   font-style: normal;
