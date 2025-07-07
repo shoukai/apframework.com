@@ -10,10 +10,11 @@
        url('/static/fonts/AlimamaDongFangDaKai-Regular.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: swap;
 }
 
 body {
-  font-family: 'AlimamaDongFangDaKai', sans-serif;
+  font-family: 'AlimamaDongFangDaKai', 'Arial', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 .task-list-item::before {
