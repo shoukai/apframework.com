@@ -3,7 +3,7 @@ const siteMetadata = {
   title: 'ApFramework',
   author: 'Shoukai Huang',
   headerText: 'Recording Technology and Life',
-  headerTitle: 'Ap Framework',
+  headerTitle: 'ApFramework',
   description: 'Shoukai 技术博客，软件架构、AI、领域驱动、开源软件、阅读笔记',
   language: 'zh',
   theme: 'system', // system, dark or light
