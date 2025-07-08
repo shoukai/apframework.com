@@ -1,0 +1,550 @@
+---
+title: '12-Factor Agents：构建生产级 LLM 代理的 12 要素原则'
+date: '2025-07-08'
+tags: ['12-Factor Agents', 'LLM应用', 'AI代理', '生产级Agent', 'AI工程', '最佳实践', '大语言模型']
+draft: false
+summary: '本文为 12-Factor Agents 英文原文的翻译整理，并结合个人实践补充了部分笔记和理解。内容涵盖 LLM 代理开发的 12 项核心原则，适合关注 AI 工程、生产级 Agent、AI 应用最佳实践的开发者参考。'
+---
+<div className="text-center">
+  <img src="/static/images/2025-07-08-12-Factor-Agents/swello-xEiT-x3FMuI-unsplash.jpg" alt="上下文工程" />
+  <p>Agent（Photo by <a href="https://unsplash.com/@getswello?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Swello</a> on <a href="https://unsplash.com/photos/laptop-and-coffee-on-a-wooden-table-xEiT-x3FMuI?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>）</p>
+</div>
+
+本文为 [12-Factor Agents](https://github.com/humanlayer/12-factor-agents) 内容的翻译整理，并结合个人实践补充了部分笔记和理解。内容涵盖 LLM 代理开发的 12 项核心原则。
+
+“12 要素代理” 框架受著名的 12 要素应用方法论启发，为构建可靠、可维护且可扩展的 LLM 应用提供了全面的指南。这些原则解决了将非确定性 AI 组件集成到生产系统的独特挑战，强调明确的控制、托管上下文以及无缝的人机协作。
+
+快速导航本篇内容：
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+原文章节导航：[12-Factor Agents - Principles for building reliable LLM applications](https://github.com/humanlayer/12-factor-agents)
+
+|    |    |    |
+|----|----|-----|
+|[![factor 1](/static/images/2025-07-08-12-Factor-Agents/image.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-01-natural-language-to-tool-calls.md) | [![factor 2](/static/images/2025-07-08-12-Factor-Agents/image%201.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-02-own-your-prompts.md) | [![factor 3](/static/images/2025-07-08-12-Factor-Agents/image%202.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-03-own-your-context-window.md) |
+|[![factor 4](/static/images/2025-07-08-12-Factor-Agents/image%203.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-04-tools-are-structured-outputs.md) | [![factor 5](/static/images/2025-07-08-12-Factor-Agents/image%204.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-05-unify-execution-state.md) | [![factor 6](/static/images/2025-07-08-12-Factor-Agents/image%205.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-06-launch-pause-resume.md) |
+| [![factor 7](/static/images/2025-07-08-12-Factor-Agents/image%206.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-07-contact-humans-with-tools.md) | [![factor 8](/static/images/2025-07-08-12-Factor-Agents/180-control-flow.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-08-own-your-control-flow.md) | [![factor 9](/static/images/2025-07-08-12-Factor-Agents/image%209.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-09-compact-errors.md) |
+| [![factor 10](/static/images/2025-07-08-12-Factor-Agents/image%2010.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-10-small-focused-agents.md) | [![factor 11](/static/images/2025-07-08-12-Factor-Agents/image%2011.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-11-trigger-from-anywhere.md) | [![factor 12](/static/images/2025-07-08-12-Factor-Agents/image%2012.png)](https://github.com/humanlayer/12-factor-agents/blob/main/content/factor-12-stateless-reducer.md) |
+
+## **1. 自然语言工具调用**
+
+本原则要求，LLM 在应用中的核心能力应是解析自然语言指令，并将其转化为结构化、可执行的工具调用。这一做法将 LLM 从单纯的文本生成器提升为智能路由器，真正实现人类意图与程序操作的桥接。通过聚焦于工具调用，LLM 能与确定性后端系统交互，从而确保任务的可预测性与可靠性。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image.png)
+
+在原子应用场景下，这种模式表现为短语的直接翻译，例如：
+
+> 您能否创建一个向 Terri 支付 750 美元的付款链接，以赞助二月份的 AI tinkerers 聚会？
+> 
+
+描述 Stripe API 调用的结构化对象，例如：
+
+```
+{
+  "function": {
+    "name": "create_payment_link",
+    "parameters": {
+      "amount": 750,
+      "customer": "cust_128934ddasf9",
+      "product": "prod_8675309",
+      "price": "prc_09874329fds",
+      "quantity": 1,
+      "memo": "Hey Jeff - see below for the payment link for the february ai tinkerers meetup"
+    }
+  }
+}
+```
+
+随后，确定性代码可以获取有效载荷并进行处理。
+
+```
+# LLM 接收自然语言并返回结构化对象
+nextStep = await llm.determineNextStep(
+  """
+  create a payment link for $750 to Jeff 
+  for sponsoring the february AI tinkerers meetup
+  """
+  )
+
+# 根据结构化输出的 function 字段进行处理
+if nextStep.function == 'create_payment_link':
+    stripe.paymentlinks.create(nextStep.parameters)
+    return  # 或者你想要的其他处理，见下文
+elif nextStep.function == 'something_else':
+    # ... 其他情况
+    pass
+else:  # the model didn't call a tool we know about
+    # 模型未调用已知工具，执行其他操作
+    pass
+```
+
+必须深刻理解这一转换过程的每个环节：从自然语言解析到实体识别，再到参数映射和 API 构造。切勿将其视为黑盒，因为任何细节的偏差都可能导致用户意图被误解，进而影响系统的可靠性和用户体验。
+
+**理解笔记**
+
+构建 Agent 过程中，工具方面，需要做的内容是：
+
+- 工具（Tool）说明文档要结构化、清晰，确保 LLM 能准确理解每个工具的用途、参数和限制，减少歧义。
+- 需要为 LLM 返回的结构化调用结果设计健壮的处理流程，包括成功、失败、异常等分支，保证系统的可预测性和安全性。
+- 工具接口和文档应与代码保持同步，避免文档不同步，导致 LLM 理解偏差。
+
+## **2. 拥有自己的提示词**
+
+提示词是 LLM 交互的核心，决定了交互的行为和输出。本原则强调应将提示词视为关键、受版本控制的代码资产，而非一次性输入。提示应纳入代码库统一管理，便于系统性测试、部署和回滚。掌控自己的提示词有助于保证一致性、可复现性，并能以可控方式持续优化代理行为。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%201.png)
+
+应将你的提示词视为一等公民的代码：
+
+```
+function DetermineNextStep(thread: string) -> DoneForNow | ListGitTags | DeployBackend | DeployFrontend | RequestMoreInformation {
+  prompt #"
+    {{ _.role("system") }}
+    
+    你是一个负责前端和后端系统部署的高效助手。
+    你会遵循最佳实践，确保部署安全且成功。
+    并遵循正确的部署流程。
+    
+    在部署任何系统前，你应检查：
+    部署环境（测试/生产）
+    部署的正确标签/版本
+    当前系统状态
+    
+    你可以使用 deploy_backend、deploy_frontend、check_deployment_status 等工具
+    管理部署。对于敏感部署，使用 request_approval 获取人工确认。
+    human verification.
+    
+    始终先思考下一步该做什么，比如：
+    检查当前部署状态
+    校验部署标签是否存在
+    如有需要，申请人工批准
+    先部署到测试环境再到生产环境
+    监控部署进度
+    
+    {{ _.role("user") }}
+
+    {{ thread }}
+    
+    下一步应该做什么？
+  "#
+}
+```
+
+拥有自己的提示词的主要好处：
+
+1. **完全控制**：可精确编写代理所需指令，无需依赖黑盒抽象
+2. **测试和评估**：可像测试其他代码一样测试和评估提示
+3. **快速迭代**：可根据实际表现快速修改提示
+4. **透明度**：清楚了解代理正在执行的指令
+5. **角色技巧**：可利用支持非标准用户/助手角色的 API
+
+请记住：提示词是你的应用逻辑与 LLM 之间的主要接口。
+
+完全掌控提示词，为生产级代理提供了必要的灵活性和提示控制。
+
+我无法断言什么是最优提示，但你一定需要灵活性以便不断尝试。
+
+**理解笔记**
+
+构建 Agent 过程中，提示词需要自主可控，BAML 是一个可以考虑的提示语言。（BAML 是一种用于构建可靠的AI 工作流和代理的简单提示语言。）
+
+- 提示（Prompt）应作为代码资产进行版本管理和测试，确保每次变更都可追溯和回滚。
+- 推荐采用结构化、可维护的提示工程工具（如 BAML），提升提示的可读性和可复用性。
+- 保持提示的灵活性和可控性，有助于快速迭代和适应业务需求变化。
+
+## **3. 拥有自己的上下文窗口**
+
+上下文窗口是 LLM 对过往交互的有限记忆。本原则主张主动且有策略地管理上下文，确保只保留与当前任务直接相关的信息，及时剔除无关内容，防止"上下文漂移"或信息冗余。高效的上下文管理不仅能提升 LLM 的性能，还能减少 token 消耗，让模型聚焦于关键细节。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%202.png)
+
+无需总是采用标准消息格式向 LLM 传递上下文。
+
+> 在任何时刻，你给代理 LLM 的输入都是"这是目前为止发生的事情，下一步是什么？"
+
+一切都关乎上下文工程。LLM 是无状态函数，只负责将输入转化为输出。要获得最佳输出，必须为其提供最优输入。
+
+营造良好上下文环境包括：
+
+- 明确的提示和指令
+- 检索到的文档或外部数据（如 RAG）
+- 过往状态、工具调用、结果或其他历史
+- 相关但独立的历史/对话信息（记忆）
+- 输出结构化数据类型的说明
+
+上下文内容包括：提示、说明、RAG 文档、历史、工具调用、记忆等。
+
+请记住：上下文窗口是你与 LLM 交互的主要界面。合理组织和呈现信息能显著提升代理性能。
+
+**理解笔记**
+
+构建 Agent 过程中，为了使 LLM 拥有更好的效果，从提示词工程向情景工程转换，利用工程方法和系统思维，提供 LLM 所需的：
+
+- 当前情况：当前背景、当前进展；
+- 目标任务：分解目标、最终目标；
+- 已有工具、手段；
+- 已有信息：历史资料、过往记忆、过往案例；
+
+上下文管理不仅仅是拼接历史消息，更要有选择性地组织和压缩信息，确保 LLM 只接收到与当前任务最相关的内容。
+
+建议建立上下文构建的标准流程和模板，便于团队协作和复用。
+
+## **4. 工具只是结构化的输出**
+
+章节标题采用：工具调用的本质认知：结构化数据而非魔法。这样更易理解。
+
+本原则将工具定义为 LLM 训练或指令生成的特定结构化数据格式。LLM 不直接执行操作，而是生成清晰、可解析的输出，表示工具调用。这样关注点分离，LLM 专注于推理和生成，实际操作由可靠的确定性代码完成。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%203.png)
+
+工具无需复杂，本质上只是 LLM 输出的结构化数据，用于触发确定性代码。
+
+假设有两个工具 `CreateIssue` 和 `SearchIssues`。让 LLM "在几种工具中选择一种"其实就是让它输出 JSON，我们可以将其解析为对应的对象。
+
+```
+class Issue:
+  title: str
+  description: str
+  team_id: str
+  assignee_id: str
+
+class CreateIssue:
+  intent: "create_issue"
+  issue: Issue
+
+class SearchIssues:
+  intent: "search_issues"
+  query: str
+  what_youre_looking_for: str
+```
+
+模式很简单：
+
+1. LLM 输出结构化 JSON
+2. 确定性代码执行相应操作（如调用外部 API）
+3. 捕获结果并反馈到上下文
+
+这样就能清晰区分 LLM 的决策和应用操作。LLM 决定做什么，代码决定如何执行。LLM 所谓"工具"并不意味着每次都要严格映射到某个函数。
+
+理解这一本质后，你可以更灵活地设计工具接口：定义清晰数据结构、处理异常、优化性能，甚至支持非原子复杂操作。不要被"function calling"等术语迷惑，工具调用只是 LLM 决策与应用逻辑之间的桥梁，关键是保持决策层和执行层的清晰分离。
+
+重要的是，"下一步"未必像"运行纯函数并返回结果"那样原子。当你把"工具调用"视为模型输出、描述确定性代码应做什么的 JSON 时，就获得了极大灵活性。这与原则八（拥有控制流）完美结合。
+
+**理解笔记**
+
+构建 Agent 过程中，采用关注点分离方式，设计工具使用方式：
+
+- LLM 进行决策，分析当前情景，决定下一步要干什么；
+- 工具进行确定性执行；
+- 工具调用的本质是 LLM 输出结构化数据（如 JSON），由后端代码解析并执行，LLM 不直接操作外部世界。
+- 关注点分离有助于系统的可维护性和安全性，LLM 负责"决策"，代码负责"执行"。
+
+## **5.统一执行状态和业务状态**
+
+这一原则强调了清晰一致地理解 LLM 内部"执行状态"（LLM认为正在发生的事情）和应用程序实际"业务状态"（基本事实）的重要性。任何差异都可能导致误解和错误。通过统一这些状态，我们确保LLM能够以准确且最新的信息运行，避免出现幻觉或无效操作。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%204.png)
+
+概念梳理：
+
+- **执行状态**：当前步骤、下一步、等待状态、重试次数等。
+- **业务状态**：代理工作流程中到目前为止发生的事情（例如 OpenAI 消息列表、工具调用和结果列表等）
+
+这种方法有几个好处：
+
+1. **简单**：所有状态的真相来源
+2. **序列化**：线程可以轻松序列化/反序列化
+3. **调试**：整个历史记录在一个地方可见
+4. **灵活性**：只需添加新的事件类型即可轻松添加新状态
+5. **恢复**：只需加载线程即可从任何点恢复
+6. **分叉**：可以通过将线程的某些子集复制到新的上下文/状态 ID 中来随时分叉线程
+7. **人机界面和可观察性**：将线程转换为人类可读的 Markdown 或丰富的 Web 应用程序 UI
+
+**理解笔记**
+
+构建 Agent 过程中，构建上下文过程中，将执行状态和业务状态进行统一，一定程度上想起来规则引擎和状态机，构建规则，然后交给事件或者数据。
+
+- 明确区分并统一 LLM 的"执行状态"与应用的"业务状态"，避免信息不一致导致的误判。
+- 为每个状态变更建立可追溯日志，提升系统可观测性和可维护性。
+
+## **6. 使用简单的 API 启动/暂停/恢复**
+
+LLM 代理应设计为拥有清晰、简洁的编程接口，便于生命周期管理。这意味着应提供简单的 API 来启动新的代理实例、暂停执行，以及从特定状态恢复。这对于调试、测试和管理长期运行或复杂代理流程至关重要，使开发者能够随时介入和检查代理行为。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%205.png)
+
+用户、应用、管道或其他代理都应能便捷地通过 API 启动代理。
+
+当遇到长时间运行的操作时，代理及其协调的确定性代码应能优雅地暂停。
+
+像 webhook 这样的外部触发器应允许代理从中断点恢复，无需与代理编排器深度集成。
+
+核心要求：
+
+- 简单启动：用户、应用、管道和其他 Agent 应能通过简单 API 启动 Agent
+- 优雅暂停：Agent 及其编排代码应能在需要时暂停
+- 外部恢复：如 webhook 等外部触发器应能让 Agent 从中断点恢复，无需深度集成
+
+这种设计对生产环境尤为重要，为 AI 系统提供必要的安全网和控制机制，使其能处理更高价值任务。最关键的能力是：我们需要能中断正在工作的 Agent 并稍后恢复，尤其是在工具选择和调用之间。
+
+**理解笔记**
+
+构建 Agent 过程中，采用简单原则，触发后寻找上下文，开始执行后通过状态 ID 进行跟进。
+
+- 设计简单、清晰的 API，支持 Agent 的启动、暂停和恢复，便于生命周期管理。
+- 为每个 Agent 实例分配唯一状态 ID，方便追踪和恢复。
+- 为长流程任务设计中断点和恢复机制，提升系统健壮性和用户体验。
+
+## **7. 使用工具呼叫联系人类**
+
+虽然 LLM 功能强大，但总有需要人类判断、专业知识或干预的场景。本原则主张通过工具调用，将"人机交互"明确纳入代理功能。当 LLM 遇到模糊、不确定或需外部批准的情况时，应能触发结构化通知或上报给人类操作员，确保关键决策在需要时获得人工监督。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%206.png)
+
+默认情况下，LLM API 依赖于关键的"高风险"令牌选择：我们是返回纯文本，还是结构化数据？
+
+你对第一个标记的选择非常重视，在这种 `the weather in tokyo` 情况下，它是：
+
+> 这
+
+但在 `fetch_weather` 情况下，它是一些特殊标记，表示 JSON 对象的开始：
+
+> JSON>
+
+让 LLM 始终输出 json，并用自然语言标记（如 `request_human_input` 或 `done_for_now`，而不是像 `check_weather_in_city` 这样的具体工具）声明意图，往往能获得更好效果。
+
+不会直接提升性能，但你应大胆实验，确保有自由尝试各种方式以获得最佳结果。
+
+```
+class Options:
+  urgency: Literal["low", "medium", "high"]
+  format: Literal["free_text", "yes_no", "multiple_choice"]
+  choices: List[str]
+
+# 人机交互工具定义
+class RequestHumanInput:
+  intent: "request_human_input"
+  question: str
+  context: str
+  options: Options
+
+# 代理循环中的用法示例
+if nextStep.intent == 'request_human_input':
+  thread.events.append({
+    type: 'human_input_requested',
+    data: nextStep
+  })
+  thread_id = await save_state(thread)
+  await notify_human(nextStep, thread_id)
+  return
+  # 跳出循环，等待带 thread ID 的响应返回
+else:
+  # ... 其他情况
+```
+
+稍后，你可能会从处理 slack、邮件、短信等事件的系统收到 webhook：
+
+```
+@app.post('/webhook')
+def webhook(req: Request):
+  thread_id = req.body.threadId
+  thread = await load_state(thread_id)
+  thread.events.push({
+    type: 'response_from_human',
+    data: req.body
+  })
+  # ... 简化处理，实际不建议阻塞 web worker
+  next_step = await determine_next_step(thread_to_prompt(thread))
+  thread.events.append(next_step)
+  result = await handle_next_step(thread, next_step)
+  # todo - 循环、跳出或其他自定义逻辑
+
+  return {"status": "ok"}
+```
+
+以上包括因素 5（统一执行状态和业务状态）、因素 8（拥有自己的控制流）、因素 3（拥有自己的上下文窗口）和因素 4（工具只是结构化输出）的模式，以及其他几个。
+
+如果我们使用因素 3 - 用自定义格式化的上下文窗口，几轮后上下文可能如下：
+
+```
+(snipped for brevity)
+
+<slack_message>
+    From: @alex
+    Channel: #deployments
+    Text: Can you deploy backend v1.2.3 to production?
+    Thread: []
+</slack_message>
+
+<request_human_input>
+    intent: "request_human_input"
+    question: "Would you like to proceed with deploying v1.2.3 to production?"
+    context: "This is a production deployment that will affect live users."
+    options: {
+        urgency: "high"
+        format: "yes_no"
+    }
+</request_human_input>
+
+<human_response>
+    response: "yes please proceed"
+    approved: true
+    timestamp: "2024-03-15T10:30:00Z"
+    user: "alex@company.com"
+</human_response>
+
+<deploy_backend>
+    intent: "deploy_backend"
+    tag: "v1.2.3"
+    environment: "production"
+</deploy_backend>
+
+<deploy_backend_result>
+    status: "success"
+    message: "Deployment v1.2.3 to production completed successfully."
+    timestamp: "2024-03-15T10:30:00Z"
+</deploy_backend_result>
+```
+
+这样做的好处：
+
+1. 明确指示：针对不同类型人机交互的工具让 LLM 输出更具体
+2. 内外循环：支持在传统 ChatGPT 风格界面之外的代理流程，控制流和上下文初始化不必总是 Agent->Human
+3. 多人协作：结构化事件便于跟踪和协调多方输入
+4. 多代理：简单抽象可扩展为 Agent->Agent 请求与响应
+5. 持久性：结合简单 API 启动/暂停/恢复，打造持久、可靠、可自省的多方工作流
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%207.png)
+
+**理解笔记**
+
+构建 Agent 过程中，将"人机交互"标签，明确地加入到代理的功能。
+
+- 明确将"请求人工输入"作为一种标准工具调用，便于 LLM 在不确定或高风险场景下主动寻求人类协助。
+- 为人机交互设计结构化事件和回调机制，支持多渠道通知和响应。
+- 为人工干预流程建立审计和追踪，提升系统安全性和合规性。
+
+## **8. 拥有自己的控制流**
+
+尽管 LLM 具备"推理"能力，但应用的整体控制流应由确定性代码明确管理。LLM 只应引导控制流的路径，而不应成为控制流本身。这样才能保证可预测性、强健的错误处理，并让开发者为 LLM 的自主性设定清晰边界，防止意外或不良行为。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/180-control-flow.png)
+
+如果你拥有自己的控制流，就能做很多有趣的事情。
+
+可以为特定用例构建专属控制结构。例如，某些工具调用可能需要跳出循环，等待人工或其他长时间任务（如训练管道）响应。你还可以实现：
+
+- 工具调用结果的汇总或缓存
+- LLM 结构化输出
+- 上下文窗口压缩或其他内存管理
+- 日志、追踪和指标
+- 客户端速率限制
+- 持久睡眠/暂停/“等待事件”
+
+这种模式允许你根据需要中断和恢复代理流程，打造更自然的对话和工作流。
+
+**例如**：我对每个 AI 框架的首要诉求是，必须能在"选择工具"与"调用工具"之间中断代理并稍后恢复。
+
+如果没有这种粒度的可恢复性，就无法在工具调用前进行人工审核或批准，这会导致：
+
+1. 长任务只能暂停在内存中，进程中断就得重头再来
+2. 只能让代理处理低风险任务，如研究和总结
+3. 让代理做更大更有用的事，但只能祈祷它不会出错
+
+**理解笔记**
+
+构建 Agent 过程中，使用上下文或者 code 控制流程，LLM 引导控制流的路径，而不是*成为*控制流本身。
+
+- 控制流应由确定性代码主导，LLM 只负责决策建议，避免"黑盒"自动化带来的不可控风险。
+- 为关键节点（如工具调用前）设计人工审核或中断机制，提升安全性。
+- 将控制流逻辑与 LLM 推理解耦，便于测试和维护。
+
+## **9. 将错误压缩到上下文窗口中**
+
+当 LLM 驱动的应用发生错误时，应向 LLM 提供简明、相关的故障信息。本原则建议将错误详情以结构化方式压缩进上下文窗口，让 LLM 更好地理解问题，并可能建议恢复策略或替代方案。这样可避免直接传递冗长原始日志，防止模型困惑。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%209.png)
+
+这一点虽短，但很重要。代理的优势之一是"自我修复"——对于短任务，LLM 可能会调用失败的工具。优秀的 LLM 能很好地读取错误消息或堆栈跟踪，并判断后续工具调用需要如何调整。
+
+这样做的好处：
+
+1. **自我修复**：LLM 能读取错误消息并找出后续工具调用的改进点
+2. **持久**：即使工具调用失败，代理仍可继续运行
+
+**理解笔记**
+
+构建 Agent 过程中，智能错误处理机制是构建可靠AI系统的关键组成部分。
+
+- 错误信息应结构化、简明地反馈给 LLM，避免冗长日志导致模型困惑。
+- 为常见错误类型设计标准化摘要模板，便于 LLM 理解和自我修复。
+- 记录每次错误及其处理过程，持续优化错误处理策略。
+
+## **10.小型、专注的 Agent**
+
+本原则主张将复杂 LLM 应用拆分为更小、更专业的代理，每个代理专注于不同任务或领域。模块化方法能减轻单个 LLM 的认知负担，通过缩小关注范围提升准确性，也让系统更易开发、测试和维护。小型代理也更易于微调和优化。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%2010.png)
+
+与其构建包揽一切的单体代理，不如构建小型、专注、专业的代理。代理只是更大、更确定性系统的一个构件。
+
+关键洞察在于 LLM 的局限性：任务越大越复杂，步骤越多，上下文窗口越长，LLM 越容易迷失或分心。让代理专注于特定领域，并将流程控制在 3-10 步、最多 20 步内，有助于保持上下文可控，提升 LLM 性能。
+
+> 随着上下文扩大，LLM 更容易迷失或分心
+
+小型、专注代理的优势：
+
+1. **可控上下文**：窗口越小，性能越好
+2. **职责明确**：每个代理有清晰范围和目标
+3. **更高可靠性**：减少复杂流程中迷失的风险
+4. **易于测试**：便于验证特定功能
+5. **调试友好**：更易定位和修复问题
+
+**理解笔记**
+
+构建 Agent 过程中，设计专注于特定领域的小型 Agent。
+
+- 将复杂任务拆分为多个小型、专注的 Agent，每个 Agent 只负责单一领域或流程。
+- 为每个 Agent 明确职责边界，便于独立开发、测试和优化。
+- 通过组合多个 Agent 实现复杂业务，提升系统灵活性和可维护性。
+
+## **11. 随时随地触发，随时随地与用户见面**
+
+可靠的 LLM 应用应能从多种入口和界面访问和触发。无论网页聊天、API、移动端还是内部仪表盘，代理都应能无缝接收输入并响应。这种灵活性确保代理能集成进现有流程，并在用户偏好的平台上互动，提升可用性和采纳率。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%2011.png)
+
+允许用户通过 Slack、邮件、短信等任意渠道触发客服，客服也可通过同样渠道响应。
+
+这样做的好处：
+
+- **在用户所在的地方与其见面**：有助于打造"像真人或数字同事"的 AI 应用
+- **外环代理**：支持代理被事件、定时任务等非人类触发，关键节点可寻求人类协助
+- **高风险工具**：快速整合多方人员，让代理能安全执行高风险操作（如发外部邮件、更新生产数据），提升可审计性和信心
+
+**理解笔记**
+
+构建 Agent 过程中，使用多渠道接入用户，似乎对国内的封闭系统存在一定的冲击。
+
+- 支持多种入口和渠道（如 Web、API、IM、定时任务等）触发和交互，提升系统可用性。
+- 为每个渠道设计统一的接入和认证机制，确保安全和一致体验。
+- 关注国内外不同生态的集成方式，提升系统兼容性。
+
+## **12. 让你的 Agent 成为无状态 Reducer**
+
+本原则鼓励将 LLM 代理设计为无状态处理器，每次只依赖输入和外部状态生成输出，无需在交互间维护内部长期记忆。所有持久状态应交由外部存储（如数据库、消息队列）管理。这种模式提升了可扩展性、弹性和水平扩展能力，任何代理实例都能处理任意请求，单实例故障也不会丢失数据。
+
+![image.png](/static/images/2025-07-08-12-Factor-Agents/image%2012.png)
+
+**理解笔记**
+
+构建 Agent 过程中，采用无状态的纯函数的转换器方式，更能满足扩展、测试等需求。
+
+- Agent 应设计为无状态的"Reducer"，每次只依赖输入和外部状态，输出结果。
+- 将所有持久化状态交由外部存储系统管理，提升系统弹性和可扩展性。
+- 无状态设计有助于水平扩展和故障恢复，是生产级 Agent 的基础。
+
+## 参考
+
+- [12-Factor Agents - Principles for building reliable LLM applications](https://github.com/humanlayer/12-factor-agents)
+- [GitHub 上 5.4k+ Star 爆火，构建生产级 Agent 的 12 因素](https://news.qq.com/rain/a/20250704A08YCA00)
