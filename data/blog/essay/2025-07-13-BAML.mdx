@@ -1,0 +1,587 @@
+---
+title: 'BAML 原理与实战：AI 工作流与代理的声明式提示语言全解析'
+date: '2025-07-13'
+tags: ['BAML', 'AI工作流', '提示工程', '代理', 'LLM', 'Python', '类型安全', 'BoundaryML']
+draft: false
+summary: '全面介绍 BAML（BoundaryML Application Modeling Language）声明式提示语言的设计理念、安装与使用方法，并结合源码与官网文档，深入剖析其类型系统、编译流程与 Python 集成原理，帮助开发者高效构建可靠的 AI 工作流与智能代理。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-07-13-BAML/image.png" alt="BAML" />
+  <p>BAML：AI 工作流与代理的声明式提示语言（图片源自官方文档）</p>
+</div>
+
+## 引言
+
+随着大语言模型（LLM）和 AI 代理技术的快速发展，如何高效且可靠地构建复杂的 AI 工作流，成为开发者关注的核心问题。BAML（BoundaryML Application Modeling Language）应运而生，作为一种声明式提示语言，BAML 以“提示即函数”为核心理念，将传统的 prompt 工程转化为模式工程，极大提升了 LLM 应用的可维护性、类型安全性和开发效率。
+
+本文结合 BAML 官网文档与实际体验，系统梳理其设计思想、安装与使用流程，并通过源码分析，深入剖析类型系统、编译原理及 Python 端的集成机制，帮助开发者快速上手并理解其底层原理。
+
+## 1. 基础介绍
+
+BAML 是一种专为构建可靠**AI 工作流和代理**设计的简单提示语言。
+
+*一种用于构建 AI 应用和代理的新语法。*
+
+> *We build [**BAML**](https://www.github.com/boundaryml/baml), a new syntax for building AI applications and agents.*
+
+BAML 通过将提示工程转化为模式工程，简化了提示管理，从而获得更可靠的输出。你无需用 BAML 编写整个应用程序，只需专注于提示本身！你可以用任意语言调用 BAML 定义的 LLM 函数。
+
+### 设计理念
+
+1. 尽量避免重复造轮子
+    - 提示需要版本控制？直接用 git
+    - 需要保存和迭代提示？直接用文件系统
+2. 任何编辑器、任何终端都能用
+3. 速度快、易上手
+4. 让大学一年级学生都能理解
+
+### 核心原则：LLM Prompts 即函数
+
+BAML 的基本构建块是函数。每个提示都是一个函数，接受参数并返回类型。
+
+```
+function ChatAgent(message: Message[], tone: "happy" | "sad") -> string
+```
+
+每个函数还定义了所用模型和提示内容：
+
+```
+function ChatAgent(message: Message[], tone: "happy" | "sad") -> StopTool | ReplyTool {
+    client "openai/gpt-4o-mini"
+
+    prompt #"
+        Be a {{ tone }} bot.
+
+        {{ ctx.output_format }}
+
+        {% for m in message %}
+        {{ _.role(m.role) }}
+        {{ m.content }}
+        {% endfor %}
+    "#
+}
+
+class Message {
+    role string
+    content string
+}
+
+class ReplyTool {
+  response string
+}
+
+class StopTool {
+  action "stop" @description(#"
+    when it might be a good time to end the conversation
+  "#)
+}
+```
+
+**BAML 函数可被任意语言调用**
+
+例如，Python 端调用 BAML 定义的 ChatAgent：
+
+```
+from baml_client import b
+from baml_client.types import Message, StopTool
+
+messages = [Message(role="assistant", content="How can I help?")]
+
+while True:
+  print(messages[-1].content)
+  user_reply = input()
+  messages.append(Message(role="user", content=user_reply))
+  tool = b.ChatAgent(messages, "happy")
+  if isinstance(tool, StopTool):
+    print("Goodbye!")
+    break
+  else:
+    messages.append(Message(role="assistant", content=tool.response))
+```
+
+BAML 支持链式函数调用、流式输出等高级用法，极大提升了 AI 代理和工作流的表达能力。
+
+如需流式传输：
+
+```
+stream = b.stream.ChatAgent(messages, "happy")
+# partial 是所有字段可选的 Partial 类型
+for tool in stream:
+    if isinstance(tool, StopTool):
+      ...
+    
+final = stream.get_final_response()
+```
+
+## 2. 快速示例
+
+通过 [www.promptfiddle.com](https://www.promptfiddle.com/) 可在线体验 BAML 示例。
+
+![image.png](/static/images/2025-07-13-BAML/image%201.png)
+
+以简历抽取为例，首先定义结构体：
+
+```
+class Resume {
+  name string
+  education Education[] @description("Extract in the same order listed")
+  skills string[] @description("Only include programming languages")
+}
+
+class Education {
+  school string
+  degree string
+  year int
+}
+```
+
+定义抽取简历的函数：
+
+```
+function ExtractResume(resume_text: string) -> Resume {
+  // see clients.baml
+  client GPT4o
+
+  // The prompt uses Jinja syntax. Change the models or this text and watch the prompt preview change!
+  prompt #"
+    Parse the following resume and return a structured representation of the data in the schema below.
+
+    Resume:
+    ---
+    {{ resume_text }}
+    ---
+
+    {# special macro to print the output instructions. #}
+    {{ ctx.output_format }}
+
+    JSON:
+  "#
+}
+```
+
+BAML 转换后与 LLM 交互的完整提示如下：
+
+```
+system:
+Parse the following resume and return a structured representation of the data in the schema below.
+
+Resume:
+---
+John Doe
+
+Education
+- University of California, Berkeley
+  - B.S. in Computer Science
+  - 2020
+
+Skills
+- Python
+- Java
+- C++
+---
+
+Answer in JSON using this schema:
+{
+  name: string,
+  // Extract in the same order listed
+  education: [
+    {
+      school: string,
+      degree: string,
+      year: int,
+    }
+  ],
+  // Only include programming languages
+  skills: string[],
+}
+
+JSON:
+```
+
+运行结果如下
+
+![image.png](/static/images/2025-07-13-BAML/iShot_2025-07-13_23.01.19.png)
+
+## 3. 实践操作
+
+### 3.1 安装 BAML VSCode/Cursor 扩展
+
+[Baml Language VS Code Extension](https://marketplace.visualstudio.com/items?itemName=boundary.baml-extension)：此 VS Code 扩展为用于定义 LLM 函数、在集成的 LLM Playground 中测试它们以及构建代理工作流的 Baml 语言提供支持。
+
+- 语法高亮
+- 测试游乐场
+- 提示预览
+
+通过 VSCode/Cursor 安装
+
+![image.png](/static/images/2025-07-13-BAML/image%202.png)
+
+### 3.2 Python 工程初始化
+
+通过 uv 初始化工程并安装依赖
+
+```bash
+uv init baml-samples
+cd baml-samples
+uv run main.py
+source .venv/bin/activate
+```
+
+安装 BAML
+
+```
+uv add baml-py
+```
+
+### 3.3 将 BAML 添加到现有项目
+
+这将在目录中为您提供一些启动 BAML 代码 `baml_src`。
+
+```bash
+uv run baml-cli init
+```
+
+### 3.4 baml_client 从 .baml 文件生成Python 模块
+
+目录中的其中一个文件`baml_src`将包含一个[生成器块](https://docs.boundaryml.com/ref/baml/generator)。下一个命令将自动生成 `baml_client` 目录，该目录将自动生成用于调用 BAML 函数的 Python 代码。
+
+.baml 文件中定义的任何类型都将转换为 `baml_client` 目录中的 Pydantic 模型。
+
+```bash
+uv run baml-cli generate
+```
+
+### 3.5 在 Python 中使用 BAML 函数
+
+如果`baml_client`不存在，请确保运行上一步
+
+```python
+from baml_client.sync_client import b
+from baml_client.types import Resume
+
+def example(raw_resume: str) -> Resume: 
+  # BAML's internal parser guarantees ExtractResume
+  # to be always return a Resume type
+  response = b.ExtractResume(raw_resume)
+  return response
+
+def example_stream(raw_resume: str) -> Resume:
+  stream = b.stream.ExtractResume(raw_resume)
+  for msg in stream:
+    print(msg) # This will be a PartialResume type
+  
+  # This will be a Resume type
+  final = stream.get_final_response()
+
+  return final
+
+def main():
+    print("Hello from baml-samples!")
+    example("""
+        John Doe
+
+        Education
+        - University of California, Berkeley
+            - B.S. in Computer Science
+            - 2020
+
+        Skills
+        - Python
+        - Java
+        - C++
+    """)
+
+if __name__ == "__main__":
+    main()
+```
+
+当前目录结果如下：
+
+```
+$ tree -L 1
+.
+├── README.md
+├── baml_client
+├── baml_src
+├── main.py
+├── pyproject.toml
+└── uv.lock
+
+3 directories, 4 files
+```
+
+执行得到结果如下（需要确保环境变量中有 OpenAI 的 KEY：`export OPENAI_API_KEY="..."`）
+
+```Text
+2025-07-13T20:28:47.266 [BAML INFO] Function ExtractResume:
+    Client: openai/gpt-4o-mini (gpt-4o-mini-2024-07-18) - 2429ms. StopReason: stop. Tokens(in/out): 87/44
+```
+---PROMPT--- 
+```Text
+system: Extract from this content:
+
+        John Doe
+
+        Education
+        - University of California, Berkeley
+            - B.S. in Computer Science
+            - 2020
+
+        Skills
+        - Python
+        - Java
+        - C++
+
+Answer in JSON using this schema:
+{
+  name: string,
+  email: string,
+  experience: string[],
+  skills: string[],
+}
+```
+
+---LLM REPLY---
+
+```json
+{
+  "name": "John Doe",
+  "email": "",
+  "experience": [],
+  "skills": [
+    "Python",
+    "Java",
+    "C++"
+  ]
+}
+```
+
+---Parsed Response (class Resume)---
+
+```Text
+{
+  "name": "John Doe",
+  "email": "",
+  "experience": [],
+  "skills": [
+    "Python",
+    "Java",
+    "C++"
+  ]
+}
+```
+
+## 4. 原理分析
+
+### 4.1 BAML 文件与类型系统
+
+BAML（BoundaryML Application Modeling Language）是一种声明式 DSL，用于定义 LLM 任务和数据结构。其核心思想是将 LLM 任务（如信息抽取、对话代理等）和数据类型（如 Resume、Education 等）以强类型方式声明，提升开发规范性和类型安全。
+
+**示例：`clients.baml`**
+
+```
+model ExtractResume(raw_resume: string): Resume
+
+type Resume = {
+  name: string,
+  email: string,
+  phone: string,
+  experience: list<string>,
+  education: list<Education>,
+  skills: list<string>
+}
+
+type Education = {
+  institution: string,
+  location: string,
+  degree: string,
+  major: list<string>,
+  graduation_date?: string
+}
+```
+
+- `model` 用于声明 LLM 任务，输入输出类型明确。
+- `type` 用于定义结构化数据，支持嵌套、列表、可选字段等。
+
+### 4.2 BAML 编译流程总览
+
+BAML 的编译流程大致分为以下几个阶段：
+
+1. **解析（Parse）**：读取 `.baml` 文件，进行词法和语法分析，生成 AST（抽象语法树）。
+2. **类型检查（Type Check）**：检查模型和类型定义的合法性，确保类型引用、嵌套、泛型等无误。
+3. **代码生成（Generate）**：根据 AST 和类型信息，生成目标语言的类型定义、客户端代码等。
+4. **输出（Emit）**：将生成的代码写入指定目录，供业务代码直接导入使用。
+
+**编译命令示例：**
+
+```bash
+baml compile baml_src/clients.baml --output python/baml_client/
+```
+
+### 4.3 Generate 阶段原理
+
+#### （1）类型定义的生成
+
+BAML 的 `type` 会被自动转为 Python 的 Pydantic BaseModel。例如：
+
+```python
+# types.py（自动生成）
+from pydantic import BaseModel
+import typing
+
+class Education(BaseModel):
+    institution: str
+    location: str
+    degree: str
+    major: typing.List[str]
+    graduation_date: typing.Optional[str] = None
+
+class Resume(BaseModel):
+    name: str
+    email: str
+    phone: str
+    experience: typing.List[str]
+    education: typing.List[Education]
+    skills: typing.List[str]
+```
+
+字段名、类型、可选性等均由 BAML 文件决定，生成代码会严格反映这些定义。
+
+#### （2）同步客户端方法的生成
+
+BAML 的 `model` 会被自动转为 Python 客户端方法，方法签名与 BAML 保持一致，底层自动处理序列化、请求和反序列化。
+
+```python
+# sync_client.py（自动生成，部分节选）
+class BamlSyncClient:
+    # ... 初始化和内部属性省略 ...
+
+    def ExtractResume(self, resume: str, img: typing.Optional[baml_py.Image] = None, baml_options: BamlCallOptions = {}) -> Resume:
+        result = self.__options.merge_options(baml_options).call_function_sync(
+            function_name="ExtractResume",
+            args={"resume": resume, "img": img}
+        )
+        return typing.cast(Resume, result.cast_to(types, types, stream_types, False, __runtime__))
+```
+
+调用示例：
+
+```python
+from baml_client.sync_client import b
+
+resume_obj = b.ExtractResume("raw resume text")
+print(resume_obj.name)
+```
+
+#### （3）流式客户端方法的生成
+
+如果 BAML 支持流式输出，会生成 stream 客户端：
+
+```python
+# sync_client.py（自动生成，部分节选）
+class BamlStreamClient:
+    def ExtractResume(self, resume: str, img: typing.Optional[baml_py.Image] = None, baml_options: BamlCallOptions = {}) -> baml_py.BamlSyncStream[stream_types.Resume, Resume]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(
+            function_name="ExtractResume",
+            args={"resume": resume, "img": img}
+        )
+        return baml_py.BamlSyncStream[stream_types.Resume, Resume](
+            result,
+            lambda x: typing.cast(stream_types.Resume, x.cast_to(types, types, stream_types, True, __runtime__)),
+            lambda x: typing.cast(Resume, x.cast_to(types, types, stream_types, False, __runtime__)),
+            ctx,
+        )
+```
+
+流式调用示例：
+
+```python
+stream = b.stream.ExtractResume("raw resume text")
+for partial in stream:
+    print(partial)  # Partial Resume 类型
+final_resume = stream.get_final_response()
+```
+
+#### （4）自动生成的入口与导入
+
+自动生成的 `__init__.py` 便于直接导入和版本校验，确保依赖一致性。
+
+```python
+# This file was generated by BAML: please do not edit it. Instead, edit the
+# BAML files and re-generate this code using: baml-cli generate
+# baml-cli is available with the baml package.
+
+__version__ = "0.201.0"
+
+try:
+  from baml_py.safe_import import EnsureBamlPyImport
+except ImportError:
+  raise ImportError(f"""Update to baml-py required.
+Version of baml_client generator (see generators.baml): {__version__}
+
+Please upgrade baml-py to version \"{__version__}\".
+
+$ pip install baml-py=={__version__}
+$ uv add baml-py=={__version__}
+
+If nothing else works, please ask for help:
+
+https://github.com/boundaryml/baml/issues
+https://boundaryml.com/discord
+""") from None
+
+with EnsureBamlPyImport(__version__) as e:
+  e.raise_if_incompatible_version(__version__)
+
+  from . import types
+  from . import tracing
+  from . import stream_types
+  from . import config
+  from .config import reset_baml_env_vars
+  
+  from .sync_client import b
+  
+
+# FOR LEGACY COMPATIBILITY, expose "partial_types" as an alias for "stream_types"
+# WE RECOMMEND USERS TO USE "stream_types" INSTEAD
+partial_types = stream_types
+
+__all__ = [
+  "b",
+  "stream_types",
+  "partial_types",
+  "tracing",
+  "types",
+  "reset_baml_env_vars",
+  "config",
+]
+```
+
+#### （5）运行时环境与配置
+
+生成的代码会自动引用运行时环境和配置，无需手动管理：
+
+```python
+from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME as __runtime__
+```
+
+### 4.4 Python 端的集成与调用
+
+- 生成的代码被写入 `baml_client/` 目录，业务代码可直接 `import`。
+- 生成的客户端方法隐藏了底层的 HTTP/gRPC/WebSocket 调用细节，开发者只需关注业务逻辑。
+
+**调用示例：**
+
+```python
+from baml_client.sync_client import b
+resume = b.ExtractResume("raw resume text")
+```
+
+BAML 的 generate 阶段是将声明式的 LLM 任务和类型，自动转化为类型安全、易用的客户端代码的关键环节。它极大提升了 LLM 应用的开发效率和可靠性，是 BAML 生态的核心能力之一。
+
+## 资料
+
+- [www.boundaryml.com](https://www.boundaryml.com/)
+- [github.com/boundaryml/baml](https://github.com/boundaryml/baml?tab=readme-ov-file)
+- [AI Agents Need a New Syntax](https://www.boundaryml.com/blog/ai-agents-need-new-syntax)
