@@ -1,0 +1,432 @@
+---
+title: 'Embabel 简介：新一代企业级智能代理框架介绍'
+date: '2025-08-10'
+tags: ['Embabel', 'AI代理', 'JVM', 'Spring', 'Kotlin', 'Java', '企业级AI', '智能规划', '领域建模', 'MCP', 'A2A', '生成式AI', 'Rod Johnson', 'OODA循环', '代理框架']
+draft: false
+summary: '介绍 Embabel 智能代理框架的核心目标与设计理念。文章详细介绍了这个由 Spring 框架创始人 Rod Johnson 打造的企业级 AI 代理框架，并通过实际代码示例展示如何构建故事创作与评审代理，为 JVM 生态的 AI 应用开发提供介绍。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-08-10-Embabel/iShot_2025-08-10_21.56.08.png" alt="Embabel" />
+  <p>Embabel（图片源自社区 Github [embabel-agent](https://github.com/embabel/embabel-agent) ）</p>
+</div>
+
+Embabel（发音：Em-BAY-bel）是一个运行在 JVM 平台上的智能代理流框架，专为企业级应用而设计。该框架将大语言模型（LLM）驱动的交互与业务代码和领域模型进行深度融合，通过智能路径规划实现目标导向的自动化。虽然框架本身采用 Kotlin 开发，但为 Java 开发者提供了自然流畅的使用体验。值得一提的是，Embabel 出自 Spring 框架创始人 Rod Johnson 之手，承载着其对企业级 AI 应用的深刻洞察。
+
+## 核心使命
+
+智能代理框架作为一个新兴领域，目前仍处于快速发展的初期阶段，特别是在 JVM 生态系统中更是如此。Embabel 作为一个具有前瞻性的项目，致力于成为跨平台领域内最优秀的代理框架。其创新的设计理念和技术架构，使其在 JVM 乃至整个技术生态中都具备显著的竞争优势。
+
+> Embabel 的核心使命：为开发者提供安全、可靠、高效的框架基础，充分释放生成式 AI 在企业应用中的商业价值。
+
+### 核心特性
+
+* 确定性智能规划：无需修改现有代码即可动态扩展系统功能，为构建可随需求增长的智能、安全代理系统奠定坚实基础。
+
+* 领域驱动建模：充分利用领域建模的强大能力，最大化提升代码重用性、系统可解释性、业务可审计性以及对业务需求的高保真度实现。
+
+* 深度企业集成：Embabel 基于丰富的企业实践经验构建，与主流 Java 框架实现无缝集成，为现有业务应用提供深度、原生的 AI 能力扩展。
+
+* 工程最佳实践：将经过验证的软件工程最佳实践应用于生成式 AI 应用开发。技术格局虽在变化，但优秀的工程实践始终是构建可靠关键系统的基石。
+
+* 拥抱开放标准：积极采用 MCP（Model Context Protocol）和 A2A（Agent-to-Agent）等新兴行业标准，助力构建代理网络生态，让开发者专注于业务逻辑而非协议细节。
+
+* 自然语言驱动：探索通过自然语言创建代理的无限可能。在企业开发者技能基础之上，真正实现业务用户的 AI 赋能——这是过去多次承诺但从未实现的愿景。
+
+* 实用示例驱动：提供丰富的实用示例，既具备实际应用价值，又能充分展现优秀代理平台的强大能力。
+
+* 协同价值最大化：如同 Spring 框架一样，通过统一的方法论实现整体价值远大于各部分简单相加的协同效应。
+
+## 技术愿景
+
+Embabel 的技术愿景建立在四大核心支柱之上：
+
+### 智能规划引擎
+Embabel 的核心竞争力在于其独特的规划机制。与其他代理框架不同：
+- 传统框架：要么缺乏规划能力，要么需要开发者手动定义操作链（如状态机），或完全依赖 LLM 进行规划
+- Embabel 创新：采用专门的非 LLM AI 算法进行智能路径规划，确保目标实现的确定性和可靠性
+
+这种设计理念的优势将随着 AI 应用复杂度的提升而愈发凸显。
+
+### 领域建模优先
+Embabel 将领域建模提升到前所未有的高度：
+- 深度集成：领域对象与动作、目标形成有机统一体
+- 条件表达：规划中的前置条件和后置条件通过领域对象的数据流自然表达
+- 面向对象：遵循优秀的 OOP 实践，领域对象具备完整的行为和状态
+- 安全暴露：支持选择性地将安全函数作为工具暴露给 LLM，确保系统安全性
+
+### 企业级集成
+与现有系统和基础设施的深度集成是生成式 AI 实用化的关键，但这一点长期被忽视：
+- 历史局限：第一代生成式 AI 功能主要基于 Python 生态，与企业级 Java 应用缺乏有效连接
+- Embabel 优势：原生支持 JVM 生态，与企业现有技术栈无缝融合
+
+### 标准化生态
+Embabel 积极拥抱行业标准，构建开放的代理网络生态：
+- 标准兼容：确保基于 Embabel 构建的代码能够为代理网络贡献资源并充分利用生态资产
+- 轻松扩展：开发者可以轻松将 Embabel 代理发布为 MCP 或 A2A 服务器，实现跨平台互操作
+
+## 核心概念
+
+Embabel 通过以下五个核心概念对智能代理流进行精确建模：
+
+### 行动（Action）
+代理执行的具体操作步骤，是实现目标的基本执行单元。每个行动都具有明确的输入、输出和执行逻辑。
+
+### 目标（Goal）
+代理努力达成的期望状态或结果。目标定义了代理行为的方向和成功标准。
+
+### 条件（Condition）
+在执行操作或判断目标达成之前需要评估的前置/后置条件。系统在每次行动完成后都会重新评估所有相关条件，确保决策的准确性。
+
+### 领域模型（Domain Model）
+支撑整个代理流程的业务对象体系，为行动、目标和条件提供语义基础和数据支撑。领域模型是连接业务逻辑与 AI 能力的关键桥梁。
+
+### 计划（Plan）
+为实现特定目标而制定的行动序列。与传统编程不同，计划由系统根据当前状态动态生成，而非程序员预先定义。系统在每次行动完成后都会重新评估和调整计划，实现真正的自适应智能。
+
+### OODA 循环机制
+
+Embabel 采用经典的 OODA 循环（Observe-Orient-Decide-Act）作为其核心运行机制：
+
+- 观察（Observe）：收集当前环境状态和执行结果
+- 调整（Orient）：分析新信息，更新对情况的理解
+- 决策（Decide）：基于最新信息重新制定或调整行动计划
+- 行动（Act）：执行计划中的下一步操作
+
+每次行动完成后，系统都会重新启动 OODA 循环，根据新信息或意外结果动态调整策略。这不仅仅是响应式编程，而是真正的自适应智能系统。
+
+## 运行模式
+
+Embabel 提供三种不同的运行模式，满足从简单集成到复杂自主决策的各种需求：
+
+### 聚焦模式（Focused Mode）
+特点：传统的函数调用模式，明确请求特定功能
+适用场景：将 AI 功能集成到现有应用程序中，需要可预测的行为
+优势：高度可控，避免意外行为，易于调试和维护
+
+### 封闭模式（Closed Mode）
+特点：系统智能分析用户意图，从预定义代理池中动态选择最适合的代理
+适用场景：需要一定智能性但要控制在已知范围内的应用
+优势：平衡了智能性和可控性，代理使用完整规划功能执行任务
+
+### 开放模式（Open Mode）
+特点：最强大且最具雄心的模式，系统可以整合多个代理功能，创造性地实现目标
+适用场景：探索性任务，需要最大化 AI 创新能力的场景
+优势：能够发现开发者未曾预料的解决路径，实现功能的智能组合
+
+> 模式选择权衡：开放模式功能最强大但确定性最低，聚焦模式最可控但灵活性有限。开发者可根据具体业务需求选择合适的模式。
+
+## 快速上手
+
+下面通过一个完整的示例来展示如何使用 Embabel 创建智能代理。本示例实现了一个「故事创作与评审代理」，演示了 Embabel 的核心功能。
+
+### 环境要求
+- Java 版本：21 或更高版本
+- 推荐工具：使用 jenv 等 Java 版本管理工具进行多版本管理
+- 构建工具：Maven 或 Gradle
+
+### 项目配置
+
+pom.xml
+
+```xml
+    <!-- Spring Boot 父项目配置 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.3</version>
+        <relativePath/> <!-- 从仓库查找父项目 -->
+    </parent>
+    
+    <!-- 项目基本信息 -->
+    <groupId>com.example.embabel</groupId>
+    <artifactId>Embabel-java-samples</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Embabel代理</name>
+    <description>生成的代理项目示例</description>
+
+    <!-- 项目属性配置 -->
+    <properties>
+        <java.version>21</java.version>  <!-- Java 版本 -->
+        <embabel-agent.version>0.1.0-SNAPSHOT</embabel-agent.version>  <!-- Embabel 版本 -->
+    </properties>
+
+    <!-- 项目依赖 -->
+    <dependencies>
+        <!-- Embabel 核心依赖 -->
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-starter</artifactId>  <!-- Embabel 代理启动器 -->
+            <version>${embabel-agent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-test</artifactId>  <!-- Embabel 测试工具 -->
+            <version>${embabel-agent.version}</version>
+        </dependency>
+    </dependencies>
+
+    <!-- 构建配置 -->
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven 插件 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- 仓库配置 -->
+    <repositories>
+        <!-- Embabel 快照版本仓库 -->
+        <repository>
+            <id>embabel-snapshots</id>
+            <url>https://repo.embabel.com/artifactory/libs-snapshot</url>
+            <snapshots>
+                <enabled>true</enabled>  <!-- 启用快照版本 -->
+            </snapshots>
+        </repository>
+    </repositories>
+```
+
+### 核心代理实现
+
+WriteAndReviewAgent.java - 故事创作与评审代理
+
+```java
+// Embabel 代理框架相关导入
+import com.embabel.agent.api.annotation.AchievesGoal;
+import com.embabel.agent.api.annotation.Action;
+import com.embabel.agent.api.annotation.Agent;
+import com.embabel.agent.api.common.OperationContext;
+import com.embabel.agent.api.common.PromptRunner;
+import com.embabel.agent.domain.io.UserInput;
+import com.embabel.agent.domain.library.HasContent;
+import com.embabel.agent.prompt.persona.Persona;
+import com.embabel.common.ai.model.AutoModelSelectionCriteria;
+import com.embabel.common.ai.model.LlmOptions;
+import com.embabel.common.ai.prompt.PromptContributionLocation;
+import com.embabel.common.core.types.Timestamped;
+// Spring 框架相关导入
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.lang.NonNull;
+
+// Java 标准库导入
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+/*
+ * 角色定义类 - 定义故事创作和评审的 AI 角色
+ */
+abstract class Personas {
+    // 创作者角色：模拟罗尔德·达尔的创作风格
+    static final Persona WRITER = Persona.create(
+            "Roald Dahl",
+            "一位富有创造力的故事讲述者，喜欢编织富有想象力且略显非传统的故事",
+            "古怪有趣",
+            "创作能够吸引读者想象力的难忘故事。",
+            "",
+            PromptContributionLocation.BEGINNING
+    );
+    // 评审者角色：模拟纽约时报书评家
+    static final Persona REVIEWER = Persona.create(
+            "媒体书评",
+            "纽约时报书评家",
+            "专业且富有洞察力",
+            "帮助引导读者找到优秀的故事",
+            "",
+            PromptContributionLocation.BEGINNING
+    );
+}
+
+/*
+ * 故事记录类 - 简单的故事文本容器
+ */
+record Story(String text) {}
+
+/*
+ * 已评审故事记录类 - 包含故事、评审和评审者信息
+ */
+record ReviewedStory(
+        Story story,        // 原始故事
+        String review,      // 评审内容
+        Persona reviewer    // 评审者角色
+) implements HasContent, Timestamped {
+
+    /*
+     * 获取时间戳
+     */
+    @Override
+    @NonNull
+    public Instant getTimestamp() {
+        return Instant.now();
+    }
+
+    /*
+     * 获取格式化的内容，包含故事、评审和评审者信息
+     */
+    @Override
+    @NonNull
+    public String getContent() {
+        return String.format("""
+            # 故事
+            %s
+
+            # 评审
+            %s
+
+            # 评审者
+            %s, %s
+            """,
+                story.text(),
+                review,
+                reviewer.getName(),
+                getTimestamp().atZone(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy"))
+        ).trim();
+    }
+}
+
+/*
+ * 故事创作与评审代理 - 核心业务逻辑类
+ */
+@Agent(description = "基于用户输入生成故事并进行评审")
+@Profile("!test")  // 非测试环境下启用
+class WriteAndReviewAgent {
+
+    private final int storyWordCount;   // 故事字数限制
+    private final int reviewWordCount;  // 评审字数限制
+
+    /*
+     * 构造函数 - 通过配置注入字数限制参数
+     */
+    WriteAndReviewAgent(
+            @Value("${storyWordCount:100}") int storyWordCount,
+            @Value("${reviewWordCount:100}") int reviewWordCount
+    ) {
+        this.storyWordCount = storyWordCount;
+        this.reviewWordCount = reviewWordCount;
+    }
+
+    /*
+     * 故事评审行动 - 对已创作的故事进行专业评审
+     */
+    @AchievesGoal(description = "故事已被书评家创作并评审完成")
+    @Action
+    ReviewedStory reviewStory(UserInput userInput, Story story, OperationContext context) {
+        // 使用评审者角色生成评审内容
+        String review = context.promptRunner()
+                .withLlm(LlmOptions.fromCriteria(AutoModelSelectionCriteria.INSTANCE))
+                .withPromptContributor(Personas.REVIEWER)
+                .generateText(String.format("""
+                                你将收到一个短篇故事进行评审。
+                                请在 %d 字以内对其进行评审。
+                                请考虑故事是否引人入胜、富有想象力且文笔优美。
+                                同时考虑故事是否符合原始用户输入的要求。
+                                
+                                # 故事
+                                %s
+                                
+                                # 启发故事创作的用户输入
+                                %s
+                                """,
+                        reviewWordCount,
+                        story.text(),
+                        userInput.getContent()
+                ).trim());
+
+        // 返回包含故事、评审和评审者的完整对象
+        return new ReviewedStory(
+                story,
+                review,
+                Personas.REVIEWER
+        );
+    }
+
+    /*
+     * 故事创作行动 - 基于用户输入创作原创故事
+     */
+    @Action
+    Story craftStory(UserInput userInput) {
+        return PromptRunner.usingLlm(
+                        LlmOptions.fromCriteria(AutoModelSelectionCriteria.INSTANCE)
+                                .withTemperature(0.9) // 提高温度参数以获得更具创造性的输出
+                ).withPromptContributor(Personas.WRITER)
+                .createObject(String.format("""
+                                请创作一个 %d 字以内的短篇故事。
+                                故事应该引人入胜且富有想象力。
+                                如果可能的话，请以用户的输入作为灵感来源。
+                                如果用户提供了姓名，请将其包含在故事中。
+                                
+                                # 用户输入
+                                %s
+                                """,
+                        storyWordCount,
+                        userInput.getContent()
+                ).trim(), Story.class);
+    }
+}
+```
+
+### 应用程序启动
+
+Application.java - Spring Boot 应用启动类
+
+```java
+// Embabel 代理配置相关导入
+import com.embabel.agent.config.annotation.EnableAgentShell;
+import com.embabel.agent.config.annotation.EnableAgents;
+import com.embabel.agent.config.annotation.LoggingThemes;
+// Spring Boot 相关导入
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/
+ * Spring Boot 应用程序主类
+ * 配置并启动 Embabel 代理框架
+ */
+@SpringBootApplication              // 标记为 Spring Boot 应用
+@EnableAgentShell                   // 启用 Embabel 代理命令行界面
+@EnableAgents(loggingTheme = LoggingThemes.STAR_WARS)  // 启用代理功能，使用星球大战主题日志
+class Application {
+    /
+     * 应用程序入口点
+     * @param args 命令行参数
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+
+### 运行效果
+
+![Embabel 代理运行示例](/static/images/2025-08-10-Embabel/iShot_2025-08-10_21.50.15.png)
+
+### 更多示例
+
+想要了解更多 Embabel 的使用示例和最佳实践，请访问官方示例仓库：
+[embabel-agent-examples](https://github.com/embabel/embabel-agent-examples)
+
+## 总结
+
+Embabel 作为新一代企业级智能代理框架，通过其独特的设计理念和技术架构，为 JVM 生态系统带来了前所未有的 AI 能力。其核心优势包括：
+
+- 智能规划：非 LLM 算法驱动的确定性规划机制
+- 领域建模：深度集成的业务对象与 AI 能力
+- 企业集成：与现有 Java 技术栈的无缝融合
+- 标准兼容：支持 MCP、A2A 等新兴行业标准
+
+随着生成式 AI 在企业应用中的深入发展，Embabel 有望成为连接传统企业系统与智能化未来的重要桥梁。
+
+## 参考资料
+
+- [Embabel Agent GitHub](https://github.com/embabel/embabel-agent)
+- [Embabel Agent: The Future of Enterprise AI Development is Here](https://master-spring-ter.medium.com/embabel-agent-the-future-of-enterprise-ai-development-is-here-e537a64e3174)
+- [The Embabel Vision](https://medium.com/@springrod/the-embabel-vision-967654f13793)
+- [Embabel 官方文档](https://embabel.com)
+- [Spring Framework](https://spring.io)
