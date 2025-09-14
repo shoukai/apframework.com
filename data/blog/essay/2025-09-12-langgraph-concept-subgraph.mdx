@@ -1,0 +1,301 @@
+---
+title: 'LangGraph 子图（Subgraph）：概念总结与代码验证'
+date: '2025-09-12'
+tags: ['LangGraph', 'Subgraph', 'LLM', '状态机', '智能体', 'Python', '教程']
+draft: false
+summary: '本文总结 LangGraph 子图（Subgraph）能力，并通过两种通信模式（共享状态与不同状态）提供完整可运行的 Python 示例与流式输出，展示子图在父图中的编译与调用方式、输入输出映射以及在多智能体系统中的常见用法，帮助你快速理解并验证该特性。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-09-12-langgraph-concept-subgraph/fatos-bytyqi-Agx5_TLsIf4-unsplash.jpg" alt="Code" />
+  <p>Code in LangGraph（Photo by <a href="https://unsplash.com/@fatosi?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Fatos Bytyqi</a> on <a href="https://unsplash.com/photos/gray-laptop-computer-on-brown-wooden-desk-Agx5_TLsIf4?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash">Unsplash</a>)
+）</p>
+</div>
+
+
+## 概述
+
+本文面向已经了解 LangGraph 基本用法的读者，系统梳理“子图（Subgraph）”这一重要能力，并在官方示例基础上补充选型建议、最佳实践与运行验证指引，帮助你在真实项目中更好地拆分与复用复杂工作流。
+
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+### 主要内容
+- 子图的设计意图：将一段可复用、可独立演进的工作流，作为“节点”嵌入父图，达到解耦与复用。
+- 两种通信模式的差异与边界：共享状态模式 vs 不同状态模式，如何在接口、耦合度与可维护性间权衡。
+- 如何编译与调用子图：作为节点直接接入，或通过 invoke 转换输入/输出。
+- 如何在调试与可观测性上做得更好：通过带前缀的日志与 subgraphs=True 的流式事件观察调用链路。
+
+### 两种通信模式速览
+- 共享状态模式：父图与子图的状态模式中存在相同键（如 messages、foo），子图可直接读写共享键；适合“轻封装、高耦合”的复用场景（例如多智能体共享会话）。
+- 不同状态模式：父图与子图没有共享键，需要在父图的节点函数中进行“输入映射 → 子图调用 → 输出映射”；适合“强封装、低耦合”的子系统（例如各 Agent 拥有私有记忆/上下文）。
+
+### 何时使用子图
+- 多智能体协作：将每个智能体或子流程封装为子图，便于并行开发与独立演进。
+- 功能复用：将在多处使用的一段工作流提取为子图，作为可插拔组件使用。
+- 团队分工：由不同小组维护不同子图，只需遵守输入/输出契约，父图无需了解内部细节。
+
+### 选择哪种通信模式
+- 如果父/子图天然共享上下文（如 messages/会话），或者你希望快速组装并减少样板映射代码，优先选“共享状态模式”。
+- 如果你希望降低耦合、隐藏内部实现、保证边界清晰（尤其是跨团队协作），优先选“不同状态模式”。
+- 经验法则：共享状态更“快”但更“紧”；不同状态更“稳”但需要“映射”。
+
+## 子图
+
+子图（subgraph）是一个在另一个图中作为节点使用的图——这是封装概念在 LangGraph 中的应用。子图允许您构建包含多个组件的复杂系统，而这些组件本身就是图。
+
+使用子图的一些原因包括：
+
+- 构建多智能体系统
+- 当您想在多个图中重用一组节点时
+- 当您希望不同的团队独立开发图的不同部分时，您可以将每个部分定义为一个子图。只要遵守子图的接口（输入和输出模式），父图就可以在不了解子图任何细节的情况下进行构建。
+
+## 使用子图
+本指南介绍了使用子图的机制。子图的一个常见应用是构建多智能体系统。
+
+添加子图时，您需要定义父图和子图如何通信
+
+- 共享状态模式 — 父图和子图在其状态模式中拥有共享的状态键
+- 不同状态模式 — 父图和子图的模式中没有共享的状态键
+
+### 共享状态模式
+
+一种常见情况是父图和子图通过模式中的共享状态键（通道）进行通信。例如，在多智能体系统中，智能体通常通过共享的 messages 键进行通信。
+
+如果您的子图与父图共享状态键，您可以按照以下步骤将其添加到您的图中
+
+定义子图工作流（在下面的示例中为 subgraph_builder）并编译它
+在定义父图工作流时，将编译后的子图传递给 .add_node 方法
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph.state import StateGraph, START
+
+# Define subgraph
+class SubgraphState(TypedDict):
+    foo: str  
+    bar: str  
+
+def subgraph_node_1(state: SubgraphState):
+    print("[子图] subgraph_node_1 输入状态:", state)
+    result = {"bar": "bar"}
+    print("[子图] subgraph_node_1 输出更新:", result)
+    return result
+
+def subgraph_node_2(state: SubgraphState):
+    print("[子图] subgraph_node_2 输入状态:", state)
+    # note that this node is using a state key ('bar') that is only available in the subgraph
+    # and is sending update on the shared state key ('foo')
+    updated_foo = state["foo"] + state["bar"]
+    result = {"foo": updated_foo}
+    print("[子图] subgraph_node_2 输出更新:", result)
+    return result
+
+subgraph_builder = StateGraph(SubgraphState)
+subgraph_builder.add_node(subgraph_node_1)
+subgraph_builder.add_node(subgraph_node_2)
+subgraph_builder.add_edge(START, "subgraph_node_1")
+subgraph_builder.add_edge("subgraph_node_1", "subgraph_node_2")
+subgraph = subgraph_builder.compile()
+print("✅ 子图编译完成: subgraph")
+
+# Define parent graph
+class ParentState(TypedDict):
+    foo: str
+
+def node_1(state: ParentState):
+    print("[父图] node_1 输入状态:", state)
+    result = {"foo": "hi! " + state["foo"]}
+    print("[父图] node_1 输出更新:", result)
+    return result
+
+builder = StateGraph(ParentState)
+builder.add_node("node_1", node_1)
+builder.add_node("node_2", subgraph)
+builder.add_edge(START, "node_1")
+builder.add_edge("node_1", "node_2")
+graph = builder.compile()
+print("✅ 父图编译完成: graph")
+
+print("=== 开始执行图 ===")
+initial_input = {"foo": "foo"}
+print("初始输入:", initial_input)
+for chunk in graph.stream(initial_input):
+    print("[流事件] 节点输出:", chunk)
+print("=== 执行结束 ===")
+```
+
+输出结果
+```
+✅ 子图编译完成: subgraph
+✅ 父图编译完成: graph
+=== 开始执行图 ===
+初始输入: {'foo': 'foo'}
+[父图] node_1 输入状态: {'foo': 'foo'}
+[父图] node_1 输出更新: {'foo': 'hi! foo'}
+[流事件] 节点输出: {'node_1': {'foo': 'hi! foo'}}
+[子图] subgraph_node_1 输入状态: {'foo': 'hi! foo'}
+[子图] subgraph_node_1 输出更新: {'bar': 'bar'}
+[子图] subgraph_node_2 输入状态: {'foo': 'hi! foo', 'bar': 'bar'}
+[子图] subgraph_node_2 输出更新: {'foo': 'hi! foobar'}
+[流事件] 节点输出: {'node_2': {'foo': 'hi! foobar'}}
+=== 执行结束 ===
+```
+
+#### 示例讲解：共享状态模式
+
+- 状态类型：父图 ParentState 与子图 SubgraphState 都含有 foo 键（共享），子图内部新增 bar（私有）。
+- 子图节点职责：
+  - subgraph_node_1 只负责在子图内部产出 bar，不触碰父图的状态键。
+  - subgraph_node_2 使用子图私有的 bar 与共享键 foo 组合，更新共享键 foo，从而把子图计算结果“写回”父图可见的通道。
+- 父图如何接入：
+  - `builder.add_node("node_2", subgraph)` 直接把已 compile 的子图作为一个节点；
+  - 这意味着父图与子图共享的键可以直接贯通，省去输入/输出映射的样板代码。
+- 执行轨迹：
+  - 先运行父图 node_1 预处理 foo → 然后进入子图（node_2）依次执行 subgraph_node_1 与 subgraph_node_2 → 回到父图继续流。
+
+#### 运行与验证（共享状态）
+- 运行方式：将示例保存为 Python 文件后直接执行。
+- 期望输出：你将看到“[父图]… → [子图]…” 的日志顺序，以及流式事件中 node_1 与 node_2 的增量更新。
+- 关注点：
+  - 子图更新 foo 后，父图后续节点都能看到该更新（因为 foo 为共享键）。
+  - 子图内的 bar 不会“泄漏”到父图（除非显式设计为共享键）。
+
+### 不同状态模式
+
+#### 示例讲解：不同状态模式
+
+- 状态类型：父图 ParentState 只有 foo；子图 SubgraphState 拥有 bar、baz，二者完全不共享。
+- 为什么需要节点包装：由于没有共享键，父图无法直接把自身状态交给子图，也无法直接读取子图结果；因此在 node_2 中进行“输入映射 → 子图调用 → 输出映射”。
+- 数据流：
+  - 输入映射：在 node_2 中构造 `subgraph_input = {"bar": state["foo"]}`。
+  - 子图内部：`subgraph_node_1` 产出 `baz`；`subgraph_node_2` 基于 `bar` 与 `baz` 计算新的 `bar`。
+  - 输出映射：node_2 将子图返回的 `response["bar"]` 映射回父图的 `foo`。
+- 可观测性：
+  - `for chunk in graph.stream(initial_input, subgraphs=True)` 会展开子图内部的节点事件，便于调试与排错。
+
+#### 运行与验证（不同状态）
+- 运行方式：与上一个示例相同。
+- 期望输出：流式事件中会出现带有子图节点名的条目（如 subgraph_node_1、subgraph_node_2），且最终父图 foo 被子图计算结果覆盖。
+- 关注点：
+  - 通过 invoke 模式，父图对子图的输入/输出拥有完全控制权，边界清晰，利于团队协作与版本演进。
+
+对于更复杂的系统，您可能希望定义与父图具有完全不同模式（没有共享键）的子图。例如，您可能希望为多智能体系统中的每个智能体保留私有的消息历史记录。
+
+如果您的应用程序属于这种情况，您需要定义一个调用子图的节点函数。此函数需要在调用子图之前将输入（父）状态转换为子图状态，并在从节点返回状态更新之前将结果转换回父状态。
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph.state import StateGraph, START
+
+# Define subgraph
+class SubgraphState(TypedDict):
+    # note that none of these keys are shared with the parent graph state
+    bar: str
+    baz: str
+
+def subgraph_node_1(state: SubgraphState):
+    print("[子图] subgraph_node_1 输入状态:", state)
+    result = {"baz": "baz"}
+    print("[子图] subgraph_node_1 输出更新:", result)
+    return result
+
+def subgraph_node_2(state: SubgraphState):
+    print("[子图] subgraph_node_2 输入状态:", state)
+    result = {"bar": state["bar"] + state["baz"]}
+    print("[子图] subgraph_node_2 输出更新:", result)
+    return result
+
+subgraph_builder = StateGraph(SubgraphState)
+subgraph_builder.add_node(subgraph_node_1)
+subgraph_builder.add_node(subgraph_node_2)
+subgraph_builder.add_edge(START, "subgraph_node_1")
+subgraph_builder.add_edge("subgraph_node_1", "subgraph_node_2")
+subgraph = subgraph_builder.compile()
+print("✅ 子图编译完成: subgraph")
+
+# Define parent graph
+class ParentState(TypedDict):
+    foo: str
+
+def node_1(state: ParentState):
+    print("[父图] node_1 输入状态:", state)
+    result = {"foo": "hi! " + state["foo"]}
+    print("[父图] node_1 输出更新:", result)
+    return result
+
+def node_2(state: ParentState):
+    print("[父图] node_2 输入状态:", state)
+    subgraph_input = {"bar": state["foo"]}
+    print("[父图] node_2 调用子图 subgraph.invoke 输入:", subgraph_input)
+    response = subgraph.invoke(subgraph_input)
+    print("[父图] node_2 收到子图响应:", response)
+    result = {"foo": response["bar"]}
+    print("[父图] node_2 输出更新:", result)
+    return result
+
+
+builder = StateGraph(ParentState)
+builder.add_node("node_1", node_1)
+builder.add_node("node_2", node_2)
+builder.add_edge(START, "node_1")
+builder.add_edge("node_1", "node_2")
+graph = builder.compile()
+print("✅ 父图编译完成: graph")
+
+print("=== 开始执行图 ===")
+initial_input = {"foo": "foo"}
+print("初始输入:", initial_input)
+for chunk in graph.stream(initial_input, subgraphs=True):
+    print("[流事件] 节点输出:", chunk)
+print("=== 执行结束 ===")
+```
+
+输出结果
+
+```
+✅ 子图编译完成: subgraph
+✅ 父图编译完成: graph
+=== 开始执行图 ===
+初始输入: {'foo': 'foo'}
+[父图] node_1 输入状态: {'foo': 'foo'}
+[父图] node_1 输出更新: {'foo': 'hi! foo'}
+[流事件] 节点输出: ((), {'node_1': {'foo': 'hi! foo'}})
+[父图] node_2 输入状态: {'foo': 'hi! foo'}
+[父图] node_2 调用子图 subgraph.invoke 输入: {'bar': 'hi! foo'}
+[子图] subgraph_node_1 输入状态: {'bar': 'hi! foo'}
+[子图] subgraph_node_1 输出更新: {'baz': 'baz'}
+[子图] subgraph_node_2 输入状态: {'bar': 'hi! foo', 'baz': 'baz'}
+[子图] subgraph_node_2 输出更新: {'bar': 'hi! foobaz'}
+[父图] node_2 收到子图响应: {'bar': 'hi! foobaz', 'baz': 'baz'}
+[父图] node_2 输出更新: {'foo': 'hi! foobaz'}
+[流事件] 节点输出: (('node_2:7f700b62-93c9-f5aa-b232-57b5eb87953a',), {'subgraph_node_1': {'baz': 'baz'}})
+[流事件] 节点输出: (('node_2:7f700b62-93c9-f5aa-b232-57b5eb87953a',), {'subgraph_node_2': {'bar': 'hi! foobaz'}})
+[流事件] 节点输出: ((), {'node_2': {'foo': 'hi! foobaz'}})
+=== 执行结束 ===
+```
+
+## 最佳实践与工程化建议
+
+- 明确状态契约（Schema First）：在团队协作时先约定子图输入/输出模式，减少后续重构成本。
+- 保持最小共享面：共享键越多，耦合越强。只有在确需贯通上下文时才共享；其他均通过映射注入/回传。
+- 统一日志前缀：为父图与子图日志分别加上“[父图]/[子图]”前缀，定位跨图问题更高效。
+- 可观测性开关：开发态建议开启 subgraphs=True 观察内部事件；生产态根据成本与需求选择性关闭或降采样。
+- 渐进式抽取：先在父图内完成串联，待逻辑稳定后再抽取为子图，减少过度抽象带来的返工。
+
+## 常见问题（FAQ）
+
+- 子图更新不到父图？
+  - 检查是否为共享状态键；若非共享模式，需要在父图节点中把返回值显式映射回父图键。
+- 子图内部状态“泄漏”？
+  - 确保子图私有键未被误设为共享；或在父图侧仅接收需要的输出字段。
+- 流事件没有展示子图细节？
+  - 运行时启用 subgraphs=True；若仍无事件，检查子图是否以节点方式被直接挂载或以 invoke 方式调用。
+- 多子图之间如何通信？
+  - 通过父图中转：要么共享键、要么在父图节点内做显式映射，避免子图间彼此耦合。
+
+## 资料
+
+* [子图](https://github.langchain.ac.cn/langgraph/concepts/subgraphs/)
+* [使用子图](https://github.langchain.ac.cn/langgraph/how-tos/subgraph/)
+
+
