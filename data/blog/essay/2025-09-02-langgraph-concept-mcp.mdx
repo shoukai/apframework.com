@@ -530,6 +530,7 @@ if __name__ == "__main__":
         port=8004,
         log_level="info"
     )
+```
 
 启动与验证
 在启动前，请确保已在项目根目录配置 .env 并设置 DEEPSEEK_API_KEY。
@@ -552,7 +553,7 @@ uv run langgraph_use_mcp_as_server.py
 ![](/static/images/2025-09-02-langgraph-concept-mcp/iShot_2025-09-03_22.03.56.png)
 
 ### 运行结果说明
-- 服务器地址：http://127.0.0.1:8004/mcp（HTTP 传输，FastMCP 会输出启动日志）。
+- 服务器地址：http://127.0.0.1:8004/mcp （HTTP 传输，FastMCP 会输出启动日志）。
 - 可用工具：process_text_with_langgraph（用于对文本进行预处理与 AI 分析）。
 - 成功调用后：在 Inspector 中可看到该工具的响应正文，包含“原始文本 / AI 分析 / 处理步骤 / 完成时间”等字段；若输入较长文本，处理步骤会显示带时间戳的进度信息，便于排查与复现。
 
