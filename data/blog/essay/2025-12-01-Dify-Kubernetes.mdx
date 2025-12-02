@@ -1,0 +1,203 @@
+---
+title: '在 macOS 上用 Kind 部署 Dify 到 Kubernetes'
+date: '2025-12-01'
+tags: ['Kubernetes', 'Kind', 'Helm', 'Dify', 'macOS', 'DevOps']
+draft: false
+summary: '面向开发者的本地 Kubernetes（Kind）快速环境搭建与 Dify 部署指南，覆盖工具准备、集群创建、常用运维工具、Helm 部署与问题排查。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-12-01-Dify-Kubernetes/growtika-9cXMJHaViTM-unsplash.jpg" alt="Free" />
+  <p>Kubernetes（Photo by <a href="https://unsplash.com/@growtika?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Growtika</a> on <a href="https://unsplash.com/photos/graphical-user-interface-9cXMJHaViTM?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+## 1. 概述
+
+本文面向 macOS 开发者，目标是在本地以 Kind 方式快速搭建可用的 Kubernetes 集群，并通过 Helm 将 Dify 部署到集群中用于开发与验证。内容包含环境准备、常用工具、集群创建、部署步骤与国内网络环境下的镜像拉取方案。
+
+> 注意：Docker Desktop 自带的 Kubernetes 与 Kind 冲突，务必在 Docker Desktop 设置中关闭 Kubernetes 功能，仅使用 Kind 作为本地集群。
+
+## 2. 环境准备
+
+### 2.1 必备工具
+
+- Docker Desktop（仅用于容器运行，不启用其内置 Kubernetes）
+- Kind（Kubernetes in Docker）
+- kubectl（官方 CLI）
+
+### 2.2 安装与验证
+
+使用 Homebrew 快速安装 Kind 与 kubectl，并在安装后通过版本命令确认工具可用。
+
+```bash
+# 安装 kind 和 kubectl（Homebrew）
+brew install kind kubernetes-cli
+
+# 验证版本
+kind version
+kubectl version --client
+
+# 如需升级 kubernetes-cli
+brew link --overwrite kubernetes-cli
+```
+
+## 3. 搭建本地集群（Kind）
+
+### 3.1 创建单节点集群（开发测试）
+
+用于开发与功能验证的最小化集群配置，启动快速且资源占用低。
+
+```bash
+kind create cluster --name my-cluster
+```
+
+### 3.2 指定 Kubernetes 版本（推荐）
+
+为保证 API 与行为一致性，建议明确指定 `kindest/node` 镜像版本。
+
+```bash
+kind create cluster --name k8s134 \
+  --image kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
+```
+
+镜像版本参考：`https://hub.docker.com/r/kindest/node/tags`
+
+### 3.3 集群健康检查
+
+创建完成后进行基本健康检查，确保控制面、节点与系统命名空间运行正常。
+
+```bash
+kubectl cluster-info
+kubectl get nodes -o wide
+kubectl get pods -A
+```
+
+## 4. 常用运维工具
+
+### 4.1 一次性安装常用工具
+
+这些工具覆盖集群管理、日志查看、包管理与上下文切换，满足日常运维所需。
+
+```bash
+brew install kind kubernetes-cli k9s stern helm kubectx kube-ps1 fzf
+```
+
+### 4.2 k9s（终端可视化管理）
+
+k9s 提供终端 UI，进入后可通过快捷键在资源视图间快速跳转。
+
+```bash
+k9s
+```
+
+常用快捷键：
+- `:pods` 或 `:po` — 查看 Pods 列表
+- `:ns` — 切换命名空间
+- `0` — 显示所有命名空间
+- `s` — 进入容器 shell
+- `l` — 查看日志
+- `d` — 查看资源详情（describe）
+- `/` — 过滤（支持正则）
+- `Shift+f` — 跟随日志（follow）
+- `Ctrl+d` — 删除资源
+- `?` — 查看全部快捷键
+
+![](/static/images/2025-12-01-Dify-Kubernetes/screenshot-20251201-144118.png)
+
+### 4.3 Helm（Kubernetes 包管理器）
+
+先添加常用 chart 仓库并更新索引，随后通过 `install` / `upgrade` 管理应用生命周期。
+
+```bash
+# 添加常用仓库（执行一次）
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add jetstack https://charts.jetstack.io
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# 常用命令
+helm search repo mysql
+helm install mysql bitnami/mysql --namespace db --create-namespace
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+helm list -A
+helm uninstall mysql -n db
+```
+
+### 4.4 kubectx / kubens（快速切换）
+
+快速在多集群和命名空间间切换，避免频繁编辑 kubeconfig。
+
+```bash
+kubectx              # 交互式切换集群上下文（支持模糊搜索）
+kubectx kind-prod    # 直接切换到指定上下文
+kubens kube-system   # 切换命名空间到 kube-system
+kubens               # 交互式选择命名空间
+```
+
+### 4.5 快捷操作示例
+
+以下示例涵盖日志追踪与常见部署操作，可作为日常诊断起点。
+
+```bash
+stern app         # 追踪应用日志
+helm install xxx  # 部署应用
+```
+
+## 5. 部署 Dify 到 Kubernetes
+
+本节通过 Helm 安装、镜像拉取加速、自定义配置与端口转发等步骤，完成 Dify 在本地集群的部署与访问。
+
+### 5.1 添加仓库并安装
+
+将 Dify Helm 仓库添加到本地并安装到当前集群。
+
+```bash
+helm repo add dify https://borispolonsky.github.io/dify-helm
+helm repo update
+helm install dify-local dify/dify
+```
+
+### 5.2 国内网络下的镜像拉取方案
+
+如遇网络问题导致镜像拉取失败，可通过镜像站（如 `https://1ms.run/`）预先拉取所需镜像：
+
+```bash
+docker pull langgenius/dify-api:1.10.0
+docker pull langgenius/dify-plugin-daemon:0.4.1-local
+```
+
+如需自定义部署参数（容器资源、环境变量、持久化、Ingress 等），可指定 `values.yaml`：
+
+```bash
+helm install dify-sit charts/dify -f /path/values.yaml -n test --create-namespace
+```
+
+
+### 5.3 验证部署
+
+通过 `kubectl` 与 `helm` 分别检查资源与 release 状态，确认部署成功。
+
+```bash
+kubectl get pods -A
+helm list -A
+```
+
+![](/static/images/2025-12-01-Dify-Kubernetes/screenshot-20251202-114256.png)
+
+### 5.4 配置端口转发
+
+如未配置 Ingress，可使用端口转发临时访问服务：
+
+```bash
+nohup kubectl port-forward --address 0.0.0.0 deployment/dify-sit-proxy 8088:80 -n test > dify-proxy.log 2>&1 &
+```
+
+## 6. 参考资料
+
+* [Kind Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/)
+* [dify-helm](https://github.com/BorisPolonsky/dify-helm)
+* [Dify Helm Charts](https://github.com/BorisPolonsky/dify-helm)
