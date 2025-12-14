@@ -1,0 +1,341 @@
+---
+title: 'LangChain 多智能体架构：深入解析 Supervisor 与 Handoffs 模式'
+date: '2025-12-09'
+tags: ['LangChain', 'LangGraph', 'Multi-Agent', 'Supervisor', 'AI Architecture', 'Python', 'Agentic Patterns']
+draft: false
+summary: '深入探讨 LangChain 多智能体架构的核心模式，从集中式的 Supervisor 到去中心化的 Handoffs。本文结合代码示例，解析如何构建具备工具治理、上下文感知与层级协作能力的复杂 AI 系统。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-12-09-LangChain-Multi-agent/marvin-meyer-SYTO3xs06fU-unsplash.jpg" alt="Free" />
+  <p>Multi-agent（Photo by <a href="https://unsplash.com/@marvelous?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Marvin Meyer</a> on <a href="https://unsplash.com/photos/people-sitting-down-near-table-with-assorted-laptop-computers-SYTO3xs06fU?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+## 1. Multi-agent 多智能体系统
+
+多智能体系统（Multi-Agent Systems）将复杂的应用程序拆解为多个各司其职的专业智能体，通过协作来共同解决问题。这种架构不再依赖单一的“超级智能体”来处理所有步骤，而是将任务分配给更小、更专注的智能体单元，组合成协调有序的工作流。
+
+多智能体系统在以下场景中尤为适用：
+
+- **工具治理**：当单个智能体挂载了过多工具，导致其在工具选择上容易出现幻觉或决策失误时。
+- **上下文管理**：当任务上下文或记忆库过于庞大，单个智能体难以有效追踪和处理时。
+- **专业分工**：当任务需要截然不同的角色能力（例如：规划师、研究员、数学专家）协作完成时。
+
+
+## 2. Multi-agent patterns  多智能体模式
+
+在模式设计层面，多智能体系统通常采用两种协作范式：集中编排的 **“工具调用（Tool calling）”** 与去中心化的 **“交接（Handoffs）”**。根据业务对一致性与灵活性的不同诉求，选择合适的模式可显著改善系统表现。
+
+**主管模式（Supervisor）** 是工具调用的典型代表，主管智能体将其他智能体视为“工具”进行调用。这些“工具”智能体通常不直接与用户交互，而是专注于执行任务并返回结果。这是一种集中式的路由管理方式。
+
+### Tool calling  工具调用
+
+当一个“控制器智能体”需要统一调度多个“工具型智能体”时，工具调用模式更利于保证流程的一致性与安全性。控制器（Controller）负责路由分发与状态管理，而工具型智能体则专注于具体任务的执行。
+
+**工作流：**
+1. 控制器接收输入，并决定调用哪个工具（或子智能体）。
+2. 工具智能体根据指令执行任务。
+3. 工具智能体将结果返回给控制器。
+4. 控制器基于结果决定下一步行动或结束任务。
+
+![](/static/images/2025-12-09-LangChain-Multi-agent/iShot_2025-12-10_00.05.43.png)
+
+*图注：作为工具的智能体通常不需要具备对话能力，它们的核心职责是“执行并反馈”。若需要子智能体直接与用户对话，则应考虑交接模式。*
+
+### Handoffs  交接
+
+当任务需要在不同智能体间切换“主导权”（例如：先由研究员检索，再转交给分析师计算，最后由编辑汇总），交接模式提供了更灵活的协作能力。当前处于“活跃”状态的智能体直接与用户交互，并在适当时机将控制权（及上下文）移交给下一个智能体。
+
+这种模式是去中心化的：智能体可以自主决定“谁是下一个活跃者”。
+
+**工作流：**
+1. 当前智能体判断需要其他角色的协助。
+2. 它将控制权（以及当前状态）传递给下一个智能体。
+3. 新的智能体接管对话，直接与用户交互，直到它决定再次交接或完成任务。
+
+![](/static/images/2025-12-09-LangChain-Multi-agent/iShot_2025-12-10_00.05.03.png)
+
+## 3. 主管模式（Supervisor Pattern）
+
+主管模式（Supervisor Pattern）通过引入一个“总控智能体”来编排多个专业智能体，非常适用于跨角色分工的端到端流程。相比于让一个单体智能体在数十个工具中艰难选择，主管模式明确了“谁负责什么”，既保留了全局把控能力，又实现了能力的解耦。
+
+它并非构建一个试图掌握所有领域的全能智能体，而是创建一个了解整体工作流的管理者，由它来协调各个领域的专家。
+
+**核心特征：**
+- 🤖 **创建主管智能体**：用于协调多个专业智能体的工作。
+- 🛠️ **基于工具的交接**：利用工具调用机制实现智能体之间的通信与任务指派。
+- 📝 **灵活的历史管理**：支持对对话历史的精细化控制，优化上下文长度。
+
+安装依赖：
+```
+uv add langgraph-supervisor langchain-openai
+```
+
+以上命令使用 UV 安装 Supervisor 与 OpenAI 适配的必要依赖。若改用 DeepSeek、Gemini 等提供方，请在示例中调整模型与密钥参数。
+
+以下是一个主管管理两名专业代理人（数学专家与研究专家）的完整示例：
+
+```PYTHON
+
+"""Run the langgraph supervisor sample with DeepSeek model."""
+from langchain_openai import ChatOpenAI
+
+from langgraph_supervisor import create_supervisor
+from langgraph.prebuilt import create_react_agent
+
+model = ChatOpenAI(
+    model="deepseek-chat",
+    api_key="sk-...",
+    base_url="https://api.deepseek.com"
+)
+
+# Create specialized agents
+
+def add(a: float, b: float) -> float:
+    """Add two numbers."""
+    return a + b
+
+def multiply(a: float, b: float) -> float:
+    """Multiply two numbers."""
+    return a * b
+
+def web_search(query: str) -> str:
+    """Search the web for information."""
+    return (
+        "Here are the headcounts for each of the FAANG companies in 2024:\n"
+        "1. **Facebook (Meta)**: 67,317 employees.\n"
+        "2. **Apple**: 164,000 employees.\n"
+        "3. **Amazon**: 1,551,000 employees.\n"
+        "4. **Netflix**: 14,000 employees.\n"
+        "5. **Google (Alphabet)**: 181,269 employees."
+    )
+
+math_agent = create_react_agent(
+    model=model,
+    tools=[add, multiply],
+    name="math_expert",
+    prompt="You are a math expert. Always use one tool at a time."
+)
+
+research_agent = create_react_agent(
+    model=model,
+    tools=[web_search],
+    name="research_expert",
+    prompt="You are a world class researcher with access to web search. Do not do any math."
+)
+
+# Create supervisor workflow
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    model=model,
+    prompt=(
+        "You are a team supervisor managing a research expert and a math expert. "
+        "For current events, use research_agent. "
+        "For math problems, use math_agent."
+    )
+)
+
+# Compile and run
+app = workflow.compile()
+result = app.invoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "what's the combined headcount of the FAANG companies in 2024?"
+        }
+    ]
+})
+
+print("\n=== Final Answer ===")
+messages = result.get("messages", []) if isinstance(result, dict) else []
+if messages:
+    last = messages[-1]
+    output = getattr(last, "content", str(last))
+    print(output)
+    print("\n=== Trace ===")
+    for i, m in enumerate(messages):
+        name = getattr(m, "name", None) or "unknown"
+        typ = getattr(m, "type", None) or type(m).__name__
+        print(f"{i:02d}. {name} [{typ}]")
+else:
+    print(result)
+
+
+```
+
+**控制台输出解析**
+
+运行示例后，控制台将同时输出“最终答案”和“代理调用轨迹（Trace）”。轨迹清晰地展示了各智能体在主管调度下的协作过程，这对于调试 Prompt 和优化工具组合非常有帮助。
+
+```
+=== Final Answer ===
+Based on the research conducted, the combined headcount of FAANG companies in 2024 is **approximately 1,977,586 employees**.
+
+Here's the breakdown:
+- **Meta (Facebook)**: 67,317 employees
+- **Apple**: 164,000 employees
+- **Amazon**: 1,551,000 employees
+- **Netflix**: 14,000 employees
+- **Google (Alphabet)**: 181,269 employees
+
+**Total: 1,977,586 employees**
+
+Amazon accounts for the vast majority (over 78%) of FAANG's total workforce, largely due to its massive warehouse and logistics operations. The other four companies combined make up about 22% of the total headcount.
+
+=== Trace ===
+00. unknown [human]
+01. supervisor [ai]
+02. transfer_to_research_expert [tool]
+03. research_expert [ai]
+04. research_expert [ai]
+05. transfer_back_to_supervisor [tool]
+06. supervisor [ai]
+```
+
+**Full History 模式**
+
+如果需要保留完整的对话与工具调用历史（例如用于审计或复盘），可开启 `full_history` 模式。需要注意的是，在高并发或长对话场景下，需结合摘要（Summarization）与分段持久化策略，以平衡存储成本与系统性能。
+
+```
+workflow = create_supervisor(
+    agents=[agent1, agent2],
+    output_mode="full_history"
+)
+```
+
+开启后的轨迹示例：
+```
+=== Trace ===
+00. unknown [human]
+01. supervisor [ai]
+02. transfer_to_research_expert [tool]
+03. research_expert [ai]
+04. web_search [tool]
+05. research_expert [ai]
+06. web_search [tool]
+07. research_expert [ai]
+08. web_search [tool]
+09. research_expert [ai]
+10. web_search [tool]
+11. research_expert [ai]
+12. web_search [tool]
+13. research_expert [ai]
+14. web_search [tool]
+15. research_expert [ai]
+16. research_expert [ai]
+17. transfer_back_to_supervisor [tool]
+18. supervisor [ai]
+```
+
+
+### Multi-level Hierarchies  多级层级结构
+
+通过“主管管理主管”的方式，我们可以构建多级层级系统（Multi-level Hierarchies）。
+
+当业务流程极其复杂，涉及多个庞大的职能部门（如独立的研发团队、写作团队）时，可以通过“顶层主管”来协调多个“子主管”。这种结构实现了更清晰的模块边界与职责分离，类似于大型公司的组织架构。
+
+```PYTHON
+research_team = create_supervisor(
+    [research_agent, math_agent],
+    model=model,
+    supervisor_name="research_supervisor"
+).compile(name="research_team")
+
+writing_team = create_supervisor(
+    [writing_agent, publishing_agent],
+    model=model,
+    supervisor_name="writing_supervisor"
+).compile(name="writing_team")
+
+top_level_supervisor = create_supervisor(
+    [research_team, writing_team],
+    model=model,
+    supervisor_name="top_level_supervisor"
+).compile(name="top_level_supervisor")
+```
+
+
+### 自定义代理上下文
+
+多智能体设计的核心在于 **上下文工程（Context Engineering）** —— 即决定每个智能体能“看到”什么信息。
+
+系统的效能很大程度上取决于上下文的设计。目标是确保每个智能体（无论是作为工具还是独立行动者）都能获得执行任务所需的最小必要数据，同时避免无关信息带来的干扰（噪声）。LangChain 提供了细粒度的控制能力，允许开发者为不同角色定制差异化的数据视野。
+
+### Adding Memory  添加内存
+
+您可以为您的 Supervisor 多智能体系统添加 **短期记忆（Short-term Memory）** 和 **长期记忆（Long-term Memory）**。
+
+由于 `create_supervisor()` 返回的是一个需要编译才能使用的 `StateGraph` 实例，因此您可以直接将 `checkpointer`（用于短期会话保持）或 `store`（用于长期记忆存储）传递给 `.compile()` 方法。这种机制对于构建能记住用户偏好或跨多轮对话保持连贯性的应用至关重要。
+
+```
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.store.memory import InMemoryStore
+
+checkpointer = InMemorySaver()
+store = InMemoryStore()
+
+model = ...
+research_agent = ...
+math_agent = ...
+
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    model=model,
+    prompt="You are a team supervisor managing a research expert and a math expert.",
+)
+
+# Compile with checkpointer/store
+app = workflow.compile(
+    checkpointer=checkpointer,
+    store=store
+)
+```
+
+### Customizing handoff tools  自定义交接工具
+
+默认情况下，Supervisor 使用预置的 `create_handoff_tool` 来生成交接工具。但在复杂场景下，您可能需要自定义这些工具的行为。
+
+自定义交接工具能让“角色切换”更加精确与可控。例如：
+- 更改工具名称或描述，使其更符合特定业务语境。
+- 增加额外的参数，要求 LLM 在交接时填写（如：给下一个智能体的具体任务简报）。
+- 调整传递给子智能体的数据内容（默认传递完整历史，您可能希望只传递摘要）。
+
+以下是如何将自定义交接工具传递给 `create_supervisor` 的示例：
+
+```
+from langgraph_supervisor import create_handoff_tool
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    tools=[
+        create_handoff_tool(agent_name="math_expert", name="assign_to_math_expert", description="Assign task to math expert"),
+        create_handoff_tool(agent_name="research_expert", name="assign_to_research_expert", description="Assign task to research expert")
+    ],
+    model=model,
+)
+```
+
+**create_handoff_tool 参数说明**
+
+- `agent_name`: 目标智能体的名称（多智能体图中的节点名）。名称应简洁清晰，通常使用蛇形命名法（snake_case）。
+- `name`: （可选）交接工具的名称。默认为 `transfer_to_<agent_name>`。
+- `description`: （可选）工具描述。默认为 `Ask agent <agent_name> for help`。
+- `add_handoff_messages`: 是否将交接动作作为消息添加到历史记录中。如果设为 `False`，交接过程对上下文将是透明的。
+
+## 4. 总结与展望
+
+多智能体系统（Multi-Agent Systems）标志着 AI 应用开发从单一的 Prompt Engineering 走向了更复杂的 System Engineering。
+
+- **模式选择**：Supervisor 模式提供了确定性与可控性，适合流程标准化的业务；而 Handoffs 模式则赋予了系统更大的灵活性，适合探索性与非线性任务。
+- **复杂度管理**：随着智能体数量的增加，系统的调试与观测（Observability）将变得极具挑战。建议结合 LangSmith 等工具，对智能体之间的交互轨迹进行可视化追踪与评估。
+- **未来趋势**：未来的智能体架构将更加呈现“分形”特征——每个节点既是一个独立的智能体，也可能是一个由更小粒度智能体组成的子图。
+
+通过合理运用 LangGraph 提供的编排能力，我们可以构建出既具备广度（多领域专家协作）又具备深度（复杂逻辑处理）的下一代 AI 应用。
+
+## 参考资料
+
+* [Multi-agent](https://docs.langchain.com/oss/python/langchain/multi-agent)
+* [Build a supervisor agent](https://docs.langchain.com/oss/python/langchain/supervisor)
+* [LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor-py)
