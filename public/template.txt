@@ -3,7 +3,7 @@
 [](/static/images/File/X.JPG)
 
 <div className="text-center">
-  <img src="/static/images/File/X.JPG" alt="Free" />
+  <img src="/static/images/File/X.jpg" alt="Free" />
   <p>description（来自：[]()）</p>
 </div>
 
