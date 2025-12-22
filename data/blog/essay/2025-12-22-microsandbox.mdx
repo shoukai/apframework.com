@@ -1,0 +1,211 @@
+---
+title: Microsandbox 体验：构建安全隔离的轻量级代码执行环境
+date: '2025-12-22'
+tags: ['Microsandbox', 'Security', 'MCP', 'Python', 'DevOps']
+draft: false
+summary: '深入体验 Microsandbox：一个轻量级、硬件隔离的代码执行沙盒。本文详细介绍了其架构优势、安装配置流程。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-12-22-microsandbox/asa-e-k-13EsoonqDkY-unsplash.jpg" alt="Microsandbox" />
+  <p>sandbox（Photo by <a href="https://unsplash.com/@asa7th?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Asa E-K</a> on <a href="https://unsplash.com/photos/a-computer-monitor-with-a-keyboard-and-mouse-13EsoonqDkY?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## Microsandbox 介绍
+
+在现代软件开发中，安全地运行不可信代码是一个巨大的挑战。传统的解决方案——如容器、虚拟机或云沙盒——往往需要在速度、隔离性或控制力之间做出权衡。Microsandbox 的出现正是为了解决这一难题，它提供了一个硬件隔离且启动迅速的执行环境，旨在融合各方优势，为不可信工作负载提供理想的运行平台。
+
+### Microsandbox 优势
+
+Microsandbox 结合了虚拟机的高隔离性与容器的轻量级特性，其核心优势包括：
+
+- **绝对安全**：基于独立内核的真正虚拟机隔离，确保运行环境的安全性。
+- **极速启动**：启动时间低于 200 毫秒，远快于传统虚拟机的 10 秒以上启动时间。
+- **完全掌控**：支持完全的自托管基础设施，用户拥有对数据的完全控制权。
+- **兼容 OCI**：可与标准容器镜像无缝配合使用。
+- **AI-Ready**：内置 MCP (Model Context Protocol) 服务器，能够实现与人工智能工具的无缝集成。
+
+### Microsandbox 架构
+
+Microsandbox 采用典型的 C/S (客户端/服务端) 架构，确保了不可信代码的安全隔离执行。其架构主要由以下部分组成：
+
+1.  **客户端 (Client Side)**：
+    *   **业务逻辑 (Business Logic)**：您的应用程序核心逻辑。
+    *   **Microsandbox SDK**：作为连接桥梁，负责将需要执行的不可信代码进行封装，并安全地发送给服务端。
+
+2.  **服务端 (Server Side)**：
+    *   **Microsandbox Server**：负责接收来自 SDK 的请求。
+    *   **分发中心 (Branching Hub)**：根据请求类型（如 Python、Node.js），将任务动态分发到对应的执行环境。
+    *   **MicroVMs (微虚拟机)**：真正的执行单元。每个任务都在独立的 MicroVM（如 Python 环境、Node 环境）中运行，实现了硬件级别的安全隔离。
+
+此架构确保了主业务逻辑与不可信代码执行环境的完全解耦，提供了极致的安全性与灵活性。
+
+![](/static/images/2025-12-22-microsandbox/iShot_2025-12-22_22.31.23.png)
+
+## Microsandbox 体验
+
+接下来，我们将通过实际操作来体验 Microsandbox 的安装与使用。
+
+### 安装 Microsandbox
+
+#### 步骤 1：安装命令行工具
+
+安装 Microsandbox 最简单的方法是使用官方提供的安装脚本：
+
+```SHELL
+curl -sSL https://get.microsandbox.dev | sh
+```
+
+该命令将下载并安装 `msb` 命令行工具到您的系统中。
+
+#### 步骤 2：下载镜像与生成密钥
+
+下载 Python 运行环境镜像：
+
+```bash
+msb pull microsandbox/python
+```
+
+创建服务端密钥（有效期设置为 720 小时）：
+
+```bash
+msb server keygen --expire 720h
+```
+
+#### 步骤 3：启动服务器
+
+以开发模式启动 Microsandbox 服务器：
+
+```bash
+msb server start --dev
+```
+
+如果是部署在远程服务器上，可以使用以下命令指定主机和端口：
+
+```bash
+msb server start --host 0.0.0.0 --port 5555
+```
+
+值得一提的是，Microsandbox 服务器同时也是一个 MCP 服务器，这意味着它可以开箱即用，直接与 Claude 和其他支持 MCP 的 AI 工具配合使用，极大地扩展了其应用场景。
+
+### 快速示例
+
+Microsandbox 提供了多种编程语言的 SDK。以下是一个使用 Python SDK 的快速示例。
+
+首先，添加依赖：
+
+```PYTHON
+uv add microsandbox "python-dotenv"
+```
+
+配置 `.env` 文件：
+
+```ini
+MSB_API_KEY=msb_...
+MSB_SERVER_URL=http://IP:5555
+```
+
+编写测试代码 `main.py`：
+
+```PYTHON
+import asyncio
+import os
+from dotenv import load_dotenv
+from microsandbox import PythonSandbox
+
+# Load environment variables
+load_dotenv()
+
+async def verify_hello_world():
+    # Load configuration
+    server_url = os.getenv("MSB_SERVER_URL")
+    api_key = os.getenv("MSB_API_KEY")
+
+    # Explicitly ensure they are in os.environ
+    os.environ["MSB_SERVER_URL"] = server_url
+    os.environ["MSB_API_KEY"] = api_key
+
+    print(f"Connecting to {server_url}...")
+    
+    try:
+        async with asyncio.timeout(30):
+            # Create sandbox
+            async with PythonSandbox.create(name="hello-world-test", api_key=api_key) as sb:
+                print("✅ Connected!")
+                
+                # Execute Python code
+                print("Running: print('Hello World')")
+                exec_result = await sb.run("print('Hello World')")
+                
+                # Correctly await the error check
+                error_msg = await exec_result.error()
+                
+                if error_msg:
+                    print(f"❌ Execution Error: {error_msg}")
+                else:
+                    output = await exec_result.output()
+                    print(f"✅ Output received: {output.strip()}")
+                    
+    except TimeoutError:
+        print("❌ Error: Connection timed out.")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(verify_hello_world())
+```
+
+运行代码：
+
+```bash
+uv run main.py
+```
+
+预期输出如下：
+
+```text
+Connecting to http://10.146.9.82:5555...
+✅ Connected!
+Running: print('Hello World')
+✅ Output received: Hello World
+```
+
+## 进一步体验
+
+在实际应用中，我们可能会遇到更复杂的场景，例如需要在沙盒中处理文件，但是 MCP 和 SDK 中没有上传文件的参数和方式。
+
+![](/static/images/2025-12-22-microsandbox/iShot_2025-12-22_22.34.00.png)
+
+由于沙盒环境无法直接访问宿主机文件系统，我们需要通过特殊方式进行文件传输。针对沙盒无法访问外网或需要上传本地大文件的情况，可以采用 **Base64 编码分块写入** 的方案。
+
+**实现原理：**
+1.  **本地读取**：在本地读取文件内容并转换为 Base64 字符串。
+2.  **分块切割**：将长字符串切分为较小的块（例如 50KB）。
+3.  **追加写入**：循环调用沙盒的 `python -c` 命令，将解码后的二进制数据以追加模式（`ab`）写入到沙盒内的目标文件中。
+
+**核心代码参考：**
+
+```python
+# ... inside upload loop ...
+for i, chunk in enumerate(chunks):
+    # 使用 python -c 执行单行脚本：解码 base64 块并以追加模式(ab)写入文件
+    code = f"import base64; open('{remote_filename}', 'ab').write(base64.b64decode('{chunk}'))"
+    res = await sb.command.run("python", ["-c", code])
+    
+    if res.exit_code != 0:
+        error = await res.error()
+        raise Exception(f"Failed to upload chunk {i}: {error}")
+```
+## 总结
+
+回顾 Microsandbox 的使用体验，它确实在安全性和启动速度上表现出色。然而，我们也必须注意到项目文档中的重要提示：
+
+> **Note**: This project is still experimental. Expect breaking changes, missing features, and rough edges. (该项目仍处于实验阶段。请预料到会有破坏性改动、缺失功能和粗糙的边角。)
+
+基于此，建议在生产环境中使用前务必谨慎评估。如果您正在寻找更成熟的自托管方案，可以考虑进一步验证 [Daytona](https://www.daytona.io/docs/en/oss-deployment/) 等其他产品。不过值得注意的是，Daytona 的开源部署文档同样标注了“暂不适合生产环境使用”的警示。
+
+在选择技术方案时，务必根据实际业务需求和风险承受能力进行权衡。
+
+## 参考
+
+- [Microsandbox 官方文档](https://docs.microsandbox.dev/)
