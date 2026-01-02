@@ -1,0 +1,578 @@
+
+
+# LangGraph Swarm 多智能体架构：核心原理与 Python 源码全解析
+
+## 1. Multi-Agent Swarm 概述
+LangGraph Swarm 是一个基于 LangGraph 构建的多智能体（Multi-Agent）编排框架。其核心愿景在于降低构建复杂多智能体系统的门槛，通过标准化的接口支持智能体之间的动态任务交接（Handoff）与高效的状态共享。
+
+作为一个专门用于创建群体式（Swarm-style）多智能体系统的 Python 库，它定义了一种独特的架构模式：智能体（Agent）根据各自的专业领域，动态地将控制权转移给同伴。系统具备上下文记忆能力，能够追踪最后活跃的智能体，确保在后续的交互中，对话能够无缝地从断点处继续。
+
+[](/static/images/2026-01-02-LangChain-Multi-Agent-Swarm/swarm.png)
+
+在该框架中，`create_swarm` 函数作为核心入口点，承担着将一组独立的智能体编排成一个紧密协作的状态图（StateGraph）的关键任务。
+
+在深入了解 Swarm 的具体实现之前，我们需要先剖析支撑这一架构的核心运作机制。
+
+
+## 2. Multi-Agent Swarm 核心原理
+
+LangGraph Swarm 的高效运作依赖于以下三个核心设计支柱：图形化编排、集中式状态管理以及动态路由机制。
+
+### 2.1 图形化编排 (Graph-based Orchestration)
+在 LangGraph 的架构体系中，整个应用程序被抽象为一个状态图（StateGraph）。这种设计使得复杂的业务逻辑可以被清晰地可视化和管理。
+- **节点 (Nodes)**: 每个智能体（Agent）都被封装为图中的一个独立节点，负责特定的任务逻辑。
+- **边 (Edges)**: 智能体之间的交互和任务交接逻辑构成了连接节点的边，定义了控制流的潜在路径。
+- **路由机制 (Routing Mechanism)**: 系统通过实时监测当前状态中的 `active_agent` 字段，智能决策下一个应执行的节点，从而实现流程的自动化流转。
+
+### 2.2 状态管理体系 (State Management)
+为了维持多轮对话的上下文一致性，Swarm 采用 `SwarmState` 来维护全局状态。
+- `SwarmState` 继承自基础的 `MessagesState`，不仅完整保留了对话历史（messages），还扩展了一个关键的状态指示器 `active_agent`。
+- `active_agent` 字段充当了“接力棒”的角色，实时记录当前持有控制权的智能体名称，确保系统始终知道“谁在掌舵”。
+
+### 2.3 动态路由与任务交接 (Dynamic Routing & Handoff)
+- **活跃智能体路由 (Active Agent Router)**: 系统内置了一个特殊的路由组件。
+- **启动检查**: 在每次执行周期开始（`START`）时，路由器会读取 `active_agent` 的值，并将控制权精准地移交给对应的智能体。
+- **任务交接 (Handoff)**: 智能体在执行完毕后，可以返回一个新的 `active_agent` 值（通常通过调用 Handoff 工具实现）。这一动作会触发全局状态的更新，并引导系统在下一轮循环中路由到新的目标智能体。
+
+掌握了这些核心原理后，我们接下来将深入源码层面，剖析 `create_swarm` 函数是如何将这些设计理念转化为可执行代码的。
+
+## 3. Multi-Agent Swarm `create_swarm` 源码分析
+
+`create_swarm` 函数位于 [swarm.py](langgraph_swarm/swarm.py) 中，它是构建 Swarm 架构的“工厂”方法。我们将通过分析其实现细节，理解它是如何将独立的智能体编织成网的。
+
+### 3.1 函数签名
+```python
+def create_swarm(
+    agents: list[Pregel],
+    *,
+    default_active_agent: str,
+    state_schema: StateSchemaType = SwarmState,
+    context_schema: type[Any] | None = None,
+    **deprecated_kwargs: Unpack[DeprecatedKwargs],
+) -> StateGraph:
+```
+
+### 3.2 关键执行流程解析
+
+1.  **参数校验与处理**:
+    *   **完整性检查**: 确保 `agents` 列表非空，且 `default_active_agent` 必须是已定义的智能体之一。
+    *   **兼容性处理**: 妥善处理废弃参数（如 `config_schema`），保证向后兼容性。
+
+2.  **动态状态 Schema 更新 (`_update_state_schema_agent_names`)**:
+    *   **类型增强**: 函数不会直接使用通用的 `SwarmState`，而是动态地修改 `state_schema`。
+    *   **精确定义**: 将 `active_agent` 字段的类型从宽泛的 `str` 收窄为 `Literal['AgentA', 'AgentB', ...]`。
+    *   **静态分析友好**: 这种动态类型注入使得 IDE 和静态类型检查工具能更准确地捕获潜在的拼写错误或逻辑漏洞。
+
+3.  **构建 StateGraph**:
+    *   **初始化画布**: 使用增强后的 `state_schema` 初始化 `StateGraph` 构建器。
+    *   `builder = StateGraph(state_schema, context_schema)`
+
+4.  **注入路由逻辑 (`add_active_agent_router`)**:
+    *   **核心引擎**: 这是框架的“心脏”。它向图的 `START` 节点添加了一条特殊的条件边（Conditional Edge）。
+    *   **路由算法**: 逻辑非常直观——读取状态中的 `active_agent`。如果为空，则初始化为 `default_active_agent`；随后，根据该名称将控制流精准导向对应的智能体节点。
+
+5.  **注册智能体节点**:
+    *   **遍历注册**: 遍历 `agents` 列表，使用 `builder.add_node(agent.name, agent, ...)` 将每个智能体正式注册为图中的节点。
+    *   **自动 Handoff 集成**: 在添加节点时，系统调用 `get_handoff_destinations(agent)`。这意味着框架具备“自省”能力，能够自动分析智能体的工具集，识别出它可能切换到的目标智能体，并在图中预先注册好相应的状态转移路径（destinations）。
+
+### 3.3 源码片段深度解读
+
+```python
+# 更新状态 Schema 以包含具体的智能体名称类型
+state_schema = _update_state_schema_agent_names(state_schema, agent_names)
+builder = StateGraph(state_schema, context_schema)
+
+# 添加核心路由机制
+add_active_agent_router(
+    builder,
+    route_to=agent_names,
+    default_active_agent=default_active_agent,
+)
+
+# 注册每个智能体为图节点
+for agent in agents:
+    builder.add_node(
+        agent.name,
+        agent,
+        destinations=tuple(
+            # 自动获取 handoff 目的地，支持 Pregel 对象
+            get_handoff_destinations(agent)
+        ),
+    )
+```
+
+## 3.4. 架构总结
+`create_swarm` 通过精妙的设计实现了多智能体协作的“三位一体”：
+1.  **统一状态 (Unified State)**: 强制推行包含 `active_agent` 的标准化 Schema，确保所有智能体说同一种“语言”。
+2.  **中心化路由 (Centralized Routing)**: 在图的入口处设立“交通指挥官”，根据 `active_agent` 统一分发任务，避免了复杂的网状依赖。
+3.  **去中心化执行 (Decentralized Execution)**: 每个智能体作为独立的节点运行，拥有自主权，仅通过修改 `active_agent` 状态来请求控制权转移。
+
+这种设计既保证了**灵活性**（开发者可以像搭积木一样随意添加智能体），又确保了**可控性**（所有的状态转换在图中都是显式可见的）。
+
+在理解了框架的内部逻辑后，最后让我们通过一个完整的旅行预订实战案例，来体验 Swarm 架构在真实业务场景中的强大能力。
+
+
+## 4. Multi-Agent Swarm 示例：构建旅行预订系统
+
+为了演示 Swarm 的实际应用，我们将构建一个**旅行预订系统**。该系统包含两个专门的智能体：
+- **航班助手 (Flight Assistant)**: 负责查询和预订航班。
+- **酒店助手 (Hotel Assistant)**: 负责查询和预订酒店。
+
+它们将紧密协作，处理用户复杂的跨领域请求（例如：“帮我订去上海的票，顺便订个酒店”）。
+
+### 4.1 环境准备与依赖安装
+
+首先，我们需要安装必要的依赖包。本示例使用 `uv` 进行包管理，您也可以使用 `pip`。
+
+```
+uv add langchain-deepseek langchain-openai langgraph langgraph-swarm dotenv
+```
+
+`pyproject.toml` 依赖配置参考：
+
+```toml
+dependencies = [
+    "dotenv>=0.9.9",
+    "langchain-deepseek>=1.0.1",
+    "langchain-openai>=1.1.6",
+    "langgraph>=1.0.5",
+    "langgraph-swarm>=0.1.0",
+    "python-dotenv",
+]
+```
+
+
+### 4.2 核心代码实现
+
+#### 1. 环境配置与基础依赖导入
+首先导入必要的库，并初始化 DeepSeek 模型作为我们的 LLM 后端。
+
+```python
+import os
+import datetime
+from collections import defaultdict
+from typing import Callable, List, Dict, Any
+from dotenv import load_dotenv
+
+from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.config import ensure_config
+from langgraph.checkpoint.memory import MemorySaver
+from langchain.agents import create_agent
+from langchain.agents.middleware import dynamic_prompt
+from langchain_deepseek import ChatDeepSeek
+from langgraph_swarm import create_handoff_tool, create_swarm
+
+# 加载环境变量
+load_dotenv()
+
+# 配置模型
+# 确保 .env 文件中有 DEEPSEEK_API_KEY
+if not os.getenv("DEEPSEEK_API_KEY"):
+    print("警告: 未找到 DEEPSEEK_API_KEY，请确保 .env 文件配置正确。")
+
+model = ChatDeepSeek(model="deepseek-chat")
+```
+
+#### 2. 构建模拟数据库
+为了演示方便，我们使用内存字典来模拟真实的数据库，存储航班、酒店数据以及用户的预订状态。
+
+```python
+# 模拟数据
+RESERVATIONS = defaultdict(lambda: {"flight_info": {}, "hotel_info": {}})
+TOMORROW = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+FLIGHTS = [
+    {
+        "departure_airport": "PEK", # 北京首都
+        "arrival_airport": "SHA",   # 上海虹桥
+        "airline": "中国国际航空",
+        "date": TOMORROW,
+        "id": "1",
+    },
+    {
+        "departure_airport": "PEK",
+        "arrival_airport": "SZX",   # 深圳宝安
+        "airline": "南方航空",
+        "date": TOMORROW,
+        "id": "2",
+    }
+]
+
+HOTELS = [
+    {
+        "location": "上海",
+        "name": "和平饭店",
+        "neighborhood": "外滩",
+        "id": "1",
+    },
+    {
+        "location": "深圳",
+        "name": "瑞吉酒店",
+        "neighborhood": "罗湖",
+        "id": "2",
+    }
+]
+```
+
+#### 3. 定义业务工具 (Tools)
+这是智能体的“手”。我们定义了一系列工具函数，供智能体调用以执行查询和预订操作。
+
+```python
+# --- 航班工具 ---
+
+def search_flights(
+    departure_airport: str,
+    arrival_airport: str,
+    date: str,
+) -> List[Dict]:
+    """查询航班。
+
+    Args:
+        departure_airport: 出发机场的三字代码 (例如 PEK, SHA).
+        arrival_airport: 到达机场的三字代码.
+        date: 日期，格式 YYYY-MM-DD.
+    """
+    # 简单起见，返回所有航班
+    return FLIGHTS
+
+
+def book_flight(
+    flight_id: str,
+    config: RunnableConfig,
+) -> str:
+    """预订航班。"""
+    user_id = config["configurable"].get("user_id")
+    # 查找航班
+    matches = [flight for flight in FLIGHTS if flight["id"] == flight_id]
+    if not matches:
+        return "未找到指定 ID 的航班。"
+    
+    flight = matches[0]
+    RESERVATIONS[user_id]["flight_info"] = flight
+    return "成功预订航班！"
+
+
+# --- 酒店工具 ---
+
+def search_hotels(location: str) -> List[Dict]:
+    """查询酒店。
+
+    Args:
+        location: 城市名称 (例如 上海, 深圳).
+    """
+    # 简单起见，返回所有酒店
+    return HOTELS
+
+
+def book_hotel(
+    hotel_id: str,
+    config: RunnableConfig,
+) -> str:
+    """预订酒店。"""
+    user_id = config["configurable"].get("user_id")
+    # 查找酒店
+    matches = [hotel for hotel in HOTELS if hotel["id"] == hotel_id]
+    if not matches:
+        return "未找到指定 ID 的酒店。"
+    
+    hotel = matches[0]
+    RESERVATIONS[user_id]["hotel_info"] = hotel
+    return "成功预订酒店！"
+```
+
+#### 4. 配置智能体转接 (Handoff)
+这是 Swarm 的核心。使用 `create_handoff_tool` 创建特殊的工具，允许智能体在无法处理用户请求时，将控制权优雅地移交给其他专家智能体。
+
+```python
+# --- 转接工具 ---
+
+transfer_to_hotel_assistant = create_handoff_tool(
+    agent_name="hotel_assistant",
+    description="将用户转接给负责查询和预订酒店的酒店助手。",
+)
+
+transfer_to_flight_assistant = create_handoff_tool(
+    agent_name="flight_assistant",
+    description="将用户转接给负责查询和预订航班的航班助手。",
+)
+```
+
+#### 5. 定义动态提示词与智能体
+这里我们将 LLM、工具和提示词组装成 `Pregel` 智能体。注意我们使用了动态提示词来注入实时的用户状态（如当前预订信息）。
+
+```python
+# --- 智能体提示词 ---
+
+def make_prompt_middleware(base_system_prompt: str):
+    @dynamic_prompt
+    def prompt(request) -> str:
+        config = ensure_config()
+        user_id = config["configurable"].get("user_id")
+        current_reservation = RESERVATIONS[user_id]
+        system_prompt = (
+            base_system_prompt
+            + f"\n\n用户当前的预订信息: {current_reservation}"
+            + f"\n今天是: {datetime.datetime.now().strftime('%Y-%m-%d')}"
+            + "\n请使用中文回答用户的问题。"
+        )
+        return system_prompt
+    return prompt
+
+
+# --- 定义智能体 ---
+
+flight_assistant = create_agent(
+    model,
+    tools=[search_flights, book_flight, transfer_to_hotel_assistant],
+    middleware=[make_prompt_middleware("你是一个乐于助人的航班预订助手。")],
+    name="flight_assistant",
+)
+
+hotel_assistant = create_agent(
+    model,
+    tools=[search_hotels, book_hotel, transfer_to_flight_assistant],
+    middleware=[make_prompt_middleware("你是一个乐于助人的酒店预订助手。")],
+    name="hotel_assistant",
+)
+```
+
+#### 6. 编排 Swarm 系统
+使用 `create_swarm` 将定义好的智能体编织成一个完整的系统，并启用 `MemorySaver` 以支持长对话记忆。
+
+```python
+# --- 编译 Swarm ---
+
+checkpointer = MemorySaver()
+builder = create_swarm(
+    [flight_assistant, hotel_assistant], 
+    default_active_agent="flight_assistant"
+)
+
+app = builder.compile(checkpointer=checkpointer)
+```
+
+#### 7. 模拟用户交互流程
+编写主执行逻辑，模拟用户与系统进行多轮对话的全过程，展示 Swarm 如何处理复杂的任务流。
+
+```python
+# --- 运行演示 ---
+
+def print_stream(stream):
+    """辅助函数：打印流式输出"""
+    for ns, update in stream:
+        for node, node_updates in update.items():
+            # 过滤根图层面的 Agent 消息冒泡，避免重复打印
+            if not ns and node in ["flight_assistant", "hotel_assistant"]:
+                continue
+
+            if node_updates is None:
+                continue
+
+            if isinstance(node_updates, (dict, tuple)):
+                node_updates_list = [node_updates]
+            elif isinstance(node_updates, list):
+                node_updates_list = node_updates
+            else:
+                raise ValueError(node_updates)
+
+            for node_update in node_updates_list:
+                if isinstance(node_update, tuple):
+                    continue
+                
+                # 尝试获取消息并打印
+                messages_key = next(
+                    (k for k in node_update.keys() if "messages" in k), None
+                )
+                if messages_key is not None:
+                    last_msg = node_update[messages_key][-1]
+                    role = "AI" if last_msg.type == "ai" else last_msg.type
+                    content = last_msg.content
+                    tool_calls = getattr(last_msg, "tool_calls", [])
+                    
+                    display_name = ns[-1].split(":")[0] if ns else node
+                    print(f"\n--- {display_name} ({role}) ---")
+                    if content:
+                        print(content)
+                    if tool_calls:
+                        for tc in tool_calls:
+                            print(f"[调用工具]: {tc['name']} 参数: {tc['args']}")
+                else:
+                    # 可能是状态更新，例如 active_agent 改变
+                    print(f"\n--- {node} (State Update) ---")
+                    print(node_update)
+
+
+def main():
+    import uuid
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id, "user_id": "user_1"}}
+
+    print(f"开始对话 (Thread ID: {thread_id})...\n")
+
+    # 1. 用户查询航班
+    user_input_1 = "我想查一下明天从北京(PEK)到上海(SHA)的航班"
+    print(f"\n>>> 用户: {user_input_1}")
+    
+    events = app.stream(
+        {"messages": [{"role": "user", "content": user_input_1}]},
+        config,
+        subgraphs=True,
+    )
+    print_stream(events)
+
+    # 2. 用户确认预订
+    user_input_2 = "请帮我预订中国国际航空的那一班"
+    print(f"\n\n>>> 用户: {user_input_2}")
+    
+    events = app.stream(
+        {"messages": [{"role": "user", "content": user_input_2}]},
+        config,
+        subgraphs=True,
+    )
+    print_stream(events)
+
+    # 3. 用户查询酒店 (触发 Handoff)
+    user_input_3 = "好的，我也需要订一个上海的酒店"
+    print(f"\n\n>>> 用户: {user_input_3}")
+    
+    events = app.stream(
+        {"messages": [{"role": "user", "content": user_input_3}]},
+        config,
+        subgraphs=True,
+    )
+    print_stream(events)
+    
+    # 4. 用户预订酒店
+    user_input_4 = "帮我预订和平饭店"
+    print(f"\n\n>>> 用户: {user_input_4}")
+    
+    events = app.stream(
+        {"messages": [{"role": "user", "content": user_input_4}]},
+        config,
+        subgraphs=True,
+    )
+    print_stream(events)
+
+if __name__ == "__main__":
+    main()
+```
+
+### 4.3 运行结果演示
+
+#### 1. 航班查询交互
+用户发起航班查询请求，系统路由到航班助手，成功返回数据。
+
+```
+uv run python customer_support_zh.py
+开始对话 (Thread ID: 1c4e0536-4913-4911-b7a7-227910062e21)...
+
+
+>>> 用户: 我想查一下明天从北京(PEK)到上海(SHA)的航班
+
+--- flight_assistant (AI) ---
+我来帮您查询明天从北京(PEK)到上海(SHA)的航班。今天是2026年1月2日，明天就是2026年1月3日。
+[调用工具]: search_flights 参数: {'departure_airport': 'PEK', 'arrival_airport': 'SHA', 'date': '2026-01-03'}
+
+--- flight_assistant (tool) ---
+[{"departure_airport": "PEK", "arrival_airport": "SHA", "airline": "中国国际航空", "date": "2026-01-03", "id": "1"}, {"departure_airport": "PEK", "arrival_airport": "SZX", "airline": "南方航空", "date": "2026-01-03", "id": "2"}]
+
+--- flight_assistant (AI) ---
+我为您查询到了明天（2026年1月3日）从北京(PEK)到上海(SHA)的航班信息：
+
+1. **中国国际航空**航班
+   - 航班ID：1
+   - 出发机场：PEK（北京首都国际机场）
+   - 到达机场：SHA（上海虹桥国际机场）
+   - 日期：2026年1月3日
+
+另外还有一个航班是到深圳的，但您要的是到上海的。
+
+请问您需要预订这个中国国际航空的航班吗？如果需要预订，我可以帮您办理。
+```
+
+#### 2. 航班预订交互
+用户确认预订，航班助手执行写操作，更新预订状态。
+
+```
+>>> 用户: 请帮我预订中国国际航空的那一班
+
+--- flight_assistant (AI) ---
+好的，我来帮您预订中国国际航空的航班（航班ID：1）。
+[调用工具]: book_flight 参数: {'flight_id': '1'}
+
+--- flight_assistant (tool) ---
+成功预订航班！
+
+--- flight_assistant (AI) ---
+太好了！我已经成功为您预订了中国国际航空的航班。
+
+**预订详情：**
+- 航空公司：中国国际航空
+- 出发机场：北京首都国际机场 (PEK)
+- 到达机场：上海虹桥国际机场 (SHA)
+- 日期：2026年1月3日
+- 航班ID：1
+
+您的航班预订已经完成！请问您还需要查询或预订酒店吗？我可以帮您转接到酒店助手。
+```
+
+#### 3. 跨智能体无缝协作 (Handoff)
+**关键时刻**：用户在航班上下文中突然询问酒店。航班助手识别出这超出了其能力范围，自动调用 `transfer_to_hotel_assistant` 工具，将上下文和控制权平滑移交给酒店助手。
+
+```
+>>> 用户: 好的，我也需要订一个上海的酒店
+
+--- flight_assistant (AI) ---
+好的，我来帮您转接到酒店助手，他们可以帮您查询和预订上海的酒店。
+[调用工具]: transfer_to_hotel_assistant 参数: {}
+
+--- hotel_assistant (AI) ---
+您好！我是酒店预订助手。我看到您已经预订了明天（2026年1月3日）从北京到上海的航班，现在需要预订上海的酒店。
+
+让我为您查询上海的酒店信息。
+[调用工具]: search_hotels 参数: {'location': '上海'}
+
+--- hotel_assistant (tool) ---
+[{"location": "上海", "name": "和平饭店", "neighborhood": "外滩", "id": "1"}, {"location": "深圳", "name": "瑞吉酒店", "neighborhood": "罗湖", "id": "2"}]
+
+--- hotel_assistant (AI) ---
+我为您查询到了上海的酒店信息：
+
+1. **和平饭店**
+   - 位置：上海
+   - 区域：外滩
+   - 酒店ID：1
+
+另外还有一个深圳的酒店，但您需要的是上海的酒店。
+
+请问您想要预订上海外滩的和平饭店吗？如果需要预订，我可以帮您办理。
+```
+
+#### 4. 任务完成与总结
+酒店助手接手后，完成了酒店预订，并基于全局状态（包含之前的航班信息）为用户生成了完整的行程汇总。
+
+```
+>>> 用户: 帮我预订和平饭店
+
+--- hotel_assistant (AI) ---
+好的，我来帮您预订上海的和平饭店（酒店ID：1）。
+[调用工具]: book_hotel 参数: {'hotel_id': '1'}
+
+--- hotel_assistant (tool) ---
+成功预订酒店！
+
+--- hotel_assistant (AI) ---
+太好了！我已经成功为您预订了上海的和平饭店。
+
+**预订详情：**
+- 酒店名称：和平饭店
+- 位置：上海
+- 区域：外滩
+- 酒店ID：1
+
+**您的完整行程安排：**
+1. **航班**：中国国际航空，2026年1月3日从北京(PEK)飞往上海(SHA)
+2. **酒店**：上海和平饭店，位于外滩区域
+
+您的航班和酒店预订都已经完成了！请问您还需要其他帮助吗？
+```
