@@ -1,0 +1,537 @@
+---
+title: '基于 LangChain Deep Agents 与 Daytona Sandbox 集成 Claude Skills 的智能体开发指南'
+date: '2025-12-24'
+tags: ['LangChain', 'AI Agents', 'Claude', 'Daytona', 'Python', 'LLM', 'ReAct', 'Sandbox']
+summary: '本文详细介绍了如何构建一个具备深度思考和安全执行能力的智能体系统。通过整合 LangChain 的推理能力、Claude Skills 的动态技能机制以及 Daytona Sandbox 的安全执行环境，实现了从任务规划到代码执行的完整闭环。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2025-12-24-LangChain-Deep-Agents-Claude-Skills-by-Sandbox/iewek-gnos-hhUx08PuYpc-unsplash.jpg" alt="LangChain Deep Agents 集成 Claude Skills" />
+  <p>LangChain Deep Agents 集成 Claude Skills（Photo by <a href="https://unsplash.com/@imkirk?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Iewek Gnos</a> on <a href="https://unsplash.com/photos/macbook-pro-on-white-wooden-desk-hhUx08PuYpc?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+## 1. 整体思路
+
+在当今的大模型应用开发中，构建一个既具备深度思考能力又能安全执行复杂任务的智能体（Agent）是核心挑战之一。本文旨在构建一个具备深度思考和安全执行能力的智能体系统。核心架构由三部分组成：
+
+1.  **大脑：LangChain Deep Agents**
+    利用 LangChain 构建具备 ReAct（推理+行动）能力的深度智能体。它不直接回答问题，而是通过思考、规划、调用工具来逐步解决复杂任务。
+
+2.  **知识：Claude Skills**
+    采用类似 Claude 的 Skills 机制，将特定领域的能力（如 PDF 处理、数据分析）封装为 `SKILL.md` 文档。智能体通过读取这些文档动态获得操作指南，而非硬编码工具函数，极大地提升了扩展性。
+
+3.  **手脚：Daytona Sandbox**
+    为了让智能体“不仅能想，还能做”，我们需要一个安全的代码执行环境。本项目集成 Daytona Sandbox，允许智能体编写 Python 代码并在隔离容器中运行。支持动态依赖安装、本地文件上传/下载，确保智能体能安全地处理实际文件任务。
+
+**工作流程**：
+用户下达指令（如“给 PDF 加水印”） -> 智能体检索 Skill -> 编写 Python 代码 -> 投递到 Daytona 沙箱执行 -> 获取结果文件并反馈。
+
+## 2. Daytona 沙箱环境构建
+
+### 2.1 Daytona 沙箱技术选型
+
+本文应用的是 Daytona 沙箱。
+
+Daytona SDK 提供官方的 Python 和 TypeScript 接口，用于与 Daytona 进行交互，使您能够以编程方式管理开发环境并执行代码。
+
+> Run AI Code.
+> 
+> Secure and Elastic Infrastructure for Running Your AI-Generated Code.
+
+选取 Daytona 沙箱的原因是其提供自托管方案，您可以在自己的基础设施上运行 Daytona，而无需依赖 Daytona 提供的云服务。[Open Source Deployment](https://www.daytona.io/docs/en/oss-deployment/)，虽然提及 'not safe to use in production'，但考虑到本文是学习和实验的目的，因此可以在沙箱环境中使用。自托管方案后续可进行验证，本文先以线上 SaaS 方案进行演示。
+
+### 2.2 环境配置与密钥管理
+
+前往 Daytona [Dashboard](https://app.daytona.io/dashboard) 获取密钥，并保存到 `.env` 文件中。
+
+![](/static/images/2025-12-24-LangChain-Deep-Agents-Claude-Skills-by-Sandbox/screenshot-20251224-125202.png)
+
+`.env` 文件示例：
+
+```bash
+DAYTONA_API_KEY=dtn_...
+DAYTONA_API_URL=https://app.daytona.io/api
+DAYTONA_TARGET=us
+```
+
+安装 SDK：
+
+```bash
+uv add python-dotenv daytona
+```
+
+编写验证代码：
+
+```Python
+import os
+import sys
+import argparse
+from daytona import Daytona, DaytonaConfig
+from dotenv import load_dotenv
+
+
+def run_code_in_sandbox(code: str) -> int:
+    
+    load_dotenv()
+
+    api_key = os.getenv("DAYTONA_API_KEY")
+    api_url = os.getenv("DAYTONA_API_URL")
+    target = os.getenv("DAYTONA_TARGET")
+    
+    if not api_key:
+        print("DAYTONA_API_KEY is not set", file=sys.stderr)
+        return 1
+
+    config = DaytonaConfig(api_key=api_key, api_url=api_url, target=target)
+    daytona = Daytona(config)
+    sandbox = daytona.create()
+    try:
+        response = sandbox.process.code_run(code)
+        if response.exit_code != 0:
+            print(f"Error: {response.exit_code} {response.result}", file=sys.stderr)
+            return response.exit_code
+        else:
+            print(response.result)
+            return 0
+    finally:
+        sandbox.delete()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run code in Daytona sandbox")
+    parser.add_argument(
+        "--code",
+        default='print("Hello World from code!")',
+        help="Python code string to run inside sandbox",
+    )
+    args = parser.parse_args()
+    exit_code = run_code_in_sandbox(args.code)
+    sys.exit(exit_code)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+运行 `uv run main.py` ，输出 `Hello World from code!` ，表示验证成功。
+
+### 2.3 Daytona SDK 核心功能详解
+
+在同智能体结合过程中，难免遇到各种场景，需要结合沙箱 SDK 手册 [Python SDK Reference](https://www.daytona.io/docs/en/python-sdk/) 进行功能补充。以下重点介绍本文涉及的核心功能：Image、命令执行和文件操作。
+
+#### Image：环境镜像定义
+
+在 Daytona 平台中，`Image` 是 Python SDK 中一个核心的抽象类，用于定义启动 Sandbox（沙盒环境）所需的 Docker 镜像。它允许开发者以编程方式（而非手动编写 Dockerfile）构建自定义的容器镜像，从而确保 AI 生成代码或开发环境的高度可复现性和一致性。这特别适合 AI Agent 执行不确定代码的场景，避免了传统手动管理 Dockerfile 的繁琐。
+
+**Image 和 Sandbox 的区别**：
+
+*   **Image**：是静态的镜像定义（类似于 Dockerfile 的描述）。它是一个蓝图，描述了容器镜像的内容，包括基础镜像、依赖安装、文件复制、环境变量、命令等。Daytona 的 Python SDK 通过 `Image` 类让你以流畅的链式 API 方式构建这个定义，最终 Daytona 会基于它构建实际的 Docker 镜像。
+*   **Sandbox**：是运行时的动态容器实例（运行中的开发/执行环境）。Sandbox 是从 Image（或 Snapshot）启动的实际容器，用于执行代码、运行进程。Image 是 Sandbox 的“模板”，一个 Image 可以启动多个 Sandbox，而 Sandbox 是可销毁的、隔离的运行环境。
+
+简单来说：Image 定义“环境长什么样”，Sandbox 是“运行这个环境”。SDK 中的 Image 只负责定义部分，Daytona 后台负责构建镜像并启动 Sandbox。
+
+**Image 的核心 API 和使用方式**：
+
+`Image` 类是一个 Pydantic 模型，你不直接实例化它，而是通过静态工厂方法创建，然后链式调用配置方法。所有配置方法都会返回 Image 实例，便于链式操作。
+
+常见工厂方法：
+
+*   `Image.debian_slim(python_version=None)`：基于官方 Python Debian-slim 镜像（推荐起点，轻量且安全）。
+*   `Image.base(image)`：从任意 Docker 镜像名称起步。
+*   `Image.from_dockerfile(path)`：直接从现有 Dockerfile 创建。
+
+#### 命令执行：Process 模块
+
+`Process` 类用于在 Sandbox 内执行命令，可以用来安装 pip 包，也可以用来执行任意命令。
+
+在 Daytona 平台的 Python SDK（同步版本）中，`Process` 类是专为在 Sandbox 环境中处理进程和代码执行而设计的。它提供了一个统一的接口，用于运行 shell 命令、执行支持的语言代码（如 Python）、管理长运行的后台会话，以及创建交互式 PTY（伪终端）会话。这使得开发者或 AI Agent 能够在隔离的环境中安全、可靠地执行各种任务。
+
+**Process 的作用与目的**：
+
+*   **核心功能**：在 Sandbox 内执行 shell 命令或代码，支持捕获输出、退出码和 artifacts（如 Matplotlib 生成的图表）。
+*   **适用场景**：单次命令执行、多步工作流（通过 Session）、交互式终端（通过 PTY）、自动检测并提取可视化图表。
+*   **优势**：支持持久化会话（状态保持）、实时日志流、超时控制，以及与语言特定工具箱（如 SandboxPythonCodeToolbox）的集成。
+
+**Process 与 Sandbox 的区别**：
+
+*   **Process**：聚焦于进程级操作，是 Sandbox 内部的执行引擎。你通过 `sandbox.process` 获取 Process 实例，用于运行命令、代码、管理会话等。它不负责 Sandbox 的创建或生命周期管理。
+*   **Sandbox**：是运行时的容器实例（隔离环境），Process 是其子组件，用于在该环境中实际执行任务。一个 Sandbox 可以有多个 Process 操作（如多个会话或命令）。
+
+简单来说：Sandbox 是“容器”，Process 是“容器里的执行器”。Process 依赖 Sandbox 存在，无法独立使用。
+
+**Process 的创建与访问**：
+
+Process 实例通常不直接手动创建，而是通过已有的 Sandbox 获取：
+
+```python
+process = sandbox.process  # sandbox 是 Sandbox 实例
+```
+
+内部初始化依赖 SandboxPythonCodeToolbox（语言执行工具箱）和 API 客户端。
+
+**核心方法对比**：
+
+| 类别 | 方法 | 功能 | 关键参数 |
+| :--- | :--- | :--- | :--- |
+| **命令执行** | `exec(command)` | 执行单次 Shell 命令 | `command`: 命令字符串 `timeout`: 超时时间 (0 为无限) |
+| **代码执行** | `code_run(code, ...)` | 执行 Python 代码片段 | `code`: 代码字符串 |
+| **会话管理** | `create_session(id)` | 创建持久化 Shell 会话 | `id`: 会话唯一标识符 |
+| **会话管理** | `execute_session_command(...)` | 在指定会话中运行命令 | `id`: 会话标识符；`req`: 包含命令的请求对象 |
+| **会话管理** | `delete_session(id)` | 销毁持久会话 | `id`: 会话标识符 |
+
+#### 文件操作：FileSystem 模块
+
+在 Daytona 平台的 Python SDK（同步版本）中，`FileSystem` 类提供了一个高级接口，用于在 Sandbox 环境中执行文件系统操作。它允许开发者或 AI Agent 以编程方式上传/下载文件、创建目录、列出内容、搜索文件、修改权限等，所有路径默认相对于 Sandbox 的工作目录解析。这极大简化了在隔离环境中管理文件的工作流，尤其适合需要动态读写数据的 AI Agent 场景。
+
+**FileSystem 的作用与目的**：
+
+*   **核心功能**：提供完整的文件系统操作接口，包括上传（小文件内存/大文件流式）、下载（内存或本地文件）、目录管理、文件搜索（名称或内容）、文本替换、元数据查询和权限设置。
+*   **适用场景**：AI Agent 生成代码后上传文件、执行后下载结果（如日志、输出文件、图表 artifacts）、多文件批量操作、文件内容搜索与替换。
+*   **优势**：支持大文件流式传输、批量操作、超时控制、错误拦截，所有操作安全隔离在 Sandbox 内。
+
+**FileSystem 与 Sandbox 的区别**：
+
+*   **FileSystem**：聚焦于文件系统操作，是 Sandbox 的子组件，专责文件/目录的管理和传输。你通过 `sandbox.fs` 获取实例，用于上传、下载、搜索等。
+*   **Sandbox**：是运行时的容器实例（整体隔离环境），FileSystem 是其文件管理工具。FileSystem 依赖 Sandbox 存在，所有路径都在 Sandbox 内解析，无法操作本地主机文件（除上传/下载外）。
+
+简单来说：Sandbox 是“隔离容器”，FileSystem 是“容器里的文件管理器”。它与 Process（进程执行）互补：Process 执行命令产生文件，FileSystem 负责传输和管理这些文件。
+
+## 3. Claude Skills 技能库集成
+
+工程目录 `resource` 下，我们需要准备好 Skills 库。
+
+使用 `git clone` 获取所需的 skills 功能，本文以 Claude skills (https://github.com/anthropics/skills) 为例：
+
+```bash
+git clone https://github.com/anthropics/skills.git
+```
+
+目标是让智能体能够扫描 `skills` 目录，读取能力描述，并根据用户需求，使用 Skills 中提及的技能。
+
+## 4. LangChain Deep Agents 核心开发
+
+### 4.1 动态技能注册机制
+
+基于文件的、声明式的技能管理机制，其核心思想是：
+
+1.  把每一个“技能”独立存放在一个文件夹中。
+2.  每个技能必须有一个 `SKILL.md` 文件，文件开头使用 YAML frontmatter（`---` 包裹的元数据）定义 `name` 和 `description`。
+3.  系统启动时，`SkillRegistry` 会扫描指定目录，自动解析所有合法的 `SKILL.md`，提取元数据，注册这些技能。
+4.  注册后的技能信息会被格式化成一段自然语言文本，追加到系统的 system prompt 中，告诉 AI：“你有这些技能，当任务匹配时，先用 `read_file` 工具读取对应的 `SKILL.md` 获取详细指令，再执行”。
+
+这实现了**渐进式披露（Progressive Disclosure）**的设计模式：
+
+*   AI 先知道技能的存在和大致用途（轻量级）。
+*   只在真正需要时才去读取完整说明（减少 prompt 长度、提升效率）。
+
+这种模式非常适合工具调用（tool-calling）类型的 Agent 系统，比如结合 o1、Claude 或 Groq 等支持 function calling 的模型。
+
+**核心能力**：
+
+*   **自动发现技能**：无需手动在代码里硬编码技能列表，只要在 `skills` 目录下新增文件夹 + `SKILL.md` 即可自动加载，支持热扩展。
+*   **元数据解析**：支持简单的 YAML frontmatter 解析，提取 `name` 和 `description`。
+*   **生成 system prompt 片段**：输出一段结构化的提示文本，清晰列出所有可用技能及其描述，并教 AI 使用流程。
+*   **容错性较好**：目录不存在、文件缺失、解析失败时都会优雅处理（打印警告或返回 None），不会崩溃。
+*   **路径无关性**：使用 `Path.resolve()` 确保路径是绝对路径，便于在不同环境中运行。
+
+### 4.2 安全沙箱工具封装
+
+在安全的 Daytona 沙盒环境中执行任意 Python 代码的函数 `run_code_in_sandbox`，其核心目标是提供隔离、可控、支持网络访问的代码执行能力，特别适合用于 AI Agent、在线代码运行平台、自动化任务等场景，避免直接在主机上运行不可信代码带来的安全风险。
+
+使用 Daytona（一个云端沙盒服务，类似于远程轻量级容器/VM）来创建临时执行环境。每次执行代码时：
+
+1.  创建一个基于 `python:3.12-slim-bookworm` 的干净沙盒。
+2.  允许完全网络访问（`network_allow_list="0.0.0.0/0"`），支持安装包、访问 API 等。
+3.  在沙盒内动态安装依赖（`pip install`）。
+4.  上传用户提供的辅助文件（可选）。
+5.  执行用户代码。
+6.  下载执行后生成的文件（可选）。
+7.  无论成功失败，都清理沙盒。
+
+通过环境变量配置 API 密钥和目标，保持灵活性。返回标准化的 `(exit_code, output)` 元组，便于调用方判断执行结果。
+
+这是一种典型的“沙盒即服务”代码执行架构，兼顾了安全性和功能完整性。
+
+**核心能力**：
+
+*   **隔离执行**：代码不在本地运行，完全在远程沙盒中，避免污染主机环境或权限提升风险。
+*   **支持动态安装依赖**：可传入任意 pip 包列表，实时安装，支持复杂项目运行。
+*   **文件上传与下载**：支持上传数据文件、配置文件等；执行后可下载生成的文件（如图片、CSV、模型权重等）。
+*   **自动资源清理**：使用 `finally` 确保沙盒被删除，避免资源泄漏。
+
+### 4.3 智能体编排与构建
+
+将前两段代码（SkillRegistry 和 run_code_in_sandbox）整合起来，形成了一个完整的 Deep Agent 系统，基于 LangChain 框架，使用 LLM 驱动的工具调用（tool-calling）机制。
+
+这是一个典型的 ReAct-style（Reasoning + Acting）工具增强型 AI Agent 系统，设计哲学是：
+
+*   不要让 LLM 直接“想象”怎么做复杂任务，而是让它动态学习专业技能（Skills）并在安全沙盒中执行真实代码。
+*   通过渐进式技能披露（Progressive Disclosure）：LLM 先看到技能列表 → 需要时用 `read_file` 读取详细 `SKILL.md` → 学习最佳实践 → 生成代码 → 用 `execute_sandbox_code` 执行。
+*   所有真实计算都在 Daytona 沙盒中进行，主机只负责协调和文件传递，确保安全。
+
+**最终目标**：构建一个能处理真实世界复杂任务的 AI 代理，如数据分析、PDF 处理、网页抓取、图像生成等，只要提供对应的 Skill 即可无限扩展能力。
+
+**核心能力**：
+
+*   **动态技能学习**
+    *   自动发现并加载 `resources/skills/skills/` 目录下的所有技能。
+    *   在 system prompt 中注入技能列表和使用指南。
+    *   支持无限扩展新技能（只需新增文件夹 + `SKILL.md`）。
+*   **安全代码执行**
+    *   提供 `execute_sandbox_code` 工具，支持：
+        *   动态安装任意 pip 包
+        *   上传本地文件到沙盒
+        *   执行代码
+        *   下载生成的文件
+    *   所有代码在隔离的 Daytona 沙盒中运行，零本地风险。
+*   **LLM 工具调用集成**
+    *   使用 LangChain 的 `@tool` 装饰器定义工具。
+    *   支持 LLM 自动决定何时读技能、何时执行代码。
+    *   输入参数支持字符串/JSON 解析，增强对 LLM 调用错误的鲁棒性。
+*   **灵活的模型支持**
+    *   优先使用 `langchain_openai.ChatOpenAI`（支持 OpenAI、Groq、DeepSeek 等兼容 API）。
+    *   降级支持直接传入模型名称字符串。
+
+### 4.4 实战演练：PDF 转 Word
+
+通过用户描述，智能体根据 `SKILL.md` 中的指令，调用 `run_code_in_sandbox` 函数执行代码。
+
+**用户指令**：
+
+```text
+本地已存在文件 `/Users/xxx/source/python-project/daytona-samples/sample.pdf`。
+请将该文件上传到沙箱中，提取 pdf 内容输出出来，
+并把 pdf 转为 word 文档。
+处理完成后，请将转换后的 word 文档下载到本地。
+注意：由于沙箱网络受限，请务必使用本地文件上传能力，不要尝试下载。
+请检查 Skills 中是否有相关能力，如果有，请参考 SKILL.md 进行操作。
+```
+
+**执行代码**：
+
+```python
+import sys
+from deep_agent import build_agent
+from dotenv import load_dotenv
+
+# Load environment variables (for OpenAI key, Daytona key, etc.)
+load_dotenv()
+
+def main():
+    print("Building Deep Agent...")
+    try:
+        agent = build_agent()
+    except Exception as e:
+        print(f"Error building agent: {e}")
+        return
+
+    # Define the user task as specified in the requirements
+    user_task = """
+    本地已存在文件 `/Users/xxx/source/python-project/daytona-samples/sample.pdf`。
+    请将该文件上传到沙箱中，提取 pdf 内容输出出来，
+    并把 pdf 转为 word 文档。
+    处理完成后，请将转换后的 word 文档下载到本地。
+    注意：由于沙箱网络受限，请务必使用本地文件上传能力，不要尝试下载。
+    请检查 Skills 中是否有相关能力，如果有，请参考 SKILL.md 进行操作。
+    """
+    
+    print(f"\n--- Starting Agent Task ---\n{user_task}\n---------------------------\n")
+
+    try:
+        # Use stream to print thinking process
+        print("--- Agent Execution Stream ---")
+        for event in agent.stream({"messages": [{"role": "user", "content": user_task}]}):
+            for key, value in event.items():
+                print(f"\n[Event: {key}]")
+                try:
+                    # Handle dict-like state updates
+                    if isinstance(value, dict) and "messages" in value:
+                        msgs = value["messages"]
+                        if isinstance(msgs, list):
+                            last_msg = msgs[-1]
+                            content = getattr(last_msg, "content", str(last_msg))
+                            print(f"Content: {content}")
+                            if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+                                print(f"Tool Calls: {last_msg.tool_calls}")
+                        else:
+                            # If messages is not a list (e.g. Overwrite object), just print it
+                            print(f"Messages update: {msgs}")
+                    else:
+                        # Fallback for other types of updates
+                        print(f"Value: {value}")
+                except Exception as e:
+                    print(f"Error processing event: {e}")
+                    print(f"Raw Value: {value}")
+        
+        print("\n--- Agent Execution Completed ---")
+    except Exception as e:
+        print(f"\nError during agent execution: {e}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    main()
+```
+
+**执行结果分析**：
+
+```text
+--- Starting Agent Task ---
+
+    本地已存在文件 `/Users/xxx/source/python-project/daytona-samples/sample.pdf`。
+    请将该文件上传到沙箱中，提取 pdf 内容输出出来，
+    并把 pdf 转为 word 文档。
+    处理完成后，请将转换后的 word 文档下载到本地。
+    注意：由于沙箱网络受限，请务必使用本地文件上传能力，不要尝试下载。
+    请检查 Skills 中是否有相关能力，如果有，请参考 SKILL.md 进行操作。
+    
+---------------------------
+
+... 略 ...
+
+[Event: model]
+Content: 让我查看可用的Skills列表，我看到有一个"pdf"技能，让我读取它的SKILL.md文件来了解详细信息。
+
+... 略 ...
+
+[Event: tools]
+Content: ---
+name: pdf
+description: Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.
+license: Proprietary. LICENSE.txt has complete terms
+
+... 略 ...
+
+[Event: model]
+Content: 现在我看到PDF技能提供了详细的处理方法。我还需要检查是否有docx技能来处理Word文档转换。
+
+Tool Calls: [{'name': 'read_file', 'args': {'file_path': '/Users/xxx/source/python-project/daytona-samples/resources/skills/skills/docx/SKILL.md'}, 'id': 'call_99426d610dc14a70ab5d1aeb', 'type': 'tool_call'}]
+
+[Event: tools]
+Content: ---
+name: docx
+description: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. When Claude needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
+license: Proprietary. LICENSE.txt has complete terms
+---
+
+... 略 ...
+
+[Event: model]
+Content: 现在我了解了PDF和DOCX的处理方法。根据用户需求，我需要：
+
+1. 上传本地PDF文件到沙箱
+2. 提取PDF内容并输出
+3. 将PDF转换为Word文档
+4. 下载转换后的Word文档
+
+让我使用pdfplumber来提取PDF内容，并使用pandoc或其他工具将PDF转换为Word文档。
+
+... 略 ...
+
+=== PDF CONTENT EXTRACTION COMPLETED ===
+
+[Event: SummarizationMiddleware.before_model]
+Value: None
+
+[Event: model]
+Content: 很好！PDF内容已经成功提取。现在我需要将PDF转换为Word文档。由于PDF到Word的转换比较复杂，我将使用pdf2docx库来完成这个任务。
+
+... 略 ...
+
+Converting sample.pdf to converted_document.docx...
+[INFO] Start to convert sample.pdf
+[INFO] [1/4] Opening document...
+[INFO] [2/4] Analyzing document...
+[INFO] [3/4] Parsing pages...
+[INFO] (1/1) Page 1
+[INFO] [4/4] Creating pages...
+[INFO] (1/1) Page 1
+[INFO] Terminated in 0.17s.
+Conversion completed! Word document saved as: converted_document.docx
+Word document created successfully!
+File size: 38178 bytes
+
+File Downloads:
+Downloaded converted_document.docx to /Users/xxx/source/python-project/daytona-samples/converted_document.docx
+
+... 略 ...
+
+[Event: model]
+Content: 完美！任务已经成功完成。让我总结一下处理结果：
+
+## 处理结果总结
+
+✅ **PDF内容提取成功**
+- 成功从 `sample.pdf` 文件中提取了全部文本内容
+- 文档包含1页，内容为"Sample PDF"标题和大量Lorem ipsum示例文本
+
+✅ **PDF转Word转换成功** 
+- 已将PDF文件成功转换为Word文档
+- 输出文件：`converted_document.docx`
+- 文件大小：38,178字节
+- 文件已下载到本地：`/Users/xxx/source/python-project/daytona-samples/converted_document.docx`
+
+✅ **文件下载完成**
+- 转换后的Word文档已成功下载到您的本地目录
+
+## 提取的PDF内容概览：
+- 标题： "Sample PDF"
+- 副标题： "This is a simple PDF file. Fun fun fun."
+- 主体内容： 包含完整的Lorem ipsum示例文本段落
+
+现在您可以在本地找到转换后的Word文档 `converted_document.docx`，它包含了原始PDF中的所有文本内容，并且保持了基本的格式结构。
+
+--- Agent Execution Completed ---
+```
+
+### 4.5 过程复盘与深度分析
+
+从上述执行日志中，我们可以清晰地看到 Deep Agent 的思考与执行链路：
+
+1.  **任务拆解与规划**：
+    智能体没有立即行动，而是先理解了用户的四个核心需求：上传、提取、转换、下载。它通过 ReAct 模式（思考-行动-观察）构建了清晰的执行步骤。
+
+2.  **动态技能获取 (Skill Discovery)**：
+    日志显示 `[Event: model]` 中智能体主动查看了 `pdf` 和 `docx` 的 `SKILL.md`。这验证了我们的核心设计——智能体并非硬编码了所有能力，而是通过“阅读文档”来学习如何使用工具。这种机制使得系统具有极强的扩展性，只需增加 Markdown 文档即可赋予智能体新能力。
+
+3.  **精准的工具选择**：
+    在阅读文档后，智能体准确选择了 `pdfplumber` 用于内容提取，并识别出 PDF 转 Word 的复杂性，进而选择了 `pdf2docx` 库。这体现了其不仅能执行命令，还能进行技术选型。
+
+4.  **沙箱环境的价值**：
+    整个转换过程（包括安装 `pdf2docx` 依赖、处理文件）完全发生在 Daytona 沙箱中。这意味着：
+    *   **安全性**：即使转换库存在漏洞或恶意代码，也不会影响宿主机。
+    *   **环境隔离**：无需在本地配置复杂的 PDF 处理环境，沙箱自动处理了所有依赖。
+
+5.  **闭环反馈**：
+    最后，智能体不仅完成了任务，还输出了一份结构化的总结报告，确认了文件大小、下载路径和内容概览，提供了优秀的用户体验。
+
+通过这个实例，我们验证了 "LangChain (大脑) + Claude Skills (知识) + Daytona Sandbox (手脚)" 这一架构的可行性与强大潜力。它成功地将大模型的推理能力落地到了实际的文件处理任务中。
+
+## 5. 总结与展望
+
+本文通过整合 **LangChain Deep Agents**、**Claude Skills** 和 **Daytona Sandbox**，构建了一个既具备深度推理能力，又能安全执行复杂任务的智能体原型。这种架构成功解决了大模型落地过程中的“幻觉”（通过代码执行验证）和“安全”（通过沙箱隔离）两大难题。
+
+然而，作为验证性项目（MVP），当前实现仍存在诸多不足，需要在生产级应用中予以解决：
+
+1.  **技能系统 (Skill System) 局限**：
+    *   **唯一性校验缺失**：尚未对 Skill 名称或 ID 进行全局唯一性校验，多技能加载时可能发生冲突。
+    *   **缺乏缓存与热更新**：每次运行均重新读取磁盘文件，不支持内存缓存或运行时热加载，IO 开销较大。
+
+2.  **性能与资源开销**：
+    *   **冷启动延迟**：每次任务都涉及沙箱容器的创建和销毁，以及 Python 环境的初始化，时间开销显著。
+    *   **依赖安装耗时**：动态 `pip install` 虽然灵活，但增加了执行时间，且受限于网络环境。
+
+3.  **健壮性与工程化问题**：
+    *   **错误处理不完善**：依赖安装失败、网络波动等场景缺乏自动重试或降级策略。
+    *   **路径与配置僵化**：文件下载路径目前是固定的，缺乏灵活性。
+    *   **缺乏超时控制**：沙箱执行、网络请求等关键环节缺失超时熔断机制，极端情况下可能导致任务无限挂起。
+    *   **可观测性不足**：缺失系统级的日志聚合与监控指标，难以在生产环境中追踪问题。
+
+尽管存在上述挑战，但 Daytona 提供的标准化沙箱接口极大地降低了构建此类系统的门槛，为 AI Agent 的安全落地提供了坚实的基础设施支持。
+
+## 资料
+
+*   [Daytona Documentation](https://www.daytona.io/docs/)
