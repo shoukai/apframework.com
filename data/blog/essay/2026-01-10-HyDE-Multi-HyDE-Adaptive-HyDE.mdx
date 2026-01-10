@@ -137,6 +137,10 @@ dependencies = [
 ```
 
 
+### 核心类实现：AsyncHyDE
+
+首先，我们定义 `AsyncHyDE` 类。该类封装了 LLM 的调用逻辑，并实现了 Multi-HyDE 的核心——**异步并行生成假设文档**。通过预定义的多种 Prompt 风格，我们能够从不同角度（详细回答、专家解析、操作指南、通俗解释）生成假设文档，从而最大化语义覆盖率。
+
 ```Python
 import os
 import time
@@ -164,6 +168,7 @@ class AsyncHyDE:
         self.vectorstore = vectorstore
         
         # 预定义提示模板 (Multi-Perspective Prompts)
+        # 通过不同角色的设定，引导模型生成多样化的假设文档
         self.hyde_prompt_styles = [
             "请为以下查询生成一段详细的假设性回答。这段回答应该包含可能出现在相关文档中的关键词和语义信息。\n查询: {query}\n回答:",
             "请以技术专家的身份，深入解析以下查询涉及的技术原理、底层机制或核心架构。\n查询: {query}\n回答:",
@@ -190,22 +195,22 @@ class AsyncHyDE:
         for i in range(n):
             tasks.append(self._generate_single_doc(query, i))
             
-        # 并发执行所有生成任务
+        # 并发执行所有生成任务，显著降低总延迟
         docs = await asyncio.gather(*tasks)
         # 过滤掉生成失败的空文档
         return [d for d in docs if d]
 
     def _get_combined_embedding(self, texts: List[str]) -> List[float]:
-        """计算多个文本嵌入的平均向量 (Embedding 目前通常是同步调用，除非使用支持 async 的库)"""
+        """计算多个文本嵌入的平均向量"""
         # 注意：LangChain 的 OpenAIEmbeddings 目前主要提供同步 embed_documents
         # 如果需要异步，可使用 aembed_documents (如果有实现)
-        # 这里为了简单起见，embedding 保持同步，因为主要瓶颈在 LLM 生成
         embeddings = self.base_embeddings.embed_documents(texts)
         if not embeddings:
             return []
         
         dim = len(embeddings[0])
         n = len(embeddings)
+        # 计算平均向量，融合多视角的语义信息
         avg_embedding = [sum(e[i] for e in embeddings) / n for i in range(dim)]
         return avg_embedding
 
@@ -228,14 +233,17 @@ class AsyncHyDE:
         avg_embedding = self._get_combined_embedding(hypo_docs)
         
         # 3. 向量检索 (同步)
-        # 注意：Chroma 的 similarity_search_by_vector 目前是同步的
-        # 如果需要完全异步，需要使用支持 async 的 vectorstore
-        # 但这里我们主要优化 LLM 生成时间
         return await asyncio.to_thread(
             self.vectorstore.similarity_search_by_vector, avg_embedding, k=k
         )
 ```
 
+### 主流程：数据准备与检索实测
+
+接下来的 `main` 函数展示了完整的端到端流程：
+1.  **初始化**：配置 LangChain 的 LLM 和 Embeddings 客户端。
+2.  **构建知识库**：创建一个包含 LangChain 和 RAG 相关知识的临时 Chroma 向量数据库。
+3.  **执行检索**：针对查询“如何安装 langchain 库？”，调用 `AsyncHyDE` 进行 Multi-HyDE 检索，并打印耗时和结果。
 
 ```Python
 # --- 主程序 ---
