@@ -1,6 +1,6 @@
 片段：
 
-[](/static/images/File/X.JPG)
+![](/static/images/File/X.png)
 
 <div className="text-center">
   <img src="/static/images/File/X.jpg" alt="Free" />

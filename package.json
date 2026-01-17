@@ -12,6 +12,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
     "@headlessui/react": "2.2.0",
     "@next/bundle-analyzer": "15.0.2",
     "@next/swc-darwin-x64": "^15.2.4",

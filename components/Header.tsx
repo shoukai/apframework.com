@@ -18,7 +18,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="mr-3">
             <ApImage
-              src="/static/favicons/default.svg"
+              src="/static/favicons/Logo.svg"
               alt="ApFramework Logo"
               width={44}
               height={44}

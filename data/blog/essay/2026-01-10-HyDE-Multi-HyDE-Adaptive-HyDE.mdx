@@ -6,6 +6,14 @@ draft: false
 summary: '深入解析 HyDE 及其变体 Multi-HyDE 和 Adaptive HyDE，探讨如何利用大语言模型生成的假设文档提升 RAG 系统的检索准确性，并提供详细的代码实战与性能对比分析。'
 ---
 
+<div className="text-center">
+  <img src="/static/images/2026-01-10-HyDE-Multi-HyDE-Adaptive-HyDE/2h-media-spScdgWY-_c-unsplash.jpg" alt="Multi-agent" />
+  <p>HyDE（Photo by <a href="https://unsplash.com/@2hmedia?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">2H Media</a> on <a href="https://unsplash.com/photos/a-wooden-table-topped-with-papers-and-a-pen-spScdgWY-_c?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
 在检索增强生成（RAG）系统中，检索准确性是决定最终生成效果的关键瓶颈。传统的稠密检索往往受限于查询与文档之间的语义鸿沟（Semantic Gap）。为了解决这一问题，**Hypothetical Document Embeddings（HyDE，假设文档嵌入）** 应运而生。本文将深入解析 HyDE 及其两大重要变体——**Multi-HyDE** 和 **Adaptive HyDE**，探讨它们如何利用大语言模型（LLM）生成的“假设答案”来显著提升检索性能。
 
 ## 1. HyDE：零样本检索的基石
@@ -14,7 +22,7 @@ HyDE 最初由 2022 年发表的论文《Precise Zero-Shot Dense Retrieval witho
 
 ### 核心摘要
 
-虽然稠密检索在各种任务和语言中已被证明有效且高效，但当没有相关性标签可用时，创建有效的完全零样本稠密检索系统仍然困难。在本文中，我们认识到零样本学习和编码相关性的困难。我们提出通过**假设文档嵌入（HyDE）**来解决这个问题。
+虽然稠密检索在各种任务和语言中已被证明有效且高效，但当没有相关性标签可用时，创建有效的完全零样本稠密检索系统仍然困难。在本文中，我们认识到零样本学习和编码相关性的困难。我们提出通过 **假设文档嵌入（HyDE）** 来解决这个问题。
 
 给定一个查询，HyDE 先零样本地指示一个指令跟随语言模型（例如 InstructGPT）生成一个**假设文档**。该文档捕捉相关性模式，但不一定是真实的，可能包含虚假细节。然后，一个无监督对比学习编码器（例如 Contriever）将这个假设文档编码成嵌入向量。这个向量在语料库嵌入空间中识别一个邻域，其中基于向量相似性检索出相似的**真实**文档。
 
@@ -55,9 +63,9 @@ Multi-HyDE 的概念主要见于论文《Enhancing Financial RAG with Agentic AI
 2.  **多路假设生成与检索**：对每个衍生查询分别生成假设文档，并进行向量检索，获取 Top-$k_1$ 的候选文档。
 3.  **结果融合与重排序**：将所有候选文档合并，利用重排序模型（如 BGE-Reranker）进行精选，最终输出 Top-$k_2$ 的结果。
 
-![](/iShot_2026-01-10_11.22.45.png)
+![](/static/images/2026-01-10-HyDE-Multi-HyDE-Adaptive-HyDE/iShot_2026-01-10_11.22.45.png)
 
-这种**多视角（Multi-Perspective）**策略显著提升了检索的覆盖率（Recall）和鲁棒性，特别适合处理复杂且结构化的金融语料。
+这种 **多视角（Multi-Perspective）** 策略显著提升了检索的覆盖率（Recall）和鲁棒性，特别适合处理复杂且结构化的金融语料。
 
 然而，Multi-HyDE 的代价是显而易见的：生成 $N$ 个文档会显著增加延迟和 Token 消耗。对于实时性要求较高的场景，这并不是最优解。这就引出了我们的下一个主角——Adaptive HyDE。
 
@@ -132,8 +140,7 @@ dependencies = [
     "langchain-community>=0.4.1",
     "langchain-openai>=1.1.7",
     "onnxruntime<1.20",
-    "python-dotenv>=1.2.1",
-    "python-graphviz>=0.20.1",
+    "python-dotenv>=1.2.1"
 ]
 ```
 
@@ -324,6 +331,106 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+执行结果
+
+```text
+
+正在初始化组件...
+初始化 Embeddings (API Mode)...
+向量库构建完成，共 9 条文档。
+
+==================================================
+测试查询: 如何安装 langchain 库？
+==================================================
+
+  >>> 方法 A: Direct Retrieval <<<
+  [Direct] 执行直接检索: 如何安装 langchain 库？
+  > 耗时: 0.32s
+  > 结果:
+    * 使用 `pip install langchain` 命令安装 LangChain。
+    * LangChain 是一个用于构建 LLM 应用的框架，支持 Python 和 JavaScript。
+------------------------------
+
+  >>> 方法 B: Standard HyDE (n=1) <<<
+  [Standard HyDE] 执行 Standard HyDE (n=1): 如何安装 langchain 库？
+  > 正在生成 1 个假设文档 (使用多样化视角)...
+    - 假设文档: 要安装 LangChain 库，您可以使用 Python 的包管理工具 pip。LangChain ...
+  > 耗时: 18.07s
+  > 结果:
+    * 使用 `pip install langchain` 命令安装 LangChain。
+    * LangChain 是一个用于构建 LLM 应用的框架，支持 Python 和 JavaScript。
+------------------------------
+
+  >>> 方法 C: Multi-HyDE (n=3) <<<
+  [Multi-HyDE] 执行 Multi-HyDE (n=3): 如何安装 langchain 库？
+  > 正在生成 3 个假设文档 (使用多样化视角)...
+    - 假设文档 1: 要安装 LangChain 库，您可以使用 Python 的包管理工具 pip。LangChain ...
+    - 假设文档 2: 以技术专家的身份，对“如何安装 langchain 库”这一看似简单的查询进行深入解析，需从多个维度...
+    - 假设文档 3: 1. **确保已安装 Python（建议 3.8+）和 pip**  
+   - 检查版本：`pyt...
+  > 耗时: 81.27s
+  > 结果:
+    * 使用 `pip install langchain` 命令安装 LangChain。
+    * LangChain 是一个用于构建 LLM 应用的框架，支持 Python 和 JavaScript。
+------------------------------
+
+  >>> 方法 D: Adaptive HyDE <<<
+  [Adaptive] 分析查询意图: 如何安装 langchain 库？
+    - 判定策略: DIRECT
+  [Direct] 执行直接检索: 如何安装 langchain 库？
+  > 耗时: 1.82s
+  > 结果:
+    * 使用 `pip install langchain` 命令安装 LangChain。
+    * LangChain 是一个用于构建 LLM 应用的框架，支持 Python 和 JavaScript。
+
+==================================================
+测试查询: 为什么我们需要检索增强生成(RAG)技术？
+==================================================
+
+  >>> 方法 A: Direct Retrieval <<<
+  [Direct] 执行直接检索: 为什么我们需要检索增强生成(RAG)技术？
+  > 耗时: 0.12s
+  > 结果:
+    * RAG (Retrieval-Augmented Generation) 通过检索外部数据来增强生成模型的准确性。
+    * 大模型在处理特定领域知识时经常产生幻觉，检索增强是解决此问题的关键手段。
+------------------------------
+
+  >>> 方法 B: Standard HyDE (n=1) <<<
+  [Standard HyDE] 执行 Standard HyDE (n=1): 为什么我们需要检索增强生成(RAG)技术？
+  > 正在生成 1 个假设文档 (使用多样化视角)...
+    - 假设文档: 我们需要检索增强生成（Retrieval-Augmented Generation，简称 RAG）技...
+  > 耗时: 13.34s
+  > 结果:
+    * RAG (Retrieval-Augmented Generation) 通过检索外部数据来增强生成模型的准确性。
+    * 大模型在处理特定领域知识时经常产生幻觉，检索增强是解决此问题的关键手段。
+------------------------------
+
+  >>> 方法 C: Multi-HyDE (n=3) <<<
+  [Multi-HyDE] 执行 Multi-HyDE (n=3): 为什么我们需要检索增强生成(RAG)技术？
+  > 正在生成 3 个假设文档 (使用多样化视角)...
+    - 假设文档 1: 检索增强生成（Retrieval-Augmented Generation, RAG）技术之所以被广...
+    - 假设文档 2: 检索增强生成（Retrieval-Augmented Generation, RAG）技术的出现，源...
+    - 假设文档 3: 1. **理解大语言模型（LLM）的局限性**：LLMs 依赖训练数据，无法访问最新或私有信息，且可...
+  > 耗时: 62.80s
+  > 结果:
+    * RAG (Retrieval-Augmented Generation) 通过检索外部数据来增强生成模型的准确性。
+    * 大模型在处理特定领域知识时经常产生幻觉，检索增强是解决此问题的关键手段。
+------------------------------
+
+  >>> 方法 D: Adaptive HyDE <<<
+  [Adaptive] 分析查询意图: 为什么我们需要检索增强生成(RAG)技术？
+    - 判定策略: HYDE
+  [Multi-HyDE] 执行 Multi-HyDE (n=3): 为什么我们需要检索增强生成(RAG)技术？
+  > 正在生成 3 个假设文档 (使用多样化视角)...
+    - 假设文档 1: 我们需要检索增强生成（Retrieval-Augmented Generation，简称 RAG）技...
+    - 假设文档 2: 检索增强生成（Retrieval-Augmented Generation, RAG）技术的出现，源...
+    - 假设文档 3: 1. **理解大语言模型（LLM）的局限性**：LLMs 依赖训练数据，无法访问最新或私有信息，且可...
+  > 耗时: 69.15s
+  > 结果:
+    * RAG (Retrieval-Augmented Generation) 通过检索外部数据来增强生成模型的准确性。
+    * 大模型在处理特定领域知识时经常产生幻觉，检索增强是解决此问题的关键手段。
+```
+
 ## 6. 深度评测：四种策略的性能对比
 
 基于上述 `AsyncHyDE` 代码实现的测试结果，我们对 Direct Retrieval、Standard HyDE、Multi-HyDE 和 Adaptive HyDE 进行了多维度的对比分析。以下是详细的评估报告。
@@ -373,7 +480,7 @@ if __name__ == "__main__":
 
 #### 进阶思路 1：使用更快的模型
 HyDE 的核心在于生成**关键词**和**语义向量**，而非生成完美的散文。
-*   **行动**：可以将生成假设文档的模型替换为更小、更快的模型（如 `gpt-4o-mini`, `qwen-turbo` 等），将单次生成耗时压缩到 5s 以内，从而实现接近实时（<5s）的 Multi-HyDE 检索。
+*   **行动**：可以将生成假设文档的模型替换为更小、更快的模型（如 `gpt-4o-mini`, `qwen-turbo` 等），将单次生成耗时压缩到 5s 以内，从而实现接近实时（ < 5s）的 Multi-HyDE 检索。
 
 #### 进阶思路 2：预计算与缓存
 *   **行动**：对于 Adaptive 路由，可以引入语义缓存（Semantic Cache）。如果用户问过类似问题，直接复用之前的路由决策甚至检索结果。
