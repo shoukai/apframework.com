@@ -1,5 +1,5 @@
 ---
-title: '知识提取：LangChain 核心概念与架构精要'
+title: '知识提取：LangChain 核心概念与内容精要'
 date: '2026-01-17'
 tags: ['LangChain', 'Agent', 'Content Extraction', 'RAG', 'Knowledge Base']
 draft: false
@@ -36,53 +36,32 @@ summary: '本文利用 content-extraction 工具深度萃取 LangChain 官方文
 - **LangChain** (5⭐): 一个用于构建基于大语言模型（LLM）应用的开发框架。
 - **langchain-openai** (4⭐): LangChain 的 OpenAI 集成包，用于连接和使用 OpenAI 的大语言模型。
 - **langchain-anthropic** (4⭐): LangChain 的 Anthropic 集成包，用于接入 Anthropic 提供的大语言模型（如 Claude）。
-- **pip install -U** (3⭐): 使用 pip 升级并安装指定 Python 包的命令。
 
 ### Quickstart (快速上手)
 
 本文档是 LangChain 的快速入门指南，介绍了如何使用 Claude 模型构建一个具备工具调用、记忆、结构化输出等能力的实用天气预报智能体（agent）。内容涵盖系统提示词设计、工具创建、模型配置、响应格式定义、记忆机制集成以及最终智能体的组装与运行。
 
-#### Core Concepts
-- **Agent (智能体)** (5⭐): 能调用工具、理解上下文并执行任务的语言模型应用。
-- **System Prompt (系统提示词)** (4⭐): 定义智能体角色和行为的指令，应具体且可操作。
-- **Tools (工具)** (5⭐): 允许语言模型调用外部函数以获取数据或执行操作，可依赖运行时上下文和记忆。
-- **Structured Output (结构化输出)** (4⭐): 通过定义响应格式（如 JSON Schema），确保模型输出符合预期结构。
-- **Memory (记忆)** (5⭐): 使智能体能记住对话历史和上下文，在多次交互中保持状态；生产环境应使用持久化存储。
-- **Model Configuration (模型配置)** (3⭐): 根据使用场景设置语言模型参数（如温度、最大 token 数等），不同提供商参数不同。
-
-### Changelog (更新日志)
-
-*(Content not found)*
-
 ### Philosophy (设计理念)
 
 该页面阐述了 LangChain 的核心理念、发展历程及其对构建基于大语言模型（LLM）的智能体（Agent）应用的支持。LangChain 致力于标准化模型接口、简化复杂工作流编排，并通过 LangGraph 提供底层控制能力以提升智能体的可靠性。随着行业从原型走向生产，LangChain 逐步演进，最终在 1.0 版本中统一为基于 LangGraph 的新一代 Agent 抽象，并支持多模态输入和标准化消息格式。
-
-#### Core Concepts
-- **Large Language Models (LLMs)** (5⭐): 大语言模型是强大新技术，结合外部数据源后效果更佳，并将推动未来应用向智能体（agentic）方向演进。
-- **Agent (智能体)** (5⭐): 未来应用程序将越来越具有智能体特性，即能自主推理并调用工具执行任务，但目前构建可靠生产级智能体仍具挑战。
-- **LangChain Philosophy** (4⭐): LangChain 的核心理念是标准化模型接口以避免厂商锁定，并使开发者能轻松使用 LLM 编排复杂的数据与计算流程。
-- **ReAct (Reasoning and Acting)** (3⭐): 早期 LangChain 智能体基于 ReAct 范式，通过 LLM 生成 JSON 来表示工具调用，实现推理与行动的结合。
-- **Function Calling** (4⭐): OpenAI 引入的函数调用功能允许模型直接生成结构化工具调用载荷，取代了早期依赖 JSON 解析的方式，成为 LangChain 推荐的标准方法。
-- **LangGraph** (5⭐): LangGraph 是 LangChain 推出的开源低层编排库，提供流式处理、持久化执行、短期记忆和人机协同等能力，成为构建可靠 AI 应用的首选方式。
-- **LangChain 1.0** (4⭐): LangChain 1.0 统一所有链（Chains）和智能体为单一基于 LangGraph 的高级 Agent 抽象，并引入标准化的多模态消息内容格式。
-- **langchain-classic** (3⭐): 为兼容旧版用户，LangChain 1.0 将原有 Chains 和 Agents 移至独立的 langchain-classic 包，但官方推荐迁移到新架构。
-- **Multimodal Model APIs** (4⭐): 现代模型 API 支持图像、视频等多模态输入，LangChain 在 langchain-core 中更新消息格式以标准化此类输入。
-- **LangSmith** (4⭐): LangSmith 是 LangChain Inc. 提供的可观测性与评估平台，旨在解决智能体可靠性难题，并与 LangChain 深度集成。
 
 ## Core Components (核心组件)
 
 ### Agents (智能体)
 
-本文档介绍了 LangChain 中的 Subagents（子智能体）模式，这是一种由主智能体（Supervisor）集中协调多个专用子智能体的架构。子智能体通过工具被调用，不直接与用户交互，支持同步或异步执行，并提供了多种设计选项，包括工具暴露方式、上下文传递策略等。适用于多领域任务、需集中控制的工作流场景。
+本文档介绍了 LangChain 中 Agents 的核心概念、配置方式和高级用法，包括如何使用 create_agent 构建基于图（LangGraph）的智能体，支持静态/动态模型选择、工具集成、ReAct 推理模式、系统提示（system prompt）定制、结构化输出、自定义状态管理以及中间件（middleware）扩展等。
 
 #### Core Concepts
-- **Subagents (子智能体)** (5⭐): 由主智能体调用的专用智能体，用于处理特定领域任务，结果返回给主智能体而非用户。
-- **Supervisor vs. Router** (4⭐): Supervisor 是保持对话上下文并动态调用子智能体的完整智能体；Router 仅做一次分类分发，不维护状态。
-- **Synchronous vs. Asynchronous Execution** (4⭐): 同步模式下主智能体等待子智能体完成；异步模式下主智能体可继续响应用户，适合独立后台任务。
-- **Tool per Agent vs. Single Dispatch Tool** (4⭐): 前者为每个子智能体创建独立工具，控制精细；后者用单一参数化工具按名称调用子智能体，便于扩展和团队协作。
-- **Subagent Specs (子智能体规范)** (3⭐): 通过名称和描述告知主智能体何时调用哪个子智能体，是路由决策的关键提示信息。
-- **Subagent Inputs/Outputs** (4⭐): 可自定义传入子智能体的上下文（如完整历史）和返回给主智能体的结果格式，以优化性能和决策。
+- **Agent (智能体)** (5⭐): 结合大语言模型与工具，能推理任务、选择工具并迭代达成目标的系统。
+- **create_agent** (4⭐): LangChain 提供的用于创建生产级智能体的函数，基于 LangGraph 构建执行图。
+- **Static Model (静态模型)** (3⭐): 在创建智能体时一次性配置且运行期间不变的模型，是最常见的方式。
+- **Dynamic Model (动态模型)** (4⭐): 根据对话上下文或状态在运行时切换不同模型，用于成本优化或复杂度适配。
+- **ReAct Pattern (推理+行动模式)** (5⭐): 智能体交替进行推理（Reasoning）和调用工具（Acting），直到获得最终答案。
+- **Tool (工具)** (4⭐): 可被智能体调用的函数，通过 @tool 装饰器定义，支持自定义名称、描述和参数。
+- **System Prompt (系统提示)** (4⭐): 通过 system_prompt 参数设定智能体的行为准则，支持字符串或 SystemMessage 类型。
+- **Middleware (中间件)** (5⭐): 用于在智能体执行流程中插入自定义逻辑，如动态提示、模型切换、日志记录等。
+- **Structured Output (结构化输出)** (4⭐): 通过 ToolStrategy 或 ProviderStrategy 强制智能体返回指定格式的输出。
+- **Custom State (自定义状态)** (4⭐): 通过继承 AgentState 的 TypedDict 扩展智能体的短期记忆，存储额外上下文信息。
 
 ### Models (模型)
 
@@ -150,21 +129,18 @@ summary: '本文利用 content-extraction 工具深度萃取 LangChain 官方文
 
 ### Streaming (流式处理)
 
-本文档介绍了 LangChain 的 React Hook `useStream`，它用于与 LangGraph 的流式功能无缝集成，支持消息流处理、自动状态管理、对话分支、自定义事件、多智能体流、人工干预（human-in-the-loop）等高级特性，并提供类型安全和 UI 无关的设计。
+本文档介绍了 LangChain 的流式传输系统，支持实时获取智能体（Agent）运行过程中的反馈。主要功能包括：流式传输智能体进度、LLM 生成的 token、自定义更新，以及同时使用多种流式模式。文档还涵盖了常见使用场景，如工具调用流、人工干预处理、子智能体流式输出，以及如何禁用流式传输。
 
 #### Core Concepts
-- **useStream (React Hook)** (5⭐): LangChain 提供的 React Hook，用于连接 LangGraph 流式接口，自动处理消息流、状态、错误、分支等逻辑。
-- **Messages streaming** (4⭐): 将流式返回的消息块逐步拼接成完整消息，实现流畅的 AI 对话体验。
-- **Automatic state management** (4⭐): 自动管理消息、中断、加载状态和错误，无需手动维护复杂状态。
-- **Conversation branching** (4⭐): 从任意历史消息点创建对话分支，支持编辑、重生成等高级交互。
-- **Thread management** (4⭐): 通过 threadId 管理会话线程，支持页面刷新后自动恢复对话。
-- **Optimistic updates** (3⭐): 在请求发出前先更新 UI 状态，提升用户响应速度和体验。
-- **Human-in-the-loop (人工干预)** (4⭐): 当 Agent 需要人类批准工具调用时，useStream 可捕获中断并提示用户操作。
-- **Multi-agent streaming** (4⭐): 在多智能体系统中，通过消息元数据区分不同节点生成的内容，支持并行 LLM 输出。
-- **Custom streaming events** (4⭐): 通过 writer 发送自定义事件（如进度条、文件操作），并在前端通过 onCustomEvent 处理。
-- **Type-safe streaming** (4⭐): 配合 createAgent 或 StateGraph 使用时，自动推导工具调用和状态类型，提供完整 TypeScript 支持。
-- **Reasoning models** (3⭐): 针对支持推理过程的模型（如 OpenAI Reasoning Models），需从消息内容中提取并单独展示思考过程。
-- **Custom transport** (3⭐): 通过 FetchStreamTransport 连接非标准或自定义的流式 API 端点。
+- **Streaming (流式传输)** (5⭐): LangChain 的流式系统允许应用程序在智能体运行时实时接收反馈数据。
+- **stream_mode="updates"** (4⭐): 以 'updates' 模式流式传输，可在每个智能体步骤后获取状态更新。
+- **stream_mode="messages"** (4⭐): 以 'messages' 模式流式传输 LLM 生成的 token 及其元数据。
+- **stream_mode="custom"** (3⭐): 通过 get_stream_writer 在图节点中发送用户自定义的流式数据。
+- **Multiple stream modes (多流模式)** (4⭐): 可同时指定多个流模式（如 ["updates", "custom"]），输出为 (模式, 数据) 元组。
+- **get_stream_writer** (3⭐): 用于在工具或图节点内部发送自定义流式更新，但只能在 LangGraph 执行上下文中使用。
+- **Sub-agent streaming (子智能体流式)** (4⭐): 通过为子智能体设置 name，并在流式时启用 subgraphs=True，可区分来自不同智能体的消息源。
+- **Disable streaming (禁用流式)** (3⭐): 可通过模型初始化时设置 streaming=False 或 disable_streaming=True 来关闭特定模型的流式输出。
+- **Human-in-the-loop streaming (人在回路流式)** (4⭐): 结合中断机制与 'updates' 流模式，可在需要人工审核时暂停并响应智能体执行。
 
 ### Structured Output (结构化输出)
 
@@ -211,7 +187,17 @@ summary: '本文利用 content-extraction 工具深度萃取 LangChain 官方文
 
 ### Custom Middleware (自定义中间件)
 
-*(Content not found)*
+本文档介绍了 LangChain 中自定义中间件（Custom Middleware）的使用方法，包括两种钩子类型（Node-style 和 Wrap-style）、创建方式（装饰器和类）、执行顺序、状态管理、跳转控制以及最佳实践和示例。
+
+#### Core Concepts
+- **Node-style hooks** (4⭐): 在特定执行点顺序运行的钩子，适用于日志记录、验证和状态更新。
+- **Wrap-style hooks** (4⭐): 围绕模型或工具调用运行的钩子，可控制是否/何时调用处理器，适用于重试、缓存和转换逻辑。
+- **Decorator-based middleware** (3⭐): 使用装饰器实现单个钩子的简单中间件，适合快速原型开发。
+- **Class-based middleware** (4⭐): 通过类实现支持多个钩子、复杂配置或同步/异步混合的高级中间件。
+- **Custom state schema** (4⭐): 中间件可通过扩展 agent 状态来跨钩子共享数据、跟踪执行或实现横切关注点。
+- **Execution order** (5⭐): 多个中间件按注册顺序执行 before_* 钩子，反向执行 after_* 钩子，wrap_* 钩子则嵌套执行。
+- **Agent jumps** (4⭐): 中间件可通过返回 jump_to 字典提前跳转到指定节点（如 'end'、'tools'、'model'）。
+- **SystemMessage.content_blocks** (3⭐): 用于安全地读取和修改系统消息内容的结构化字段，无论原始输入是字符串还是列表。
 
 ### Advanced Usage (高级用法)
 
@@ -426,7 +412,14 @@ LangChain 通过 LangGraph 的持久化机制实现长期记忆功能，将记�
 
 ### Agent Chat UI (聊天界面)
 
-*(Content not found)*
+本文档介绍了 LangChain 提供的 Agent Chat UI 工具，它是一个开源的交互式界面，可用于快速连接本地或部署的智能体（Agent），支持自动渲染工具调用和中断，并提供托管版本和本地开发两种使用方式。
+
+#### Core Concepts
+- **Agent Chat UI** (5⭐): 一个开源的聊天界面，用于与 LangChain 智能体进行交互，支持自动识别工具调用和中断。
+- **Hosted Version (托管版本)** (4⭐): 无需本地安装，直接通过网页访问并连接智能体服务器的快速使用方式。
+- **Graph ID** (4⭐): 在 langgraph.json 文件中定义的智能体图名称，用于 Agent Chat UI 连接指定智能体。
+- **Deployment URL** (5⭐): 智能体服务的端点地址，本地开发通常为 http://localhost:2024，部署环境则为实际 URL。
+- **LangSmith API key** (3⭐): 可选配置项，用于连接 LangSmith 服务；若使用本地智能体服务器则无需提供。
 
 ### Deployment (部署)
 
@@ -449,3 +442,4 @@ LangChain 通过 LangGraph 的持久化机制实现长期记忆功能，将记�
 - **Environment Variables for LangSmith** (4⭐): 通过设置 LANGCHAIN_TRACING_V2 和 LANGSMITH_API_KEY 等环境变量即可自动启用 LangSmith 追踪，无需额外代码。
 - **tracing_context** (4⭐): LangSmith 提供的上下文管理器，可用于选择性追踪特定调用，并附加自定义元数据（metadata）和标签（tags）。
 - **LANGSMITH_PROJECT** (3⭐): 通过该环境变量可为整个应用指定一个静态的 LangSmith 项目名称，也可在代码中动态设置项目名以分类追踪数据。
+
