@@ -14,6 +14,7 @@ import {
   remarkImgToJsx,
   extractTocHeadings,
 } from 'pliny/mdx-plugins/index.js'
+import { remarkCodeCharts } from './lib/remark-code-charts'
 // Rehype packages
 import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
@@ -151,6 +152,7 @@ export default makeSource({
   mdx: {
     cwd: process.cwd(),
     remarkPlugins: [
+      remarkCodeCharts,
       remarkExtractFrontmatter,
       remarkGfm,
       remarkCodeTitles,
