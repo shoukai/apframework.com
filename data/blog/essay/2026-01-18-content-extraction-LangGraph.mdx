@@ -1,0 +1,460 @@
+---
+title: '知识提取：LangGraph 核心概念与内容精要'
+date: '2026-01-18'
+tags: ['LangGraph', 'Agent', 'Content Extraction', 'RAG', 'Knowledge Base']
+draft: false
+summary: '本文利用 content-extraction 工具深度萃取 LangGraph 官方文档精华，旨在为智能体开发者构建结构化的知识底座。通过提炼核心概念与架构设计，帮助开发者快速掌握 LangGraph 全貌，打破信息茧房，避免重复造轮子。'
+---
+
+<div className="text-center">
+  <img src="/static/images/2026-01-17-content-extraction-langchain/nick-morrison-FHnnjk1Yj7Y-unsplash.jpg" alt="Multi-agent" />
+  <p>LangChain Content Extraction（Photo by <a href="https://unsplash.com/@nickmorrison?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Nick Morrison</a> on <a href="https://unsplash.com/photos/macbook-pro-near-white-open-book-FHnnjk1Yj7Y?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+      ）</p>
+</div>
+
+> 本文档基于 [Content Extraction](https://github.com/shoukai/content-extraction) 工具生成。该工具专为技术文档设计，利用智能爬虫与结构化生成技术，从海量文档中萃取核心知识点与关键路径，为您提供一份清晰、易记的智能体开发速查手册。
+
+文档源：[LangGraph Official Documentation](https://docs.langchain.com/oss/python/langgraph/overview)
+
+### Install
+
+该页面介绍了如何安装 LangGraph 所依赖的 LangChain 及相关 LLM 提供商的包，指出推荐使用 LangChain 来接入大语言模型和定义工具，并提供了基础安装命令。
+
+#### Core Concepts
+- **LangGraph** [HIGH]: LangGraph 是一个用于构建基于 LLM 的状态机和多智能体（multi-agent）工作流的库，通常与 LangChain 配合使用。
+- **LangChain** [CORE]: LangChain 是一个用于开发由语言模型驱动的应用程序的框架，支持工具调用、记忆、链式逻辑等功能。
+
+### Quickstart
+
+本文档是 LangChain 的快速入门指南，展示了如何使用 Graph API 和 Functional API 两种方式构建一个具备工具调用能力的智能体（Agent）。示例使用 Claude 模型和自定义的加法、乘法、除法工具，演示了从定义模型与工具、状态管理、节点逻辑到编译执行的完整流程。
+
+#### Core Concepts
+- **Graph API** [CORE]: 一种通过定义节点（如 LLM 调用、工具执行）和边（控制流）来构建智能体的声明式方法，适合复杂状态流转。
+- **Functional API** [HIGH]: 一种通过编写标准控制流（如循环、条件）在单个函数中实现智能体逻辑的编程式方法，代码更简洁直观。
+- **StateGraph** [CORE]: LangGraph 中用于构建基于状态图的智能体的核心类，支持添加节点、边和条件路由。
+- **MessagesState (带 Annotated 的 TypedDict)** [HIGH]: 使用 Annotated[list[AnyMessage], operator.add] 定义可追加的消息列表状态，确保新消息被累积而非覆盖。
+- **@tool 装饰器** [HIGH]: LangChain 提供的装饰器，用于将普通 Python 函数转换为可被 LLM 调用的工具（Tool），自动处理参数和描述。
+- **bind_tools()** [HIGH]: 将工具绑定到 LLM 模型，使其能够生成符合工具调用格式的响应（如 tool_calls）。
+- **conditional edges** [CORE]: 根据当前状态（如是否存在 tool_calls）动态决定下一步执行哪个节点，实现循环或终止逻辑。
+- **@entrypoint 和 @task** [HIGH]: Functional API 中的装饰器，@entrypoint 标记主代理函数，@task 标记可异步/同步执行的子任务。
+- **add_messages** [NORM]: LangGraph 提供的工具函数，用于安全地合并消息列表，保持消息顺序和类型一致性。
+
+### Local server
+
+本文档介绍了如何在本地运行 LangGraph 应用服务器，包括安装 CLI、创建项目、配置环境变量、启动开发服务器，并通过 Studio UI 和 API 进行测试。
+
+#### Core Concepts
+- **LangGraph CLI** [HIGH]: LangGraph 提供的命令行工具，用于创建、开发和部署基于 LangGraph 的应用。
+- **langgraph dev** [CORE]: 启动本地 LangGraph Agent Server 的命令，默认使用内存模式，适用于开发和测试。
+- **Agent Server (智能体服务器)** [HIGH]: LangGraph 中运行图（graph）逻辑的服务端组件，支持通过 API 与智能体交互。
+- **.env file** [NORM]: 用于存储本地环境变量（如 API 密钥）的文件，从 .env.example 模板复制并填写。
+- **Studio** [HIGH]: LangGraph 提供的可视化 UI 工具，可连接本地服务器以调试和交互式测试智能体图。
+- **--tunnel flag** [LOW ]: 用于在 langgraph dev 命令中创建安全隧道，解决 Safari 浏览器无法访问 localhost 的兼容性问题。
+- **Threadless run** [NORM]: 通过 REST 或 SDK 发送单次消息而不维护对话线程的调用方式，适用于简单交互场景。
+
+### Thinking in LangGraph
+
+本文档介绍了使用 LangGraph 构建 AI 智能体（Agent）的系统化方法，以客户支持邮件处理为例，详细阐述了从工作流拆解、节点设计、状态管理到错误处理和人机协作的完整开发范式。
+
+#### Core Concepts
+- **LangGraph** [CORE]: 一个用于构建具有状态、循环和人类干预能力的 AI 智能体（Agent）的框架，基于图结构组织工作流。
+- **Node (节点)** [CORE]: 图中的基本执行单元，是一个接收状态、执行单一任务并返回状态更新的函数。
+- **State (状态)** [CORE]: 智能体的共享内存，存储需跨步骤持久化的原始数据，而非格式化后的文本。
+- **Workflow Decomposition (工作流拆解)** [HIGH]: 将复杂流程分解为离散、单一职责的步骤（节点），以提升可调试性、可观测性和容错能力。
+- **Node Types (节点类型)** [HIGH]: 分为 LLM 步骤（推理/生成）、Data 步骤（检索）、Action 步骤（外部操作）和 User Input 步骤（人工干预）四类。
+- **interrupt()** [CORE]: LangGraph 中用于暂停执行、保存状态并等待人类输入的机制，支持长时间中断后精确恢复。
+- **Checkpointer (检查点)** [HIGH]: 持久化智能体状态的机制，使工作流可在失败或中断后从最近节点重新开始，支持异步写入以减少性能开销。
+- **Error Handling Strategy (错误处理策略)** [HIGH]: 根据错误类型（瞬时、LLM 可恢复、用户可修复、意外）采用不同策略：重试、回环、暂停或抛出。
+- **Node Granularity Trade-off (节点粒度权衡)** [NORM]: 更细的节点粒度提升容错性与可观测性（更多检查点、独立重试），但需权衡实现复杂度；通常推荐细粒度。
+- **Command[Literal[...]]** [NORM]: 在节点中通过类型提示显式声明下一跳目标，使控制流清晰可追踪。
+
+### Workflows + agents
+
+本文档介绍了 LangChain 中工作流（Workflows）与智能体（Agents）的核心概念、区别及多种高级模式，包括提示链、并行化、路由、Orchestrator-Worker 架构和 Evaluator-Optimizer 循环，并说明了如何利用 LLM 的增强能力（如工具调用、结构化输出）构建这些系统。
+
+#### Core Concepts
+- **Workflow (工作流)** [HIGH]: 具有预定义代码路径、按固定顺序执行任务的自动化流程。
+- **Agent (智能体)** [CORE]: 能动态决定工具使用和执行路径的自主系统，适用于问题与解决方案不可预测的场景。
+- **Prompt Chaining (提示链)** [NORM]: 将多个 LLM 调用串联，前一个输出作为后一个输入，用于分解可验证的子任务。
+- **Parallelization (并行化)** [NORM]: 同时运行多个 LLM 子任务以提升速度或通过多视角输出增强结果可信度。
+- **Routing (路由)** [NORM]: 根据输入内容动态分发到特定处理流程，实现上下文感知的任务调度。
+- **Orchestrator-Worker** [HIGH]: 协调器分解任务并分派给多个工作者，再聚合结果；LangGraph 通过 Send API 支持此模式。
+- **Evaluator-Optimizer** [HIGH]: 生成器创建响应，评估器打分或反馈，循环迭代直至满足质量标准。
+- **LLM Augmentations** [CORE]: 通过工具调用、结构化输出和短期记忆等机制扩展 LLM 能力，支撑工作流与智能体。
+
+## Capabilities
+
+```infographic
+infographic list-grid-progress-card
+data
+  title 核心能力
+  desc 七大核心能力构建生产级智能体应用
+  lists
+    - label Persistence
+      value 95
+      desc 线程级检查点与状态持久化
+      time 基础
+      icon mingcute/save-2-fill
+      illus mobile-photos
+    - label Durable execution
+      value 90
+      desc 容错恢复与确定性重放机制
+      time 核心
+      icon mingcute/shield-fill
+      illus code-thinking
+    - label Streaming
+      value 88
+      desc 实时令牌流与中间状态推送
+      time 体验
+      icon mingcute/waves-line
+      illus creative-experiment
+    - label Interrupts
+      value 85
+      desc 人机协作审批与断点续传
+      time 交互
+      icon mingcute/pause-circle-fill
+      illus feeling-happy
+    - label Time travel
+      value 80
+      desc 历史状态回溯与分支调试
+      time 调试
+      icon mingcute/time-fill
+      illus business-analytics
+    - label Memory
+      value 92
+      desc 跨会话长期记忆与语义搜索
+      time 智能
+      icon mingcute/brain-fill
+      illus mobile-photos
+    - label Subgraphs
+      value 82
+      desc 多智能体模块化嵌套与协作
+      time 架构
+      icon mingcute/git-merge-fill
+      illus creativity
+theme light
+  palette antv
+```
+
+
+### Persistence
+
+本文档详细介绍了 LangChain/LangGraph 中的持久化（Persistence）机制，包括基于线程（Thread）的检查点（Checkpoint）系统、状态回放（Replay）、状态更新（Update State）、跨线程共享数据的 Store 接口（如内存存储和语义搜索），以及底层的 Checkpointer 实现、序列化与加密支持。
+
+#### Core Concepts
+- **Thread (线程)** [CORE]: Thread 是一个唯一标识符（thread_id），用于关联一系列图执行的检查点，是状态持久化和恢复的基本单位。
+- **Checkpoint (检查点)** [CORE]: Checkpoint 是图在每个超级步骤（super-step）的状态快照，包含 config、metadata、values、next 节点和待执行任务（tasks）等信息。
+- **StateSnapshot** [HIGH]: 表示一个检查点的对象，包含图状态的完整信息，可通过 get_state() 或 get_state_history() 获取。
+- **Replay (回放)** [HIGH]: 通过指定 thread_id 和 checkpoint_id，可从历史检查点重新执行后续步骤，实现时间旅行式调试或分支执行。
+- **update_state** [HIGH]: 允许手动更新图状态，支持指定更新来源节点（as_node），并遵循通道 reducer 规则而非简单覆盖。
+- **Store (存储接口)** [CORE]: 用于跨线程持久化数据（如用户记忆），与 Checkpointer 配合使用，支持命名空间、键值存储和语义搜索。
+- **Semantic Search (语义搜索)** [NORM]: Store 支持基于嵌入模型的语义检索，可按含义而非精确匹配查找记忆。
+- **BaseCheckpointSaver** [HIGH]: Checkpointer 的标准接口，定义了 put、get_tuple、list 等方法，用于保存和检索检查点。
+- **Checkpointer Libraries (检查点库)** [HIGH]: LangGraph 提供多种 Checkpointer 实现：InMemorySaver（内存）、SqliteSaver（SQLite）、PostgresSaver（PostgreSQL），分别适用于实验和生产环境。
+- **Serializer (序列化器)** [NORM]: JsonPlusSerializer 是默认序列化器，支持多种类型；可通过 pickle_fallback 处理不支持的对象（如 Pandas DataFrame）。
+- **EncryptedSerializer** [NORM]: 可对持久化状态进行 AES 加密，通过 LANGGRAPH_AES_KEY 环境变量配置密钥，保障数据安全。
+- **Agent Server / LangGraph API 自动持久化** [HIGH]: 使用 Agent Server 或 LangGraph API 时，检查点和 Store 的基础设施由系统自动管理，无需手动配置。
+
+### Durable execution
+
+本文档介绍了 LangGraph 中的持久化执行（Durable Execution）机制，包括其前提条件、确定性重放原则、三种持久化模式、任务（task）的使用方式以及工作流恢复的策略。
+
+#### Core Concepts
+- **Durable Execution (持久化执行)** [CORE]: LangGraph 的持久化执行机制允许工作流在中断后从检查点恢复，确保状态不丢失并支持一致重放。
+- **Checkpointer (检查点器)** [HIGH]: 用于保存工作流进度的组件，是启用持久化执行的必要条件。
+- **Thread Identifier (线程标识符)** [HIGH]: 用于唯一标识一个工作流实例，确保恢复时能正确加载其历史状态。
+- **Determinism and Consistent Replay (确定性与一致重放)** [CORE]: 工作流恢复时会从合适起点重放至中断点，因此非确定性操作和副作用必须封装在任务中以避免重复执行。
+- **Task (任务)** [HIGH]: 封装非确定性或带副作用操作的单元，确保恢复时直接使用已记录结果而非重新执行。
+- **Idempotent Operations (幂等操作)** [HIGH]: 即使多次执行也产生相同结果的操作，对持久化工作流中的容错至关重要。
+- **Durability Modes (持久化模式)** [HIGH]: LangGraph 提供 exit、async、sync 三种持久化模式，在性能与数据一致性之间提供权衡。
+- **Resuming Workflows (恢复工作流)** [HIGH]: 通过相同 thread_id 和 None 输入可从最后成功检查点自动恢复失败的工作流。
+- **Starting Point for Resumption (恢复起点)** [NORM]: 恢复起点取决于图类型：StateGraph 从节点开头开始，Functional API 从入口点开始，子图中断则从父节点调用处恢复。
+
+### Streaming
+
+LangGraph 提供了强大的流式输出系统，支持多种流模式（如 state 更新、完整 state、LLM tokens、自定义数据和调试信息），可用于实时响应、提升用户体验，并支持子图、异步、标签过滤及任意 LLM 集成。
+
+#### Core Concepts
+- **Streaming (流式输出)** [CORE]: LangGraph 的流式系统可在 LLM 响应生成过程中实时返回中间结果，显著改善用户等待体验。
+- **stream_mode: values** [HIGH]: 流式输出图在每一步执行后的完整状态（full state）。
+- **stream_mode: updates** [CORE]: 流式输出图在每一步中各节点对状态的增量更新（state deltas），包含节点名和变更内容。
+- **stream_mode: messages** [CORE]: 流式输出 LLM 生成的 token 及其元数据（如节点名、标签等），支持细粒度过滤。
+- **stream_mode: custom** [HIGH]: 允许从节点或工具函数中发送任意自定义数据（如进度提示），需使用 get_stream_writer。
+- **stream_mode: debug** [NORM]: 输出图执行过程中的详细追踪信息，包括节点名和完整状态，用于调试。
+- **Subgraph Streaming (子图流式输出)** [HIGH]: 通过设置 subgraphs=True，可同时流式输出父图和嵌套子图的更新，输出格式为 (namespace, data)。
+- **Metadata Filtering (元数据过滤)** [HIGH]: 在 messages 模式下，可通过 metadata 中的 langgraph_node 或 tags 字段筛选特定 LLM 调用的 token 流。
+- **get_stream_writer** [HIGH]: 用于在节点或工具中获取写入器，以发送 custom 流数据；在 Python < 3.11 异步环境中需手动传入 writer。
+- **Async Compatibility (Python < 3.11)** [NORM]: 在 Python 3.11 之前使用 async 时，需显式传递 RunnableConfig 和 writer 参数以确保上下文正确传播。
+
+### Interrupts
+
+本文档详细介绍了 LangGraph 中的 interrupt() 机制，用于在图执行过程中动态暂停并等待外部输入。它支持持久化状态（通过 checkpointer 和 thread_id）、恢复执行、以及多种人机协作场景（如审批、编辑、验证等），并强调了使用中断时的关键规则和最佳实践。
+
+#### Core Concepts
+- **interrupt()** [CORE]: LangGraph 中用于在节点任意位置动态暂停执行的函数，可返回 JSON-serializable 值并通过 __interrupt__ 字段传递给调用者。
+- **Checkpointing (检查点)** [HIGH]: 通过持久化图状态（需配置 checkpointer）实现中断后恢复执行，即使在错误状态下也能保留进度。
+- **thread_id** [HIGH]: 作为图执行的“持久游标”，相同 thread_id 可恢复同一检查点，不同值则启动新线程（空状态）。
+- **__interrupt__** [NORM]: 中断时由 interrupt() 传入的值会通过此字段返回给调用者，表明图正在等待什么输入。
+- **Command(resume=...)** [HIGH]: 用于恢复被中断的图执行，其 resume 值将成为 interrupt() 调用的返回值。
+- **节点重启行为** [CORE]: 恢复执行时，包含 interrupt() 的整个节点会从头开始运行，而非从中断点继续，因此中断前的代码会重复执行。
+- **Idempotency (幂等性)** [HIGH]: 中断前的副作用操作应具备幂等性，避免因节点重启导致重复执行（如重复创建记录或覆盖数据）。
+- **中断使用规则** [CORE]: 不得在 try/except 中捕获 interrupt()；中断调用顺序必须一致；仅传递 JSON-serializable 值；避免非幂等副作用。
+- **常见中断模式** [HIGH]: 包括审批工作流、人工审查与编辑 LLM 输出、工具调用前中断、人类输入验证等场景。
+- **Static interrupts (静态中断)** [NORM]: 编译时通过 interrupt_before / interrupt_after 设置的调试断点，不适用于生产级人机交互，仅用于调试。
+
+### Time travel
+
+该页面展示了如何使用 LangGraph 构建一个带检查点（checkpoint）功能的简单工作流，包含生成笑话主题和根据主题写笑话两个步骤，并启用了内存中的状态保存器（InMemorySaver），为后续实现时间旅行（time-travel）调试功能做准备。
+
+#### Core Concepts
+- **LangGraph** [CORE]: LangGraph 是 LangChain 生态中用于构建状态化、多步骤 LLM 工作流的库，支持循环、分支和状态持久化。
+- **StateGraph** [HIGH]: StateGraph 是 LangGraph 中用于定义基于状态的工作流的核心类，每个节点可读写共享状态。
+- **InMemorySaver (内存检查点保存器)** [HIGH]: InMemorySaver 是一种检查点存储后端，将执行历史保存在内存中，支持回溯和时间旅行调试。
+- **Time-travel debugging (时间旅行调试)** [CORE]: 通过保存每一步的状态快照，开发者可回溯到任意历史步骤查看或恢复状态，便于调试复杂 LLM 工作流。
+- **TypedDict with NotRequired** [NORM]: 使用 TypedDict 定义工作流状态结构，NotRequired 表示某些字段在初始状态中可选，提升类型安全性和灵活性。
+
+### Memory
+
+本文档介绍了如何在 LangGraph 中为智能体（Agent）添加短期记忆（用于多轮对话）和长期记忆（用于跨会话存储用户或应用数据），并提供了使用 InMemory、PostgreSQL、MongoDB 和 Redis 作为后端的同步与异步代码示例。
+
+#### Core Concepts
+- **Short-term memory (短期记忆)** [CORE]: 通过 checkpointer 实现线程级持久化，使智能体能在多轮对话中记住上下文。
+- **Long-term memory (长期记忆)** [CORE]: 通过 store 存储用户或应用级别的数据，可在不同会话间持久保留信息。
+- **Checkpointer** [HIGH]: LangGraph 中用于保存和恢复图状态的组件，支持 InMemory、Postgres、MongoDB、Redis 等后端。
+- **Store** [HIGH]: LangGraph 中用于长期记忆的键值存储接口，可与数据库集成以实现跨会话数据访问。
+- **thread_id** [HIGH]: 用于标识对话线程的唯一 ID，是启用短期记忆的关键配置项。
+- **InMemorySaver / InMemoryStore** [NORM]: 内存中的 checkpointer 和 store 实现，适用于开发测试，不适用于生产环境。
+- **PostgresSaver / PostgresStore** [CORE]: 基于 PostgreSQL 的持久化 checkpointer 和 store，适合生产环境使用。
+- **MongoDBSaver / MongoDBStore** [HIGH]: 基于 MongoDB 的持久化方案，提供灵活的文档存储能力。
+- **RedisSaver / RedisStore** [HIGH]: 基于 Redis 的高性能内存数据库方案，适合低延迟场景。
+- **setup() / asetup()** [NORM]: 首次使用某些持久化后端（如 Postgres、Redis）时需调用 setup 初始化表或结构。
+
+### Subgraphs
+
+本文档介绍了 LangGraph 中子图（Subgraphs）的使用方法，包括如何通过子图实现模块化开发、不同状态模式下的集成方式（共享状态 vs 独立状态）、多层嵌套子图示例、检查点与状态持久化、中断时查看子图状态，以及如何在流式输出中包含子图结果。
+
+#### Core Concepts
+- **Subgraph (子图)** [CORE]: 子图是 LangGraph 中用于封装独立工作流的图结构，支持模块化开发和团队协作，只要接口（输入/输出 schema）一致，父图无需了解其内部细节。
+- **Independent State Schema (独立状态模式)** [HIGH]: 当子图与父图状态无共享键时，需通过节点函数手动转换状态：父图状态 → 子图输入 → 子图执行 → 输出 → 转换回父图状态。
+- **Shared State Channel (共享状态通道)** [HIGH]: 若子图与父图共享状态键（如 messages），可直接将编译后的子图作为节点添加到父图中，无需手动状态转换。
+- **Nested Subgraphs (嵌套子图)** [NORM]: 支持多层子图嵌套（如 parent → child → grandchild），每层状态相互隔离，通过函数调用逐层传递和转换状态。
+- **Checkpointer Propagation (检查点传播)** [HIGH]: 只需在父图编译时提供 checkpointer，LangGraph 会自动将其传播至所有子图；若需子图独立记忆，可单独为其编译时指定 checkpointer。
+- **Interrupted Subgraph State Inspection (中断时查看子图状态)** [NORM]: 仅当子图因 interrupt() 中断时，才能通过 graph.get_state(config, subgraphs=True) 查看其内部状态；恢复执行后状态不可再访问。
+- **Streaming Subgraph Outputs (流式输出子图结果)** [HIGH]: 在父图的 stream() 方法中设置 subgraphs=True，即可同时流式输出父图和所有子图的节点更新。
+
+## Production
+
+```infographic
+infographic list-grid-progress-card
+data
+  title 生产部署
+  desc 全链路工具链支持从开发到生产部署
+  lists
+    - label Application structure
+      value 90
+      desc 标准化工程结构与配置管理
+      time 工程
+      icon mingcute/folder-open-fill
+      illus mobile-photos
+    - label Test
+      value 85
+      desc 单元测试与状态回放验证
+      time 质量
+      icon mingcute/test-tube-fill
+      illus code-thinking
+    - label LangSmith Studio
+      value 95
+      desc 本地可视化调试与热重载
+      time 调试
+      icon mingcute/computer-fill
+      illus creative-experiment
+    - label Agent Chat UI
+      value 80
+      desc 开箱即用的交互式对话界面
+      time 体验
+      icon mingcute/chat-4-fill
+      illus feeling-happy
+    - label LangSmith Deployment
+      value 88
+      desc 一键托管部署与自动扩缩容
+      time 运维
+      icon mingcute/rocket-fill
+      illus business-analytics
+    - label LangSmith Observability
+      value 92
+      desc 全链路追踪与敏感数据脱敏
+      time 监控
+      icon mingcute/eye-fill
+      illus mobile-photos
+theme light
+  palette antv
+```
+
+
+### Application structure
+
+本文档介绍了使用 LangSmith Deployment 部署 LangGraph 应用的标准结构和配置要求，包括 langgraph.json 配置文件、依赖管理、图定义和环境变量设置。
+
+#### Core Concepts
+- **LangSmith Deployment** [CORE]: LangChain 提供的托管平台，用于部署和扩展 LangGraph 智能体（Agent），自动处理基础设施、伸缩和运维问题。
+- **langgraph.json** [CORE]: LangGraph 应用的核心配置文件，以 JSON 格式定义依赖项、图（graphs）、环境变量及其他部署设置。
+- **Graphs (图)** [HIGH]: 在 langgraph.json 中通过 graphs 键指定一个或多个状态图，每个图由唯一名称和指向编译图或图构建函数的路径定义。
+- **Dependencies (依赖项)** [HIGH]: LangGraph 应用需通过 requirements.txt、pyproject.toml 等文件声明 Python 依赖，并在 langgraph.json 的 dependencies 字段中引用；系统级依赖可通过 dockerfile_lines 指定。
+- **Environment variables (环境变量)** [NORM]: 开发时可通过 .env 文件或 langgraph.json 的 env 字段配置；生产环境应通过部署平台设置环境变量。
+
+### Test
+
+该页面展示了一个使用 LangGraph 构建状态图并测试从中断点恢复执行的单元测试示例，重点演示了如何通过 update_state 模拟从特定节点开始执行，并在指定节点后中断。
+
+#### Core Concepts
+- **LangGraph** [HIGH]: LangGraph 是 LangChain 生态中用于构建具有状态和循环的代理（Agent）工作流的库，支持节点间状态传递与中断恢复。
+- **StateGraph** [HIGH]: StateGraph 是 LangGraph 中用于定义带状态的工作流图的核心类，每个节点接收并返回状态字典。
+- **MemorySaver** [NORM]: MemorySaver 是 LangGraph 提供的检查点（checkpoint）存储器，用于在内存中保存图执行的状态，支持中断后恢复。
+- **update_state** [CORE]: update_state 方法允许手动设置图的当前状态，并指定该状态来自哪个节点，从而控制下一次执行的起点。
+- **interrupt_after** [HIGH]: interrupt_after 参数用于在调用 invoke 时指定执行到某个节点后暂停，常用于分步调试或人工干预场景。
+
+### LangSmith Studio
+
+本文档介绍了如何在本地使用 LangSmith Studio 可视化和调试 LangChain 智能体（Agent）。通过 LangGraph CLI 启动本地 Agent Server，连接到 LangSmith Studio 界面，可实时查看智能体执行过程中的提示词、工具调用、中间状态及错误信息，并支持热重载和快速迭代。
+
+#### Core Concepts
+- **LangSmith Studio** [CORE]: LangChain 提供的免费可视化界面，用于本地开发和调试智能体，可实时查看执行流程、工具调用和调试信息。
+- **LangGraph CLI** [HIGH]: LangChain 提供的命令行工具，用于启动本地 Agent Server，将智能体连接到 LangSmith Studio。
+- **LANGSMITH_TRACING** [NORM]: 环境变量，设为 false 可禁用数据上报，确保所有执行数据保留在本地。
+- **langgraph.json** [HIGH]: LangGraph CLI 的配置文件，用于指定智能体入口、依赖和环境变量文件路径。
+- **Hot-reloading (热重载)** [HIGH]: 在 Studio 中修改代码后无需重启服务器，变更会立即生效，支持从任意步骤重新运行对话线程。
+- **Studio Tunneling (--tunnel)** [NORM]: Safari 会阻止 localhost 连接，使用 --tunnel 参数可通过安全隧道访问 Studio 并手动添加允许来源。
+
+### Agent Chat UI
+
+Agent Chat UI 是 LangChain 提供的一个开源工具，用于快速为智能体（Agent）创建交互式聊天界面，支持本地和部署环境，并可自动渲染工具调用和中断信息。
+
+#### Core Concepts
+- **Agent Chat UI** [HIGH]: 一个开源的聊天界面工具，用于与 LangChain 智能体进行交互，支持自动渲染工具调用和中断。
+- **create_agent** [NORM]: LangChain 中用于创建智能体的核心函数，Agent Chat UI 可与其集成以提供交互体验。
+- **Graph ID** [HIGH]: 在 langgraph.json 文件中定义的智能体图名称，用于 Agent Chat UI 连接指定智能体流程。
+- **Deployment URL** [HIGH]: 智能体服务的访问地址，本地开发通常为 http://localhost:2024，部署后为实际服务器 URL。
+- **LangSmith API key** [NORM]: 用于连接 LangSmith 平台的可选密钥，在使用远程智能体时可能需要。
+
+### LangSmith Deployment
+
+本文档介绍了如何将 LangGraph 兼容的智能体（Agent）通过 GitHub 仓库部署到 LangSmith 平台，并提供了测试部署后应用及获取 API URL 的步骤。
+
+#### Core Concepts
+- **LangSmith Deployment** [CORE]: LangSmith 提供的部署功能，允许用户将基于 LangGraph 的智能体从 GitHub 仓库一键部署为可调用的 API 服务。
+- **GitHub Repository Requirement** [HIGH]: 部署到 LangSmith 的应用代码必须托管在 GitHub 仓库中，支持公有和私有仓库。
+- **LangGraph-compatible Agent** [CORE]: 只有符合 LangGraph 结构的智能体才能被 LangSmith 部署，需先完成本地服务器设置以确保兼容性。
+- **Deployment Workflow** [CORE]: 部署流程包括：创建 GitHub 仓库 → 在 LangSmith 中新建部署 → 关联 GitHub 账号 → 选择仓库提交部署 → 等待约15分钟完成。
+- **LangSmith Studio** [HIGH]: 部署成功后可通过 Studio 可视化查看智能体的图结构（graph），用于调试和演示。
+- **API URL** [CORE]: 每个部署会生成唯一的 API URL，可用于通过 REST 或 LangGraph SDK 调用已部署的智能体。
+
+### LangSmith Observability
+
+本文档介绍了如何在 LangChain 应用中启用和配置 LangSmith 的可观察性（Observability）功能，包括设置前提条件、启用追踪、选择性追踪、指定项目名称、添加元数据以及使用匿名化器保护敏感数据。
+
+#### Core Concepts
+- **LangSmith Observability** [CORE]: LangSmith 提供的可观察性功能，用于追踪、调试和监控 LangChain 应用的执行流程。
+- **Prerequisites (前提条件)** [HIGH]: 使用 LangSmith Observability 前需拥有 LangSmith 账号和 API 密钥。
+- **Enable tracing (启用追踪)** [CORE]: 通过设置环境变量（如 LANGSMITH_API_KEY）全局启用 LangSmith 追踪。
+- **tracing_context (追踪上下文)** [HIGH]: LangSmith 提供的上下文管理器，用于对特定代码块进行选择性追踪，并可附加元数据和标签。
+- **LANGSMITH_PROJECT** [NORM]: 环境变量，用于为整个应用指定 LangSmith 中的日志项目名称。
+- **Dynamic project assignment (动态项目分配)** [NORM]: 可在运行时通过代码为特定操作指定 LangSmith 项目名称，实现灵活的日志分组。
+- **Metadata and tags in traces (追踪中的元数据与标签)** [HIGH]: 可通过 tracing_context 为追踪记录添加自定义元数据和标签，便于过滤和分析。
+- **Anonymizers (匿名化器)** [CORE]: 用于自动识别并屏蔽敏感信息（如社保号 XXX-XX-XXXX）的机制，防止其被记录到 LangSmith 中。
+
+## ​Core benefits
+
+```infographic
+infographic list-grid-progress-card
+data
+  title 核心优势
+  desc LangGraph provides low-level supporting infrastructure for any long-running, stateful workflow or agent.
+  lists
+    - label Durable execution
+      value 95
+      desc Build agents that persist through failures and can run for extended periods, resuming from where they left off
+      time Core
+      icon mingcute/save-2-fill
+      illus mobile-photos
+    - label Human-in-the-loop
+      value 90
+      desc Incorporate human oversight by inspecting and modifying agent state at any point
+      time Interactive
+      icon mingcute/user-4-line
+      illus feeling-happy
+    - label Comprehensive memory
+      value 88
+      desc Create stateful agents with both short-term working memory and long-term memory across sessions
+      time Context
+      icon mingcute/brain-fill
+      illus creativity
+    - label Debugging with LangSmith
+      value 92
+      desc Gain deep visibility into complex agent behavior with visualization tools that trace execution paths
+      time Tools
+      icon mingcute/bug-fill
+      illus code-thinking
+    - label Production-ready deployment
+      value 98
+      desc Deploy sophisticated agent systems confidently with scalable infrastructure designed for stateful workflows
+      time Scale
+      icon mingcute/rocket-line
+      illus business-analytics
+theme light
+  palette antv
+```
+
+
+### Durable execution
+
+本文档介绍了 LangGraph 中的持久化执行（Durable Execution）机制，包括其前提条件、确定性重放原则、三种持久化模式、任务（task）的使用方式以及工作流恢复的策略。
+
+#### Core Concepts
+- **Durable Execution (持久化执行)** [CORE]: LangGraph 的持久化执行机制允许工作流在中断后从检查点恢复，确保状态不丢失并支持一致重放。
+- **Checkpointer (检查点器)** [HIGH]: 用于保存工作流进度的组件，是启用持久化执行的必要条件。
+- **Thread Identifier (线程标识符)** [HIGH]: 用于唯一标识一个工作流实例，确保恢复时能正确加载其历史状态。
+- **Determinism and Consistent Replay (确定性与一致重放)** [CORE]: 工作流恢复时会从合适起点重放至中断点，因此非确定性操作和副作用必须封装在任务中以避免重复执行。
+- **Task (任务)** [HIGH]: 封装非确定性或带副作用操作的单元，确保恢复时直接使用已记录结果而非重新执行。
+- **Idempotent Operations (幂等操作)** [HIGH]: 即使多次执行也产生相同结果的操作，对持久化工作流中的容错至关重要。
+- **Durability Modes (持久化模式)** [HIGH]: LangGraph 提供 exit、async、sync 三种持久化模式，在性能与数据一致性之间提供权衡。
+- **Resuming Workflows (恢复工作流)** [HIGH]: 通过相同 thread_id 和 None 输入可从最后成功检查点自动恢复失败的工作流。
+- **Starting Point for Resumption (恢复起点)** [NORM]: 恢复起点取决于图类型：StateGraph 从节点开头开始，Functional API 从入口点开始，子图中断则从父节点调用处恢复。
+
+### Human-in-the-loop
+
+本文档详细介绍了 LangGraph 中的 interrupt() 机制，用于在图执行过程中动态暂停并等待外部输入。它支持持久化状态（通过 checkpointer 和 thread_id）、恢复执行、以及多种人机协作场景（如审批、编辑、验证等），并强调了使用中断时的关键规则和最佳实践。
+
+#### Core Concepts
+- **interrupt()** [CORE]: LangGraph 中用于在节点任意位置动态暂停执行的函数，可返回 JSON-serializable 值并通过 __interrupt__ 字段传递给调用者。
+- **Checkpointing (检查点)** [HIGH]: 通过持久化图状态（需配置 checkpointer）实现中断后恢复执行，即使在错误状态下也能保留进度。
+- **thread_id** [HIGH]: 作为图执行的“持久游标”，相同 thread_id 可恢复同一检查点，不同值则启动新线程（空状态）。
+- **__interrupt__** [NORM]: 中断时由 interrupt() 传入的值会通过此字段返回给调用者，表明图正在等待什么输入。
+- **Command(resume=...)** [HIGH]: 用于恢复被中断的图执行，其 resume 值将成为 interrupt() 调用的返回值。
+- **节点重启行为** [CORE]: 恢复执行时，包含 interrupt() 的整个节点会从头开始运行，而非从中断点继续，因此中断前的代码会重复执行。
+- **Idempotency (幂等性)** [HIGH]: 中断前的副作用操作应具备幂等性，避免因节点重启导致重复执行（如重复创建记录或覆盖数据）。
+- **中断使用规则** [CORE]: 不得在 try/except 中捕获 interrupt()；中断调用顺序必须一致；仅传递 JSON-serializable 值；避免非幂等副作用。
+- **常见中断模式** [HIGH]: 包括审批工作流、人工审查与编辑 LLM 输出、工具调用前中断、人类输入验证等场景。
+- **Static interrupts (静态中断)** [NORM]: 编译时通过 interrupt_before / interrupt_after 设置的调试断点，不适用于生产级人机交互，仅用于调试。
+
+### Comprehensive memory
+
+本文档概述了 LangChain 中通过 LangGraph 实现的短期记忆（会话级）和长期记忆（跨会话）机制。短期记忆通过图状态和检查点（checkpointer）管理单个对话线程中的上下文；长期记忆则以命名空间（namespace）组织，支持语义、情景和程序性三类记忆，并可通过“热路径”或后台任务写入。文档还讨论了记忆存储结构、管理策略及实际应用模式。
+
+#### Core Concepts
+- **Short-term memory (短期记忆)** [CORE]: 在单个对话线程（thread）内维护消息历史和其他状态数据（如文件、文档），由 LangGraph 通过检查点持久化，确保会话可恢复且上下文隔离。
+- **Long-term memory (长期记忆)** [CORE]: 跨会话、跨线程存储用户或应用级别的信息，按自定义命名空间组织，支持随时检索，用于个性化和上下文增强。
+- **Semantic memory (语义记忆)** [HIGH]: 存储事实性知识（如用户偏好），常以 profile（JSON 文档）或文档集合形式实现，用于个性化响应。
+- **Episodic memory (情景记忆)** [HIGH]: 记录过去事件或行为，常通过 few-shot 示例提示实现，帮助代理从历史经验中学习任务执行方式。
+- **Procedural memory (程序性记忆)** [HIGH]: 指代理执行任务所依赖的规则，体现为模型权重、代码和系统提示；可通过“反思”机制动态更新提示以优化行为。
+- **Memory writing: in the hot path (热路径写入)** [NORM]: 在主交互流程中实时决定并写入记忆，优点是即时可用和透明，缺点是增加延迟和复杂度。
+- **Memory writing: in the background (后台写入)** [NORM]: 将记忆生成作为异步后台任务，避免影响主流程性能，但需合理设计触发时机以保证记忆及时性。
+- **Memory storage structure (记忆存储结构)** [HIGH]: 长期记忆以 JSON 文档形式存储，按 namespace（如用户ID）和 key 组织，支持跨命名空间的内容过滤与检索。
+- **Profile vs Collection (Profile 与 Collection 模式)** [HIGH]: Profile 是单一可更新的结构化文档，适合紧凑信息；Collection 是多个独立记忆文档，更易生成但需处理更新/删除逻辑和检索复杂性。
+- **LangGraph Store** [HIGH]: LangGraph 提供的长期记忆存储组件，支持语义搜索和内容过滤，用于保存和检索各类记忆文档。
+
+
+
+
+
+
+
