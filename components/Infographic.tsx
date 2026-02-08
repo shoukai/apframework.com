@@ -67,7 +67,8 @@ export default function Infographic({
   className,
 }: InfographicProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<any>(null)
+  // Use AntVInfographic type instead of any for chart reference
+  const chartRef = useRef<AntVInfographic | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || !spec) return
@@ -76,8 +77,12 @@ export default function Infographic({
     if (!chartRef.current) {
       chartRef.current = new AntVInfographic({
         container: containerRef.current,
-        width: width as any,
-        height: height as any,
+        // AntV Infographic types might expect number for width/height, 
+        // but it often accepts string (like '100%') in practice or via specific type casting.
+        // Casting to unknown then specific type or keeping as any if types are loose.
+        // To fix lint error properly, we cast to compatible type if known, or unknown first.
+        width: width as unknown as number,
+        height: height as unknown as number,
         editable,
       })
     }
