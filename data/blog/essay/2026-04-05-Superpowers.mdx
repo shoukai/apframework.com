@@ -1,0 +1,259 @@
+---
+title: '从 Vibe Coding 到 Viable Coding：Superpowers 工程化工作流'
+date: '2026-04-05'
+tags: ['AI Coding', 'Agent', 'Superpowers', 'TDD', 'Spec Driven Development', 'Workflow']
+draft: false
+summary: '本文系统拆解 Jesse Vincent 开源的 Superpowers 工作流，说明它如何通过 brainstorming、git worktree、writing-plans、subagent-driven development、TDD 与 code review 等门禁技能，把“先写再说”的 AI 编码升级为可设计、可验证、可审查、可合并的软件工程流程。'
+---
+
+<div className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-04-05-Superpowers/mario-scheibl-GgNUhBO1-dk-unsplash.jpg" alt="从 Vibe Coding 到 Viable Coding" />
+  <p>从 Vibe Coding 到 Viable Coding（Photo by <a href="https://unsplash.com/@aguyonecam?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Mario Scheibl</a> on <a href="https://unsplash.com/photos/airplane-wing-and-clouds-seen-through-window-at-sunset-GgNUhBO1-dk?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+      ）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+## 1. 背景与问题
+
+### 1.1 Vibe Coding 为什么会失控
+
+过去一年，AI 编码工具快速普及，很多开发者已经习惯这样一种工作方式：给出一句模糊指令，等待模型产出代码，运行一下，似乎能用，就继续往下推进。Andrej Karpathy 将这种现象称为 vibe coding。这个概念之所以被广泛传播，不是因为它完全错误，而是因为它准确描述了一种越来越常见的现实：开发者把模型当成一个反应极快的生成器，却没有给它足够稳定的工程约束。
+
+问题也因此非常典型。模型可以很快写出一段“像是对的”的代码，但它往往在错误的需求理解上快速前进；当测试不存在、设计没有确认、边界没有澄清时，速度本身反而会放大偏差。结果就是：演示环境里看起来一切顺利，一旦进入真实代码库，就开始出现需求误解、上下文漂移、重复实现、测试缺位和无法回溯的问题。
+
+从工程视角看，vibe coding 最大的风险并不是“模型写得不够聪明”，而是缺少了一套能够在错误发生前拦住它的流程。
+
+### 1.2 Superpowers 想解决什么
+
+Superpowers 正是为这个问题而来。它不是一个单纯增强提示词的插件，也不是一组零散的自动化脚本，而是一套面向 AI 编码代理的工程化工作流。它的目标不是让模型“多会写几种代码”，而是让模型在进入实现之前，先经历需求澄清、设计确认、计划拆解、测试约束和审查门禁。
+
+如果要用一句话概括 Superpowers 的价值，那就是：它试图把 AI 从反应式代码生成器，变成遵守工程纪律的协作开发者。
+
+## 2. Superpowers 的整体框架
+
+### 2.1 它不只是六个技能
+
+[Superpowers](https://github.com/obra/superpowers?tab=readme-ov-file) 是 Jesse Vincent 推出的开源工作流框架，面向 Claude Code、Cursor、Codex、OpenCode、GitHub Copilot CLI、Gemini CLI 等支持插件或扩展的 AI 编码环境。很多人第一次接触它，通常会先记住六个最核心的门技能，但如果只把它理解成“六个 prompt 模板”，其实会低估它。
+
+按照官方 README 的描述，Superpowers 更准确的定位是：建立在 composable skills 之上的完整开发工作流。它至少包含三层结构。
+
+第一层是主流程技能，也就是从 `brainstorming` 到 `finishing-a-development-branch` 的核心链路。这一层负责把需求、设计、实现、测试、审查和交付串起来。
+
+第二层是辅助技能库。除了主流程中的门技能，README 还列出了调试、协作和元技能，例如 `systematic-debugging`、`verification-before-completion`、`dispatching-parallel-agents`、`receiving-code-review`、`writing-skills` 和 `using-superpowers`。这意味着 Superpowers 关注的不是“写代码”这个瞬间，而是更完整的软件工程活动。
+
+第三层是行为规则。真正让技能生效的，不只是 skill 文件本身，而是“代理必须先检查是否存在相关技能，并按技能要求执行”的前提。官方 README 对这一点说得非常直接：这些是 mandatory workflows, not suggestions。也就是说，Superpowers 的核心价值，不只是提供了技能，而是把技能变成流程入口和行为边界。
+
+### 2.2 主工作流如何形成闭环
+
+官方 README 中的 Basic Workflow 实际上定义了一条很清晰的顺序：
+
+`brainstorming` → `using-git-worktrees` → `writing-plans` → `subagent-driven-development / executing-plans` → `test-driven-development` → `requesting-code-review` → `finishing-a-development-branch`
+
+这条链路的重要之处，不在于步骤多，而在于每一步都为下一步提供更可控的输入。
+
+- `brainstorming` 输出经过确认的设计
+- `using-git-worktrees` 提供隔离且可回滚的执行环境
+- `writing-plans` 把设计转成可执行任务
+- `subagent-driven-development` 在新鲜上下文中落实任务
+- `test-driven-development` 给实现施加行为约束
+- `requesting-code-review` 建立持续质量门
+- `finishing-a-development-branch` 完成最终验收与交付决策
+
+因此，Superpowers 不是“让模型一次多做一点”，而是“让模型每一步都少走偏一点”。它试图解决的，本质上是工程过程中的漂移问题。
+
+### 2.3 中文工作流图
+
+<div className="text-center">
+  <img src="/static/images/2026-04-05-Superpowers/superpowers-workflow-zh.svg" alt="Superpowers 中文工程化工作流图" />
+  <p>Superpowers 中文工作流图：从需求澄清到可合并交付的质量闭环</p>
+</div>
+
+## 3. Brainstorming：第一道质量门
+
+### 3.1 为什么必须先 Brainstorming
+
+如果说整套框架有一个真正的起点，那就是 `brainstorming`。它之所以被设计成创意工作前的必经技能，并不是因为“设计文档更重要”，而是因为 Superpowers 认为：几乎所有后续错误，最终都可以追溯到最初的问题理解不完整。
+
+在没有 brainstorming 的情况下，模型很容易沿着一条错误但高效的路径前进：先根据一句模糊需求自行脑补目标，然后快速开始实现；一旦实现细节先发生，需求澄清就会被动退位；之后即便发现问题，修改也往往是在错误前提上打补丁。最终得到的代码未必不能运行，但常常是局部合理、全局偏题。
+
+Brainstorming 的作用，就是在真正进入实现之前，强制代理停下来，把“写代码的冲动”转换成“确认问题的过程”。因此，它在 Superpowers 中不是可选前置沟通，而是第一道正式质量门。
+
+### 3.2 它的四个设计原理
+
+官方 [brainstorming skill 文档](https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md) 把这个技能定义得很清楚：它的职责不是直接生成答案，而是 turn ideas into fully formed designs and specs through natural collaborative dialogue。这背后至少包含四个设计原理。
+
+第一，先看上下文，再提问题。Brainstorming 的第一步不是发问，而是查看项目上下文，包括已有文件、文档和最近提交。这样做是为了避免脱离代码库现实提出纸面方案，也为了判断当前请求是否已经被部分实现，或者是否大到必须拆分成多个子项目。
+
+第二，一次只问一个问题。这条规则看似保守，实际上很重要。一次抛出多个问题，用户容易漏答，优先级也容易混乱，模型还会用自己的假设提前填补空白。一次一个问题，本质上是在做信息增量控制，让每一步都成为下一步的稳定输入。
+
+第三，必须给出 2-3 种方案，而不是直接选一种。官方要求代理提出两到三种 approach，并解释 trade-off 与 recommendation。这样做不是为了形式上的“方案丰富”，而是逼迫代理显式比较复杂度、适配度和维护成本，避免第一反应直接变成最终答案。
+
+第四，设计必须分段呈现并获得批准。Superpowers 不鼓励一次性扔出一份长设计文档，而是要求分段展示，每一段都等待确认。这样用户可以在局部及时纠偏，模型也可以根据已确认约束逐步收敛方案。
+
+### 3.3 中文流程图与 Hard Gate
+
+<div className="text-center">
+  <img src="/static/images/2026-04-05-Superpowers/brainstorming-flow-zh.svg" alt="Brainstorming 中文流程图" />
+  <p>Brainstorming 中文流程图：从项目上下文检查，到 spec 审核，再进入 writing-plans</p>
+</div>
+
+Brainstorming 最值得注意的地方，是它自带一个非常明确的 hard gate：在设计呈现并获批之前，不允许写代码、不允许搭脚手架、不允许进入实现技能。
+
+从工程角度看，这条门禁的作用非常大。它阻止模型把“实现速度”伪装成“理解正确”，让设计文档成为后续计划、测试和审查的共同参照，也避免了先写后改带来的大量返工。更重要的是，它给用户一个正式的批准点，而不是让偏差在代码 diff 里被动暴露。
+
+很多团队在 AI 编码上反复踩坑，并不是模型不够强，而是缺少一个被强制执行的暂停点。Brainstorming 正是在这里发挥作用。
+
+### 3.4 从 Brainstorming 到 Writing-Plans
+
+Brainstorming 的终点并不是“写出一份设计就结束”，而是进入 `writing-plans`。这一步非常关键，因为它说明 Superpowers 并不把 spec 当成最终产物，而是把 spec 当成执行入口。
+
+换句话说，Brainstorming 负责回答“我们到底要做什么”，而 Writing Plans 负责回答“接下来应该怎样分步做”。前者解决方向问题，后者解决执行问题。如果没有这层衔接，设计再完整，也很容易在实现时被重新解释；而一旦 spec 被转换成更细颗粒度的计划，后续子代理执行和代码审查才真正有了依据。
+
+## 4. 六大门技能拆解
+
+### 4.1 Brainstorming
+
+在六大门技能中，Brainstorming 是起点。它要求代理先回到问题定义阶段：检查项目上下文、一次只问一个澄清问题、提出多种方案并说明权衡，最后分段展示设计并等待批准。它最重要的价值，不是“它会提问”，而是它能在需求尚未稳定时阻止代理直接进入实现。
+
+### 4.2 Using Git Worktrees
+
+设计确认后，Superpowers 会使用 `git worktree` 创建隔离工作区，并在新分支上执行任务。这样做当然能保护主分支，但更大的意义在于：它给代理提供了可以安全试错的边界。
+
+当代理知道自己不会污染主代码库时，它就可以更积极地尝试方案、运行破坏性测试或快速迭代。如果实验失败，可以直接丢弃 worktree；如果实验成功，再合并回主线。与此同时，这一阶段通常还会先验证一个“干净基线”，确保后续问题都能明确归因于当前改动。
+
+### 4.3 Writing Plans
+
+设计获批之后，Superpowers 会进入 `writing-plans`。这一步并不是写一个模糊的待办清单，而是把工作拆成非常细的任务颗粒度。每项任务通常只覆盖两到五分钟的工作量，并包含明确文件路径、代码片段和验证步骤。
+
+这种写法背后的假设非常现实：执行者可能没有项目上下文，判断力一般，而且天然倾向于跳过测试。因此，计划必须写到“即使一个没有背景的新鲜子代理接手，也能按规格完成”的程度。它的本质，是把设计意图进一步转化为可执行约束。
+
+### 4.4 Subagent-Driven Development
+
+Superpowers 的一个核心观察是：长上下文对话会让模型输出质量逐步下降。随着 token 累积，模型更容易忘记前文约束、混淆边界条件，甚至在局部任务上看似自洽，但在全局上偏离计划。
+
+所以它不鼓励主代理在同一个对话里完成所有任务，而是将任务分发给“新鲜”的子代理。每个子代理只接收当前任务所需的说明、相关代码和项目约束，从而降低上下文污染的风险。
+
+官方同时提供两种执行模式：一种是 `subagent-driven-development`，强调为每个任务派发独立子代理并在任务之间审查；另一种是 `executing-plans`，仍在当前会话中分批执行，但保留阶段性检查点。前者更适合复杂任务，后者更适合范围较小但仍希望保留流程约束的场景。
+
+### 4.5 Test-Driven Development
+
+在 Superpowers 中，`test-driven-development` 是最强硬的 skill。它坚持的不是“最好写测试”，而是更严格的一条规则：
+
+> 没有先失败的测试，就不允许写生产代码。
+
+它执行的是经典的 RED → GREEN → REFACTOR 循环：先写一个最小失败测试，再写最少代码让测试通过，最后在保持绿色的前提下重构。这个过程对 AI 代理尤其重要，因为模型如果没有测试约束，很容易生成大量“看起来像对的、运行时却不稳定”的实现。
+
+Superpowers 最激进的一点在于：如果代理提前写了实现代码，再回头补测试，框架并不会默认接受，而是要求删除先前代码，重新从失败测试出发。这条规则的本质，是防止代理通过语言合理化绕过质量门。
+
+### 4.6 Code Review 与 Branch Finish
+
+在实现阶段之间，Superpowers 会触发代码审查。审查通常分为两个层次：先检查是否符合计划，再检查代码质量和测试情况。如果存在关键问题，流程会阻塞在这里，直到问题被修复。这样做的意义在于，它不允许早期错误顺着流水线继续向下传播。
+
+所有任务完成后，再进入 `finishing-a-development-branch`。这一阶段负责汇总测试结果、检查整个分支的可合并性，并给出后续动作选项，例如合并、创建 PR、保留分支或直接丢弃。直到这里，Superpowers 才认为一次开发真正结束。
+
+## 5. 一个完整执行示例
+
+### 5.1 从一句需求到可合并分支
+
+为了更直观地理解这套链路，可以假设用户说：
+
+> “帮我给现有博客增加一个文章推荐模块。”
+
+在普通 vibe coding 路径里，代理很可能直接去写组件、查文章标签、拼装卡片列表，然后在不断试错中逐步修 bug。  
+
+而在 Superpowers 中，这个请求更可能被处理成下面的过程。
+
+第一步，进入 Brainstorming。代理先查看现有博客结构、文章数据来源、页面组件和推荐逻辑是否已有类似实现，然后逐个澄清问题，例如推荐依据是标签、阅读量还是 embedding 相似度，展示位置在哪，是否影响 SEO。
+
+第二步，设计批准。代理提出两到三种方案，比如基于标签的轻量方案、基于预计算相似度的增强方案，并推荐一个当前成本最低、最符合项目结构的实现。
+
+第三步，进入 Using Git Worktrees。在独立 worktree 中开启新分支，并先确认基线干净。
+
+第四步，进入 Writing Plans。代理把工作拆成若干短步骤，例如新增推荐计算函数、补充文章页渲染逻辑、增加测试和运行验证。
+
+第五步，进入 Subagent-Driven Development。每个子任务交给新鲜上下文的子代理执行，避免在长会话里逐渐偏离范围。
+
+第六步，执行 TDD 与 Code Review。先写失败测试，再做最小实现；每个任务完成后先检查是否符合计划，再检查代码质量。
+
+第七步，进入 Finishing a Development Branch。汇总验证，通过后再决定是合并、发起 PR，还是保留分支继续观察。
+
+这个例子说明，Superpowers 解决的问题不是“模型能不能写出推荐模块”，而是“模型能不能以一种可审查、可回滚、可交接的方式写出推荐模块”。
+
+## 6. 技能库、生态位置与方法边界
+
+### 6.1 Skills Library 全景
+
+README 中列出的 skills library 还体现了另一个重要事实：Superpowers 不只面向功能开发，还试图覆盖更完整的软件工程活动。
+
+在调试侧，它提供了 `systematic-debugging` 和 `verification-before-completion`，强调不要凭直觉猜问题，而要经过根因分析与验证闭环。
+
+在协作侧，它提供了 `brainstorming`、`writing-plans`、`executing-plans`、`dispatching-parallel-agents`、`requesting-code-review`、`receiving-code-review`、`using-git-worktrees`、`finishing-a-development-branch` 和 `subagent-driven-development`。这一层更像“AI 团队协作协议”，把计划、执行、并行、评审和收尾都做成显式步骤。
+
+在元技能层，它还提供了 `writing-skills` 和 `using-superpowers`。这说明该框架本身也支持继续扩展。换句话说，Superpowers 并不是一个封闭产品，而是一套可以继续长出新工程习惯的技能系统。
+
+### 6.2 与其他框架的区别
+
+Superpowers 并不是唯一试图治理 vibe coding 的方案。至少从公开讨论来看，它与 BMAD Method、GSD、SpecKit 这类方法有明显重叠：都重视规格、计划、阶段门和可追溯性。
+
+但 Superpowers 的差异点也很明确。它的重点不是“文档更多”或“角色更多”，而是纪律执行更强硬。这种强硬主要体现在四件事上：
+
+- 设计未批准前禁止实现
+- 任务必须被拆到可执行颗粒度
+- 没有失败测试不准进入生产实现
+- 审查发现关键问题就必须停下
+
+也就是说，它不是把 AI 当作一个需要更多上下文的高级 autocomplete，而是把 AI 当作一个必须被流程约束的工程参与者。
+
+### 6.3 成本、局限与适用场景
+
+如果只看宣传层，很容易把 Superpowers 理解成“装上之后自动更强”。但从工程视角看，它带来的其实是更高的过程密度，这也意味着它天然存在成本。
+
+首先，前期交互成本更高。Brainstorming 会拉长开始编码前的准备阶段。对于只想快速验证想法的人来说，这可能显得慢；但这份慢，本质上是在用前置澄清换后期返工减少。
+
+其次，它要求团队能够接受阶段门。如果团队本身就不习惯设计评审、不写测试，也不愿意让流程阻塞进度，那么 Superpowers 的很多收益会被主动绕开。框架再严格，也需要使用者认可它的门禁价值。
+
+再次，它对 skill 质量本身有依赖。Superpowers 的效果，很大程度取决于各个 skill 是否足够清晰、边界是否足够明确。如果 skill 本身含糊，流程看似完整，实际仍可能保留很大随意空间。
+
+最后，并不是所有任务都值得走完整套流程。一些非常短小、一次性的探索性实验，未必值得经历完整的 spec → plan → review → finish 链路。此时流程成本可能高于任务本身。
+
+因此，更准确的理解方式不是“以后所有 AI 编码都必须照搬这套流程”，而是：当任务已经进入工程交付区间时，这套流程能显著降低失控概率。
+
+## 7. 安装、验证与最终判断
+
+### 7.1 安装入口
+
+根据官方 README，Superpowers 已面向多个代理环境提供安装入口，包括 Claude Code 官方市场、Claude Code 插件市场、Cursor 插件市场、Codex、OpenCode、GitHub Copilot CLI 与 Gemini CLI。
+
+不同平台的安装方式并不完全一致：
+
+- Claude Code 与 Cursor 更偏向插件市场安装
+- Codex 与 OpenCode 依赖拉取对应安装说明
+- Copilot CLI 与 Gemini CLI 则提供各自扩展入口
+
+不过它们的使用逻辑是一致的：安装完成后，需要重新开启一个代理会话，并发起一个足以触发 skill 的任务。
+
+### 7.2 如何验证是否生效
+
+官方 README 给出的验证方法很简单：启动新会话，然后故意输入一个会触发工作流的问题，例如：
+
+- “帮我规划这个功能”
+- “一起调试这个问题”
+- “先帮我设计方案，再开始实现”
+
+如果安装成功，代理应该优先进入相应 skill，而不是直接跳到代码实现。如果它自动进入 `brainstorming`、`systematic-debugging` 等对应流程，就说明 Superpowers 已经接管了行为入口。
+
+### 7.3 最终判断
+
+如果把 Superpowers 仅仅看成一个 AI 插件，很容易低估它。它真正重要的地方在于：它把很多资深工程师默认掌握、却难以稳定复制的开发纪律，变成了可以被代理执行、被团队复用、被流程审查的显式约束。
+
+这也是它最值得关注的地方。AI 编码工具的下一阶段竞争，未必只发生在模型能力层面，更可能发生在“谁能把生成能力装进可控工作流”这一层面。Superpowers 给出的回答是：不要只追求更会写代码的 agent，而要构建更难走偏的 agent。
+
+从这个角度看，它代表的不是“又一个技能仓库”，而是一种更成熟的 AI 软件工程观：从即时生成，走向规范驱动；从提示词技巧，走向流程设计；从 vibe coding，走向 viable coding。
+
+## 参考
+
+- [From “Vibe Coding” to Viable Coding: How Superpowers Turns AI Chatbots into Engineering Partners](https://pub.towardsai.net/from-vibe-coding-to-viable-coding-how-superpowers-turns-ai-chatbots-into-engineering-partners-59c081f02a26)
+- [obra/superpowers GitHub README](https://github.com/obra/superpowers?tab=readme-ov-file)
+- [brainstorming/SKILL.md](https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md)
