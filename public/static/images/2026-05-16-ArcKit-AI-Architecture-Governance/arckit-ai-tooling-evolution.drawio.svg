@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="360" viewBox="0 0 1160 360" role="img" aria-labelledby="title desc">
+  <title id="title">AI tooling evolution</title>
+  <desc id="desc">A draw.io style timeline showing AI tooling evolving from code generation to engineering collaboration, architecture governance, and organization decision chains.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#31445a"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#102030" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .title { font: 700 24px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .subtitle { font: 14px Arial, Helvetica, sans-serif; fill: #506070; }
+      .step { font: 700 17px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .text { font: 13px Arial, Helvetica, sans-serif; fill: #425162; }
+      .label { font: 12px Arial, Helvetica, sans-serif; fill: #687789; }
+      .arrow { stroke: #31445a; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="360" fill="#f7f9fb"/>
+  <text class="title" x="40" y="44">AI Tooling 的演进方向</text>
+  <text class="subtitle" x="40" y="70">从更快生成代码，走向更早、更清楚、更可追责地做组织技术决策。</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="130" width="210" height="100" rx="12" fill="#eaf4ff" stroke="#5d8fc8" stroke-width="1.5"/>
+    <text class="label" x="100" y="156">Phase 1</text>
+    <text class="step" x="100" y="184">代码生成</text>
+    <text class="text" x="100" y="210">函数 / 测试 / 重构</text>
+
+    <rect x="340" y="130" width="210" height="100" rx="12" fill="#eaf8f1" stroke="#61a982" stroke-width="1.5"/>
+    <text class="label" x="370" y="156">Phase 2</text>
+    <text class="step" x="370" y="184">工程协作</text>
+    <text class="text" x="370" y="210">计划 / 审查 / 交付</text>
+
+    <rect x="610" y="130" width="210" height="100" rx="12" fill="#fff4e6" stroke="#d79a45" stroke-width="1.5"/>
+    <text class="label" x="640" y="156">Phase 3</text>
+    <text class="step" x="640" y="184">架构治理</text>
+    <text class="text" x="640" y="210">需求 / 风险 / 决策</text>
+
+    <rect x="880" y="130" width="210" height="100" rx="12" fill="#f3ecff" stroke="#9b7bd5" stroke-width="1.5"/>
+    <text class="label" x="910" y="156">Phase 4</text>
+    <text class="step" x="910" y="184">组织决策链</text>
+    <text class="text" x="910" y="210">审计 / 采购 / 责任链</text>
+  </g>
+
+  <path class="arrow" d="M 284 180 L 332 180"/>
+  <path class="arrow" d="M 554 180 L 602 180"/>
+  <path class="arrow" d="M 824 180 L 872 180"/>
+
+  <text class="text" x="94" y="286">ArcKit 的信号：AI 工具正在从开发者个人生产力，进入更靠近组织治理和架构决策的位置。</text>
+</svg>
+

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="520" viewBox="0 0 1160 520" role="img" aria-labelledby="title desc">
+  <title id="title">ArcKit tooling layers</title>
+  <desc id="desc">A draw.io style layered architecture diagram showing ArcKit commands, templates, agents, hooks, MCP external knowledge, and versioned artifacts.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#31445a"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#102030" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .title { font: 700 24px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .subtitle { font: 14px Arial, Helvetica, sans-serif; fill: #506070; }
+      .layer-title { font: 700 18px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .layer-text { font: 13px Arial, Helvetica, sans-serif; fill: #425162; }
+      .small { font: 12px Arial, Helvetica, sans-serif; fill: #687789; }
+      .arrow { stroke: #31445a; stroke-width: 2.1; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="520" fill="#f7f9fb"/>
+  <text class="title" x="40" y="44">ArcKit 为什么不是普通 Prompt Library</text>
+  <text class="subtitle" x="40" y="70">Prompt library 解决“怎么说”，ArcKit 解决“什么时候做、按什么结构做、产物如何进入下游”。</text>
+
+  <g filter="url(#shadow)">
+    <rect x="80" y="115" width="210" height="88" rx="10" fill="#eaf4ff" stroke="#5d8fc8" stroke-width="1.5"/>
+    <text class="layer-title" x="112" y="148">Commands</text>
+    <text class="layer-text" x="112" y="174">明确治理动作入口</text>
+    <text class="small" x="112" y="194">requirements / ADR / traceability</text>
+
+    <rect x="365" y="115" width="210" height="88" rx="10" fill="#eaf8f1" stroke="#61a982" stroke-width="1.5"/>
+    <text class="layer-title" x="397" y="148">Templates</text>
+    <text class="layer-text" x="397" y="174">固定 artifact 结构</text>
+    <text class="small" x="397" y="194">document control / quality checklist</text>
+
+    <rect x="650" y="115" width="210" height="88" rx="10" fill="#fff4e6" stroke="#d79a45" stroke-width="1.5"/>
+    <text class="layer-title" x="682" y="148">Agents</text>
+    <text class="layer-text" x="682" y="174">隔离研究型任务</text>
+    <text class="small" x="682" y="194">AWS / Azure / GCP / gov search</text>
+
+    <rect x="365" y="270" width="210" height="88" rx="10" fill="#f3ecff" stroke="#9b7bd5" stroke-width="1.5"/>
+    <text class="layer-title" x="397" y="303">Hooks</text>
+    <text class="layer-text" x="397" y="329">项目上下文与文件策略</text>
+    <text class="small" x="397" y="349">PreToolUse / PostToolUse / metadata</text>
+
+    <rect x="650" y="270" width="210" height="88" rx="10" fill="#fff0f0" stroke="#c46f6f" stroke-width="1.5"/>
+    <text class="layer-title" x="682" y="303">MCP / Knowledge</text>
+    <text class="layer-text" x="682" y="329">连接权威外部知识</text>
+    <text class="small" x="682" y="349">cloud docs / gov repos / data sources</text>
+
+    <rect x="895" y="190" width="200" height="112" rx="12" fill="#ffffff" stroke="#9fb3c8" stroke-width="1.7"/>
+    <text class="layer-title" x="928" y="226">Versioned Artifacts</text>
+    <text class="layer-text" x="928" y="254">可审查</text>
+    <text class="layer-text" x="988" y="254">可追溯</text>
+    <text class="layer-text" x="928" y="278">可审计</text>
+  </g>
+
+  <path class="arrow" d="M 292 159 L 357 159"/>
+  <path class="arrow" d="M 577 159 L 642 159"/>
+  <path class="arrow" d="M 755 205 L 755 262"/>
+  <path class="arrow" d="M 575 314 L 642 314"/>
+  <path class="arrow" d="M 862 246 L 887 246"/>
+  <path class="arrow" d="M 862 314 L 905 286"/>
+  <path class="arrow" d="M 470 205 L 470 262"/>
+  <path class="arrow" d="M 575 330 L 900 275"/>
+
+  <rect x="80" y="410" width="1015" height="58" rx="10" fill="#ffffff" stroke="#c9d3df"/>
+  <text class="small" x="108" y="434">本地最小化验证：Codex 初始化生成 120 个 skills、108 个 templates、10 个 agent 配置、7 个 hooks，以及 MCP、schemas、scripts 和 quality checklist。</text>
+  <text class="small" x="108" y="454">这说明 ArcKit 的产品形态更接近“架构治理工作流套件”，而不是单纯提示词集合。</text>
+</svg>
+

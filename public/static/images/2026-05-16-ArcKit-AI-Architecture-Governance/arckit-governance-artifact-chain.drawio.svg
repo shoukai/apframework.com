@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="360" viewBox="0 0 1160 360" role="img" aria-labelledby="title desc">
+  <title id="title">ArcKit governance artifact chain</title>
+  <desc id="desc">A draw.io style flow diagram showing ambiguous organization goals transformed into ArcKit commands, governance artifacts, traceability, review and audit, and delivery handoff.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#31445a"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#102030" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .title { font: 700 24px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .subtitle { font: 14px Arial, Helvetica, sans-serif; fill: #506070; }
+      .box-title { font: 700 17px Arial, Helvetica, sans-serif; fill: #17202a; }
+      .box-text { font: 13px Arial, Helvetica, sans-serif; fill: #425162; }
+      .caption { font: 12px Arial, Helvetica, sans-serif; fill: #687789; }
+      .arrow { stroke: #31445a; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="360" fill="#f7f9fb"/>
+  <text class="title" x="40" y="44">ArcKit 的治理产物链</text>
+  <text class="subtitle" x="40" y="70">从模糊目标到可审查、可追溯、可审计的架构治理 artifact</text>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="120" width="170" height="92" rx="10" fill="#ffffff" stroke="#9fb3c8" stroke-width="1.5"/>
+    <text class="box-title" x="62" y="154">模糊组织目标</text>
+    <text class="box-text" x="62" y="180">业务目标</text>
+    <text class="box-text" x="122" y="180">政策约束</text>
+    <text class="box-text" x="62" y="200">技术需求</text>
+
+    <rect x="280" y="120" width="170" height="92" rx="10" fill="#eaf4ff" stroke="#5d8fc8" stroke-width="1.5"/>
+    <text class="box-title" x="312" y="154">ArcKit Commands</text>
+    <text class="box-text" x="307" y="180">命令入口</text>
+    <text class="box-text" x="369" y="180">阶段门</text>
+    <text class="box-text" x="307" y="200">模板约束</text>
+
+    <rect x="520" y="120" width="180" height="92" rx="10" fill="#eaf8f1" stroke="#61a982" stroke-width="1.5"/>
+    <text class="box-title" x="548" y="154">Governance Artifacts</text>
+    <text class="box-text" x="552" y="180">Requirements</text>
+    <text class="box-text" x="650" y="180">ADR</text>
+    <text class="box-text" x="552" y="200">Risk / Review</text>
+
+    <rect x="770" y="120" width="160" height="92" rx="10" fill="#fff4e6" stroke="#d79a45" stroke-width="1.5"/>
+    <text class="box-title" x="805" y="154">Traceability</text>
+    <text class="box-text" x="800" y="180">来源链</text>
+    <text class="box-text" x="858" y="180">影响链</text>
+    <text class="box-text" x="800" y="200">版本记录</text>
+
+    <rect x="990" y="90" width="130" height="76" rx="10" fill="#f3ecff" stroke="#9b7bd5" stroke-width="1.5"/>
+    <text class="box-title" x="1016" y="123">Review</text>
+    <text class="box-text" x="1017" y="148">审查 / 复盘</text>
+
+    <rect x="990" y="190" width="130" height="76" rx="10" fill="#fff0f0" stroke="#c46f6f" stroke-width="1.5"/>
+    <text class="box-title" x="1017" y="223">Delivery</text>
+    <text class="box-text" x="1016" y="248">交付 / 移交</text>
+  </g>
+
+  <path class="arrow" d="M 214 166 L 273 166"/>
+  <path class="arrow" d="M 454 166 L 513 166"/>
+  <path class="arrow" d="M 704 166 L 763 166"/>
+  <path class="arrow" d="M 934 151 L 982 130"/>
+  <path class="arrow" d="M 934 181 L 982 224"/>
+
+  <rect x="520" y="252" width="410" height="54" rx="8" fill="#ffffff" stroke="#c9d3df"/>
+  <text class="caption" x="543" y="275">关键变化：AI 输出不再停留在一次性草稿，而进入可版本化、可追溯的项目 artifact chain。</text>
+  <text class="caption" x="543" y="294">治理不是后置检查，而是工作流结构本身。</text>
+</svg>
+
