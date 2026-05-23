@@ -38,7 +38,8 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
-            fontFamily: 'AlimamaDongFangDaKai, sans-serif',
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
             a: {
               color: theme('colors.primary.500'),
               '&:hover': {
