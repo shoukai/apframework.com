@@ -1,0 +1,262 @@
+---
+title: 'AI Agent 安全最佳实践 2026：从业界共识到工程落地'
+date: '2026-05-23'
+tags: ['AI Agent', 'Security', 'MCP', 'Agentic AI', 'OWASP', 'Architecture']
+draft: false
+summary: '2026 年的 AI Agent 安全，已经不能只靠 Prompt Guardrail。Agent 一旦具备工具调用、MCP、记忆、工作流编排和外部系统访问能力，本质上就是一个会行动的软件主体。本文从业界共识出发，拆解 Agent 的七层攻击面，归纳六个工程控制点，并给出业务服务+智能体服务的双层安全架构和落地要点。'
+---
+
+<div className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-05-23-agent-security-2026/jefflssantos-9SoCnyQmkzI-unsplash.jpg" alt="AI Agent 安全最佳实践 2026" />
+  <p>AI Agent 安全最佳实践 2026（Photo by <a href="https://unsplash.com/@jefflssantos?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Jefferson Santos</a> on <a href="https://unsplash.com/photos/person-using-laptop-computers-9SoCnyQmkzI?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>）</p>
+</div>
+
+## 目录
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+2026 年已经过了小半年，AI Agent 正在从 Demo 走进生产环境。但一线安全工程师真正焦虑的，往往不是模型幻觉，也不是越狱 prompt，而是一个更根本的问题：当一个 Agent 可以自主调用工具、访问数据、写入系统、触发外部流程时，你怎么确定它不会把一次普通任务变成安全事故？
+
+这不是危言耸听。2026 年第一季度，NIST 发布了 AI Agent Standards Initiative，Five Eyes 联合发布了关于 Agentic AI 的谨慎采用指南，OWASP 推出了专门针对 Agentic Applications 的 Top 10 风险清单。三个独立机构在同一时间窗口聚焦同一个议题，本身就是一个信号。
+
+这个信号很明确：**AI Agent 安全不能再只靠 Prompt Guardrail。Agent 一旦具备工具调用、MCP、记忆、工作流编排和外部系统访问能力，它本质上就是一个"会行动的软件主体"。安全设计必须回到工程基本面：身份可识别、权限可约束、动作可审计、风险可中断。**
+
+## 一、Agent 安全为什么成为独立议题
+
+要理解 Agent 安全为什么值得单独讨论，先要说清楚 Agent 和普通 LLM 应用的根本区别。
+
+普通 LLM 应用的主要风险集中在生成内容层面：回答不准确、越狱绕过限制、敏感信息泄露。这些风险有一个共性：**它们大多发生在"输出"环节。** 模型产出文本，文本可能有害，但风险通常停在内容本身。
+
+Agent 不是这样。
+
+一个典型的 Agent 系统至少包含任务规划、工具调用、数据访问、外部系统交互，以及越来越普遍的 MCP 连接和长期记忆。这意味着 Agent 的风险不再停留在"说错话"，而是可能变成"做错事"：删除数据、发送错误邮件、调用危险 API，或者把机密信息通过 MCP 工具传出。
+
+从工程视角看，分水岭很清楚：**LLM 应用是一个"说话的系统"，Agent 是一个"行动的系统"。** 对前者做安全，可以依赖内容过滤、输出校验和 guardrail prompt。对后者做安全，就必须在身份、权限、审计和中断四个维度上建立机制。
+
+几个行业信号印证了这个判断：
+
+- **NIST AI Agent Standards Initiative（2026 年 2 月）**：美国国家标准技术研究院宣布启动 Agent 标准倡议，核心议题包括 Agent 的身份、安全、授权和互操作性。NIST 的介入意味着 Agent 安全正在从社区讨论进入标准制定阶段。
+- **Five Eyes 联合指南（2026 年 5 月）**：美国、英国、加拿大、澳大利亚、新西兰五国联合发布《Careful adoption of agentic AI services》，明确提出 Agent 应增量部署、限制在低风险任务中、执行严格权限控制、持续监控并保留人工监督。这不是学术建议，而是国家级安全机构的操作指南。
+- **OWASP Agentic Applications Top 10（2026）**：著名的 Web 安全组织 OWASP 推出了专门针对 Agentic 应用的风险清单，把目标劫持、工具误用、身份权限滥用、记忆污染、Agent 间通信安全和级联失效列为独立风险类别。这意味着安全社区已经认识到，Agent 的攻击面不是 LLM 攻击面的简单扩展。
+
+三个信号指向同一个结论：**Agent 安全已经不是一个可选的研究方向，而是生产化部署的前置条件。**
+
+## 二、Agent 的攻击面发生了什么变化
+
+如果说上一节回答的是"为什么 Agent 安全值得独立讨论"，这一节要回答的是"它究竟多了哪些攻击面"。
+
+真正的问题不在于 Agent 比 LLM 多了几个零散风险点，而在于**每个新增能力都打开了一个独立的攻击向量**。把这些向量拆开来看，至少可以分出七个层面：
+
+**第一层：用户输入与外部内容。** 这是最经典、也最容易被低估的攻击面。直接 Prompt Injection（用户直接输入恶意指令）和间接 Prompt Injection（恶意网页、文档、邮件中的隐藏指令）在 Agent 场景下危害更大——因为 Agent 不只是"读"这些内容，还可能基于被污染的内容执行工具调用。
+
+**第二层：上下文与记忆。** Agent 越来越多地依赖 RAG 检索和长期记忆系统。RAG 内容污染，也就是攻击者在知识库中植入恶意文档，可以让 Agent 在回答特定问题时触发预设行为。长期记忆污染更隐蔽：攻击者通过多次交互逐步修改 Agent 的记忆，最终改变它的行为基线。
+
+**第三层：工具调用。** 这是 Agent 安全的核心战场。工具权限过大是最常见的问题：Agent 拿到了它不需要的数据库写权限或 API 调用权限。参数未校验意味着恶意输入可以直接进入工具参数。更危险的是工具链组合：单个工具看起来安全，但 A→B→C 的组合调用可能产生越权效果。
+
+**第四层：MCP 与插件生态。** MCP（Model Context Protocol）把 Agent 的安全边界从"单一系统"扩展到"生态系统"。恶意 MCP Server 可以通过工具描述投毒诱导 Agent 调用自己；scope 过大的 MCP 连接会把一个普通工具变成跳板；token passthrough 和 session hijack 则可能让攻击者冒充合法 Agent 身份。
+
+**第五层：身份与权限。** 很多 Agent 系统直接复用用户或系统的高权限身份。结果是，Agent 的行为在审计日志里看起来"是用户做的"，责任边界变得模糊。更麻烦的是，当 Agent 的身份不可独立识别时，你也无法对单个 Agent 做禁用、限权或审计。
+
+**第六层：多 Agent 协作。** 当多个 Agent 协同工作时，低权限 Agent 可能诱导高权限 Agent 执行越权操作。Agent 间通信如果没有认证和授权机制，就会变成一条隐式信任链——而链条最薄弱的一环决定整个系统的安全性。
+
+**第七层：可观测性。** 大多数 Agent 系统只记录最终回答，不记录中间计划、工具调用、策略决策和失败原因。安全事故发生后，你很难回溯"Agent 为什么会做这个动作"。
+
+OWASP Agentic Top 10（2026）很好地覆盖了这些层面。挑几项最贴近工程实践的风险来看：
+
+- **Agent Goal Hijack（目标劫持）**：攻击者通过精心构造的输入，让 Agent 偏离原始目标，转而执行攻击者意图。对应防御在 Reasoning 层：意图校验和异常目标检测。
+- **Tool Misuse（工具误用）**：Agent 以合法方式调用工具，但产生非预期效果。对应防御在 Orchestration 层：工具调用前必须经过策略引擎检查。
+- **Identity & Privilege Abuse（身份权限滥用）**：Agent 使用了不当身份或权限。对应防御在 Gateway 层：Agent 必须有独立身份，且权限按需授予。
+- **Memory & Context Poisoning（记忆与上下文污染）**：攻击者污染 RAG 知识库或长期记忆。对应防御在 Memory 层：隔离、完整性校验和访问控制。
+- **Insecure Inter-Agent Communication（Agent 间不安全通信）**：多 Agent 通信缺乏认证。对应防御在通信层和 Gateway 层。
+- **Cascading Failures（级联失败）**：一个 Agent 的失败传播到整个系统。对应防御在全链路：断路器、超时和回退策略。
+
+这里有一个重要的架构判断：**Agent 的护栏不能都塞进一个"安全中间件"。**
+
+幻觉检测应该放在 Reasoning 层，因为它需要语义上下文；工具调用频率限制适合放在 Orchestration 层；身份伪造防护要放在 AI Gateway 层；记忆投毒防护则属于 Memory 层。具体来说：
+
+| 架构层 | 主要应对风险 | 护栏类型 |
+|--------|------------|---------|
+| AI Gateway | 权限妥协、身份伪造、资源过载、不可追踪 | 输入护栏 + 运维护栏 |
+| Reasoning 层 | 目标错位、目标操纵、级联幻觉 | 过程护栏 + 输出护栏 |
+| Orchestration | 工具误用、多 Agent 共谋 | 过程护栏 |
+| Memory | 记忆投毒 | 过程护栏 |
+| Governance | 人类监督缺失、偏见 | 输出护栏 + 运维护栏 |
+
+中央护栏层可以处理通用策略，比如速率限制和通用输入校验，但无法替代领域特定的细粒度语义检查。幻觉检测放在 Gateway 会失去语义上下文；工具调用审查放在推理层，又无法覆盖跨工具的攻击链。护栏必须沿着架构层分布实现。
+
+## 三、共识正在收敛到运行时治理
+
+攻击面清楚了，接下来要看业界怎么应对。2026 年上半年的一系列发布说明了一个趋势：**Agent 安全的共识正在从"做好 Prompt"收敛到"做好运行时治理"。**
+
+我把这些共识归纳成六个控制点。这里按"控制点"组织，而不是按"厂商"组织，因为同一个控制点往往有多个团队在朝同一方向收敛。
+
+### 1. Agent 要有独立身份
+
+这是所有安全措施的前提。Agent 不能只是"系统账号"，也不能只是"用户 token 的影子"。
+
+从 NIST 的倡议到 Microsoft 的实践，都在强调同一个方向：每个 Agent 应有可注册、可识别、可禁用、可审计的独立身份。这样，Agent 的每一次行动都可以追溯到"哪个 Agent、代表哪个用户、在哪个会话中、调用了哪个工具、访问了哪个资源"。
+
+这里有一个关键的工程原则：**Token 不得跨安全域传播。**
+
+每跨一个安全边界——从用户到 Agent、从 Agent 到 MCP Server、从 MCP Server 到数据源——Token 都必须经过 Exchange，不能直接传递上游 Token。否则会带来两个具体问题：一是溯源断裂，如果 Agent 直接把用户 Token 传给 MCP 工具，底层工具无法区分调用来自应用还是 MCP Server，审计链就断了；二是 Scope 不匹配，上游 Token 的 scope 对应 Agent 权限，而 MCP Server 可能需要完全不同的权限范围。
+
+具体来说，有两种 Exchange 模式：
+
+- **OBO（On-Behalf-Of）**：交换上游用户 Token → 下游 Agent Token。`sub`（原始用户身份）全程保留，`aud`（Token 的目标接收者）逐跳变化。适用于近实时的用户请求场景。
+- **CCG（Client Credential Grant）**：Agent 以自身机器身份直接获取 Token，无用户上下文。适用于后台批处理。
+
+这个「三跳安全模型」（User → Agent → MCP → Data）的价值有两层：每一跳都有独立身份校验点，每一跳也都可以独立审计。同一个应用平台内的服务可以共享 Token，Token Exchange 只在跨安全域时强制执行。但一旦 Agent 开始调用外部 MCP Server 或访问独立数据源，Exchange 就不是可选项，而是必须项。
+
+### 2. 权限默认从零开始
+
+Microsoft 在 2026 年 5 月的 Defense in Depth 文章中说得很明确：每次工具调用、数据访问和外部集成都应来自显式授权，而不是隐式继承。
+
+这听起来像常识，但当前大部分 Agent 系统的权限模型恰恰是"隐式继承"——Agent 拿到用户 token 后，自动拥有了用户的所有权限。从安全工程的角度看，这违反了最小权限原则（Least Privilege）。
+
+正确做法是让权限按任务、会话、工具和资源动态收敛。Agent 发起工具调用时，系统不是在问"Agent 能不能用这个工具"，而是在问"**这个用户、在这个会话、通过这个 Agent、调用这个工具、访问这个资源——是否允许**"。
+
+### 3. 工具调用必须经过策略层
+
+Google 和 OWASP 都在强调 runtime policy enforcement 的重要性。模型的职责是规划：决定调用哪个工具、传什么参数。但模型不能自己决定"能不能执行"。
+
+真正的授权、审批、限流和参数校验，应该由应用层或策略引擎完成。
+
+这句话值得重复：**Agent 的每一次 tool call，本质上是一次资源授权请求，不是一个 function call。**
+
+这是一个容易混淆、但至关重要的区别。Function call 的语义是「调用这个函数、传这些参数、返回那个结果」，它天然假设调用者有权执行。但 Agent 的 tool call 发生在完全不同的安全语境下：工具背后可能是数据库、外部 API、文件系统或邮件服务，任何一个调用都可能产生不可逆副作用。把 tool call 当 function call 处理，等于把安全交给模型；而模型可以被 prompt injection 操控。把 tool call 当资源授权请求处理，才是把安全留在工程系统里：策略引擎每次都要问，**这个用户、在这个会话、通过这个 Agent、调用这个工具、访问这个资源——允许吗？**
+
+### 4. 高风险动作需要确定性 HITL
+
+人审（Human-in-the-Loop）不能交给模型自己判断"要不要审批"。它应该由代码层面的规则触发：删除、转账、发邮件、写数据库、发布内容、调用外部系统等动作，到达策略引擎后如果被标记为高风险，就必须进入明确的审批流程。
+
+关键不是有没有人审，而是人审的触发机制是否确定。如果让模型判断"这个操作风险高吗"，模型可能被绕过。但如果规则是"任何 delete 操作都需要人工确认"，这个判断就是确定性的，不依赖模型。
+
+### 5. MCP 需要单独治理
+
+MCP 不是简单的"工具协议"。它把 Agent 和外部能力连接起来，本质上就是一个安全边界。
+
+MCP 官方的安全建议已经相当成熟：OAuth 2.1 授权、scope 最小化、避免 wildcard 权限、验证 token audience、防止 session hijack、对本地 MCP Server 的执行做显式确认和沙箱隔离。
+
+但真正难的是治理层面。你需要知道系统里注册了多少个 MCP Server、每个 Server 暴露了什么工具、每个工具的 scope 和风险等级是什么。没有这个注册表，MCP 就会变成一个不可控的"万能插件系统"。
+
+### 6. Trace / Audit / Evals 是生产必需品
+
+把这一条放在最后，不是因为它不重要。恰恰相反，它是前面五条能否落地的验证基础。
+
+生产环境不能只看最终回答。你需要记录完整链路：user → agent → session → traceId → plan → tool → args → policy decision → resource → result → error。OpenAI、LangChain、Microsoft 等平台都在 2026 年强化 tracing、guardrails、tool guardrails、evals 和 trace grading 能力。这不是巧合，而是共识。
+
+为什么可观测性在 Agent 场景下格外重要？因为 Agent 的行为是非确定性的：同一个 prompt 可能触发不同的工具链。没有完整 trace，你无法重现安全事故，无法做根因分析，也无法在评测体系中衡量"这个 Agent 到底安不安全"。
+
+## 四、我们的实践：业务服务 + 智能体服务的安全分层
+
+前面三节讲的是业界共识。这一节讲我们自己的做法，把文章从"观察"落到"实践"。
+
+核心理念很简单：**不让 Agent 直接接管业务权限。**
+
+具体做法，是把系统拆成两层：
+
+**业务服务层**，采用传统微服务体系，负责用户管理、角色权限、API 网关、业务功能、工具定义和资源边界。这一层的所有决策都应该是确定性的：一个用户能不能访问某个资源，由角色和权限规则决定，不由模型推理决定。
+
+**智能体服务层**，负责 AI 调度、任务规划、工具选择和多步执行。这一层可以"想"：分析用户意图、拆解任务、选择工具、编排流程。但它不能"决定能不能做"。
+
+两层之间只遵循一个原则：**每一次 Agent 发起的工具调用，都必须带齐上下文，回到业务服务层校验。**
+
+具体来说，每次 Agent 请求、工具调用和 MCP 调用，都要附带这些信息：
+
+- `userId` — 原始用户身份
+- `tenantId` — 租户隔离
+- `sessionId` — 会话上下文
+- `traceId` — 全链路追踪
+- `agentId` — Agent 独立身份
+- `toolId` — 被调用的工具
+- `resource` — 目标资源
+- `scope` — 操作范围
+- `riskLevel` — 风险等级
+
+工具执行前，必须回到业务服务或策略引擎校验：当前用户、当前会话、当前资源和当前动作是否匹配。智能体服务不能绕过业务权限体系。
+
+这套设计的价值在于：即使 Agent 的推理出现偏差，规划了不该调用的工具、选择了不该访问的资源，业务服务层也会在执行前拦截。模型可以犯错，但工程系统要负责兜底。
+
+## 五、推荐落地架构
+
+把前面的共识和实践抽象成架构，大致是这样：
+
+用户请求首先进入 API Gateway，完成认证、租户识别和限流。请求进入业务服务后，业务服务生成会话范围（session scope）和工具可用范围（tool scope）。智能体服务拿到受限上下文后再进行规划。注意，它拿到的不是"全部权限"，而是"本次会话允许的范围"。
+
+每次 Agent 决定调用工具时，请求不直接到达工具，而是走 Tool Gateway（或 MCP Gateway）。Gateway 再调用 Policy Engine，问一个问题："这个用户、在这个会话、通过这个 Agent、调用这个工具、访问这个资源——允许吗？" Policy Engine 回答"允许 / 拒绝 / 需要审批"。如果通过，动作才会执行，并写入 Audit Trace。
+
+建议落地的组件：
+
+| 组件 | 职责 |
+|------|------|
+| **Agent Registry** | 登记 Agent 身份、Owner、用途、风险等级 |
+| **Tool Registry** | 登记工具名称、版本、权限要求、输入 schema、风险等级 |
+| **Policy Engine** | 统一执行 `who can do what on which resource under what context` |
+| **Tool / MCP Gateway** | 所有工具执行的唯一入口，不可绕过 |
+| **Audit Trace** | 记录完整行为链，支持回放和排查 |
+| **HITL Service** | 处理高风险动作的确定性审批流程 |
+| **Red Team Eval** | 维护 Agent 安全测试集，周期性红队评测 |
+
+这里有一个重要的工程判断：**Tool Gateway 必须是工具执行的唯一入口。** 只要存在绕过 Gateway 直接调用工具的路径，前面的设计都会失效。这不是一个架构建议，而是一个安全约束。
+
+Tool Gateway 的核心能力可以概括为五项：**OBO Token Exchange**（接收上游用户 Token，换取下游 Agent Token）、**JWT 验证与策略执行**（scope/role 检查，每跳验证）、**集中化限流与路由**（策略统一，避免碎片化实现）、**OTel 审计日志**（每次调用记录 timestamped invoke details）和**护栏集成**（Guardrails 在网关层拦截恶意请求）。
+
+Tool Gateway 和 Tool Registry 的关系也要说清楚：Tool Registry 负责定义「谁能用什么」，登记工具的名称、版本、权限要求、输入 schema 和风险等级等元信息；Tool Gateway 负责执行「这次调用是否通过」，它是 Tool Registry 的运行时裁决层。Registry 是设计时约束，Gateway 是运行时裁决。
+
+## 六、实践中的安全要点
+
+前面五节从背景、攻击面、共识、实践到架构，已经把「该怎么做」讲清楚了。最后一节不做大而全的 checklist，只从工程落地角度，挑几个最容易踩的坑。
+
+### P0：不做这些，Agent 谈不上生产化
+
+**工具白名单比想象中更重要。** Agent 能调用的工具必须显式注册，不存在「默认可用」的工具集。每新增一个工具，就多一个攻击向量。如果 Tool Registry 里有一堆「以后可能用到」的工具，每一个都是潜在风险。
+
+**鉴权不能靠模型，必须靠策略引擎。** 这是一条红线。模型输出的 tool call 不是授权决定，只是意图表达。最终「能不能执行」必须由策略引擎做确定性裁决。不要用 guardrail prompt 代替 policy engine：prompt 可以被绕过，代码规则不能。
+
+**高风险动作不能自动执行。** 删除数据、转账、发邮件、写数据库、调用生产 API，这些操作的审批逻辑不应该是模型判断「这个操作有没有风险」，而应该是一条硬规则：「任何 delete、write、send 操作进入审批队列」。模型会犯错，规则不会。
+
+**全链路 ID 不是可选项。** userId、sessionId、traceId、agentId 必须贯穿每一次工具调用。没有全链路 ID，安全事故发生后的第一反应就是「谁干的？什么时候干的？通过哪个 Agent 干的？调了什么工具？」这些问题如果回答不了，你连修复的起点都找不到。
+
+**工具参数不校验，等于把门开着。** 即使调用了正确的工具，只要参数没有经过 schema 校验，工具仍然可能被滥用。比如本该是 ID 的字段被塞进一整段 prompt injection，后续链路就可能被污染。参数校验应该发生在 Policy Engine 裁决之前，而不是工具执行之后。
+
+**Agent 必须有独立身份。** 不要复用用户 token，也不要用「系统账号」跑所有 Agent。每个 Agent 都应该可注册、可识别、可禁用、可审计。当一个 Agent 出了问题，你最不想做的事就是「先把所有 Agent 都停了」。
+
+### P1：这些事决定了你的安全水位
+
+**MCP 不能裸奔。** 每一个 MCP Server 都应该通过 Gateway 接入，经过认证和权限检查。裸连 MCP Server 等于给 Agent 开了一个侧门：你甚至无法列出一个 Agent 到底接了多少个 MCP Server，每个 Server 又暴露了什么工具。
+
+**工具要分级，不能一视同仁。** low / medium / high / critical 四个等级，高风险工具默认需要审批。不是每个工具都值得同等信任：一个「查询天气」工具和一个「执行 SQL」工具，风险不是一个量级。
+
+**会话级凭证，用完即弃。** Agent 使用的 token 应该绑定当前会话，会话结束后立即失效。不要给 Agent 一个长期有效的 API key，让它在后台随便跑。
+
+**记忆和知识库要隔离。** RAG 检索和长期记忆必须按用户或租户隔离。跨用户记忆泄露不是普通隐私问题，而是安全事件：攻击者可以通过污染一个用户的记忆，影响另一个用户的 Agent 行为。
+
+**异常工具链需要监控。** 单个工具调用看起来都没问题，但 A→B→C 的组合可能是一条攻击链。监控不能只看单次调用，还要看调用序列的模式是否正常。
+
+### P2：从「能用」到「可信」
+
+Agent 红队测试不是锦上添花。你应该维护一套专门针对 Agent 场景的安全测试用例，包括 prompt injection、工具误用、权限绕过和记忆投毒，并在每次发布前跑一遍。
+
+Trace replay 是事故复盘的基础。安全事件发生后，要基于全链路 Audit Trace 回放事故路径，验证修复是否真正堵住漏洞，而不是靠猜测。
+
+行为基线是异常检测的前提。你不知道「正常」是什么，就没法判断「异常」。Agent 的工具调用频率、参数模式、会话时长、工具链组合，都要先建立基线，再谈检测。
+
+多 Agent 通信不是内部网络。Agent A 调用 Agent B 必须经过认证和授权。不能因为它们在同一个系统里就默认互信：安全边界不会因为省掉一个 HTTP 调用就消失。
+
+供应链不是抽象概念。每一个外部 MCP Server、每一个开源 Agent 框架、每一个第三方工具，它们的版本、安全公告和依赖关系，都应该有记录。AIBOM / SBOM 不是合规文件，而是出了事之后你能多快定位问题的工具。
+
+---
+
+AI Agent 安全真正的难点，不是让模型"更听话"。模型天然是非确定性的：它会犯错、会被诱导、会产生意料之外的推理路径。把安全寄托在"模型变好"上，就像把门禁系统寄托在"人变善良"上。
+
+**正确的做法，是把 Agent 的每一次行动都关在工程系统的边界之内。模型可以生成计划，但权限、审批、执行和审计必须由确定性的系统完成。**
+
+只有这样，Agent 才能从 Demo 走向真正可控的生产系统。
+
+## 参考资料
+
+1. [NIST AI Agent Standards Initiative](https://www.nist.gov/news-events/news/2026/02/announcing-ai-agent-standards-initiative-interoperable-and-secure) — 2026 年 2 月
+2. [Five Eyes: Careful adoption of agentic AI services](https://www.cyber.gov.au/sites/default/files/2026-05/careful_adoption_of_agentic_ai_services.pdf) — 2026 年 5 月
+3. [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+4. [Microsoft: Defense in depth for autonomous AI agents](https://www.microsoft.com/en-us/security/blog/2026/05/14/defense-in-depth-autonomous-ai-agents/) — 2026 年 5 月
+5. [MCP Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
+6. [LangChain Security Policy](https://docs.langchain.com/oss/python/security-policy)
