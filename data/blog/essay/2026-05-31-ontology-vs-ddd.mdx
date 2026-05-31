@@ -1,0 +1,492 @@
+---
+title: 'Ontology 与 DDD 的边界：从语义模型到领域模型'
+date: '2026-05-31'
+tags: ['Ontology', 'DDD', '领域建模', '软件架构']
+draft: false
+summary: 'Ontology（本体论）和 DDD（领域驱动设计）都在做领域建模，但一个偏知识表示，一个偏工程实现。这篇文章逐对对比 Class vs Entity、Axiom vs Invariant、Namespace vs Bounded Context 等核心概念，厘清边界，并给出三步结合方法。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-05-31-ontology-vs-ddd/antonin-fontaine-YiRaXIR5Etk-unsplash.jpg"
+    alt="Ontology 与 DDD 的边界：从语义模型到领域模型"
+  />
+  <figcaption>
+    {'Ontology 与 DDD 的边界：从语义模型到领域模型（Photo by '}
+    <a href="https://unsplash.com/@antonin_f?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      {'Antonin Fontaine'}
+    </a>
+    {' on '}
+    <a href="https://unsplash.com/photos/hills-and-ocean-at-sunset-with-warm-light-YiRaXIR5Etk?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      {'Unsplash'}
+    </a>
+    {'）'}
+  </figcaption>
+</figure>
+
+## 目录
+
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+很多人第一次看到 Ontology（本体论）里的 Class、Individual、Property，又看到 DDD（领域驱动设计）里的 Entity、Value Object、Domain Event，会自然地觉得：这不就是一套东西的不同叫法吗？
+
+不是。它们相似，是因为都在处理"领域"——都在尝试把混乱的现实世界整理成结构化的模型。但它们不同，是因为服务的目标完全不同。把 ontology 当成 DDD 的数据字典来做，你会得到一套贫血的分类表——有概念无行为，有层级无责任。反过来，把 DDD 误解成概念分类学，你会错过它最有价值的部分：让代码承担业务行为。
+
+这篇文章回答三个问题：本体论在知识工程中的核心概念是什么？DDD 在软件建模中的核心概念是什么？二者的边界在哪里，又如何结合？
+
+## 一、本体论：定义一个领域里"有什么"
+
+在知识工程中，本体论不是哲学玄学。它是对一个领域内概念、关系和约束的形式化描述。它回答的是：这个领域里有哪些东西？它们之间是什么关系？哪些规则必然成立？哪些知识可以被机器理解和推理？
+
+这里有一个根本性的范式转换需要先说清楚：**本体论建模是围绕含义组织数据，而不是围绕存储组织数据。** 传统 ERD（实体关系图）关心的是表怎么建、外键怎么设、怎么 JOIN。但企业中同一个业务概念——比如 Customer——数据分散在 CRM（customer_id）、账单系统（account_number）、支持系统（support_user_id）三个地方。表中心化建模容易先看到三套 schema 和 JOIN 关系；ontology 建模则可以把 Customer 定义为共享概念，再显式映射各系统的标识符和属性。它不等于不用治理；只是很多场景下可以先做语义映射和身份对齐，不必一开始就做物理 schema 合并或数据迁移。
+
+所以本体论关心的不是存储，而是语义。
+
+这个语义体系建立在四个基石之上。
+
+- **Concepts（概念）**：代表业务实体——Customer、Order、Product——它们不是数据库表的镜像，而是第一等的业务概念，属性和关系独立于底层存储存在。
+- **Declared Relationships（声明关系）**：不是从外键推断出来的"碰巧 JOIN 在一起"，而是显式命名、承载语义意图的连接。"Customer places Order"——这不是 `table_a.cust_id = table_b.cust_id`，而是一个有意图的业务陈述。
+- **Business Constraints（业务约束）**：Cardinality、Optionality、Validity conditions、Classification rules、Access restrictions——这些先在模型层面声明；如果需要闭世界式数据校验，通常要配合 SHACL、平台校验、应用代码或写入流程强制执行，而不是指望 OWL 本身像数据库 schema 一样拒绝缺字段。
+- **Governed Vocabulary（受治理的词汇表）**：定义变化时，在模型层更新一次，再通过版本化、发布和依赖管理传播给实际消费该模型的查询、报表、应用和 AI 工作流。
+
+这四个基石让 ontology 有机会从描述性的参考文档变成操作性的基础设施。一个关键区分：metadata catalog 偏描述性（记录有什么数据），被工程化接入后的 ontology model 偏操作性（可以直接用于查询、分析和 AI 工作流）。它不是只让你"知道有什么"，而是让系统有机会"基于含义运行"。
+
+在技术实现层面，本体论通常使用 W3C 标准体系来表达。核心构造包括：**Class / Concept**（类或概念，如 Person、Order）、**Individual / Instance**（个体或实例，如 "张三这个人"）、**Object Property**（对象间的关系，如 `worksFor`）、**Datatype Property**（数据属性，如 `age: integer`）、**Axiom**（公理——声明为真的语句）、**Restriction**（限制——限定类或属性的逻辑含义）。逻辑关系包括 SubClassOf（子类继承）、EquivalentTo（等价声明）、DisjointWith（互斥声明）。要注意，OWL 是声明式知识表示语言，不是程序语言或数据库 schema；它擅长表达含义、推理隐含知识和检查一致性，数据质量校验通常需要 SHACL 或平台侧约束配合。
+
+一句话总结：**本体论的重点不是对象如何变化，而是语义如何被明确表达。** 它关心的是"这个词到底是什么意思"以及"这个意思能不能被机器推理"。它不天然包含软件中的行为责任——Customer 在 ontology 里是一个语义节点，至于这个 Customer 的代码应该负责创建订单还是校验信用额度，那是另一层的事。
+
+## 二、DDD：让软件模型承担业务行为
+
+DDD 是另一套出发点。Eric Evans 在《Domain-Driven Design》中系统化提出领域驱动设计时，核心问题是：**软件模型如何表达业务专家的语言和意图？** 当业务越来越复杂，代码却越来越像数据库的搬运工——CRUD 增删改查，领域逻辑散落在 Service 层里，没有人说得清"创建订单"这个行为究竟应该在哪个对象上发生。
+
+DDD 的回答是：让代码模型承担业务行为。不要把领域逻辑变成游离在对象之外的"服务代码"——Entity 不只是数据的容器，它是一个有身份、有生命周期、能承担行为责任的领域对象。
+
+所以 DDD 的核心概念都围绕"行为承担"和"边界管理"展开。
+
+**Entity（实体）** 是最核心的构造。它有唯一身份标识，这个标识在整个生命周期中不变——一个 Customer 改名字、改地址、改联系方式，它还是同一个 Customer。但 Entity 不只是 ID 加字段。它承担行为：`Order.cancel()` 不是一个 setter，而是一个业务操作——它要检查订单状态、计算退款金额、生成取消记录。身份让 Entity 能被追踪，行为让 Entity 能保护自己的业务规则。
+
+**Value Object（值对象）** 则是另一种思路。它没有身份，由值定义，通常不可变。`Money(amount=100, currency='CNY')` ——两个属性值相同的 Money 对象就是同一个。值对象承担的是"值的含义和行为"：同币种金额的加减、精度的控制、合法性校验，这些不是随手散落的工具函数，而是值对象的业务能力。至于跨币种转换，通常还需要汇率来源或 Domain Service 参与，不能简单塞进 Money 自己。
+
+**Aggregate（聚合）** 定义了事务一致性边界。一个 Aggregate 内的所有对象必须作为一个整体进行修改——Order 和 OrderItem 之间的关系不是普通的引用，而是被聚合根（Aggregate Root，通常是 Order）严格管理的一致性单元。外部只能通过聚合根访问聚合内的对象。
+
+**Domain Event（领域事件）** 表示业务上重要且已经发生的事实。`OrderPlaced`、`PaymentSucceeded`、`ShipmentDispatched`——这些不是系统内部的回调，而是业务语言中的事实声明。它们通常用过去式命名，会触发后续流程、通知其他限界上下文、或作为审计记录持久化。
+
+**Bounded Context（限界上下文）** 是 DDD 中最容易被低估的概念，也是最核心的。它定义了一个模型有效的语义边界——在销售上下文中，Customer 是潜在购买者；在合同上下文中，Customer 是签约主体；在客服上下文中，Customer 是服务请求发起人。DDD 不要求这三个 Customer 必须是同一个模型。它要求的是：在每一个限界上下文内部，模型是一致的、语言是统一的（Ubiquitous Language）。
+
+一句话总结：**DDD 的重点不是把世界完整描述出来，而是让软件正确表达和执行业务。** 它不要求一个全企业通用大模型覆盖所有场景；它承认大型系统里多个模型并存，追求的是在每个明确界定的业务边界内，模型、语言和行为保持一致。
+
+## 三、概念对照：它们相似，但不是一一对应
+
+这一节是整篇文章的"主菜"。我们把两边的核心概念放在一起，不是为了证明"其实是一回事"，恰恰相反——是为了看清楚它们回答的是不同层面的问题。
+
+<div className="not-prose my-8 space-y-4">
+  <article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'Ontology'}
+        </div>
+        <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+          {'Class / Concept'}
+        </div>
+      </div>
+      <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+        {'vs'}
+      </div>
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'DDD'}
+        </div>
+        <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+          {'Entity 类型、Value Object 类型'}
+        </div>
+      </div>
+    </div>
+    <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'相似点'}
+        </div>
+        <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">
+          {'都描述领域概念'}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+          {'关键差异'}
+        </div>
+        <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+          {'Ontology 的 Class 是语义分类，重在定义和层级关系；DDD 的 Entity 类型是有身份、有生命周期、有行为责任的领域对象——它回答的不只是"这是什么"，更是"这个对象应该负责什么行为"。'}
+        </div>
+      </div>
+    </div>
+  </article>
+
+<article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'Ontology'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'Individual'}
+      </div>
+    </div>
+    <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+      {'vs'}
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'DDD'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'Entity 实例'}
+      </div>
+    </div>
+  </div>
+  <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'相似点'}
+      </div>
+      <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">
+        {'都指具体对象'}
+      </div>
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+        {'关键差异'}
+      </div>
+      <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+        {
+          'Ontology 的 Individual 是概念的实例化，关注它与概念、其他实例的关系；DDD 的 Entity 实例有独立身份标识、状态演变和业务行为——它是一个在时间中变化的对象。'
+        }
+      </div>
+    </div>
+  </div>
+</article>
+
+<article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'Ontology'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">{'Property'}</div>
+    </div>
+    <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+      {'vs'}
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'DDD'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'字段、属性、Value Object'}
+      </div>
+    </div>
+  </div>
+  <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'相似点'}
+      </div>
+      <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">{'都描述特征'}</div>
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+        {'关键差异'}
+      </div>
+      <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+        {
+          'Ontology 的 Property 描述"这个对象有什么特征"；DDD 会进一步考虑封装、不可变性、业务规则和技术权衡，例如哪些属性暴露、值对象是否不可变、修改状态有什么先决条件，以及引用还是嵌入。'
+        }
+      </div>
+    </div>
+  </div>
+</article>
+
+<article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'Ontology'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">{'Relation'}</div>
+    </div>
+    <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+      {'vs'}
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'DDD'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'关联、引用、聚合关系'}
+      </div>
+    </div>
+  </div>
+  <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'相似点'}
+      </div>
+      <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">
+        {'都表达对象连接'}
+      </div>
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+        {'关键差异'}
+      </div>
+      <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+        {
+          'Ontology 的关系是语义连接——"Customer places Order" 是意图声明；DDD 的关系受事务边界约束，需要考虑通过 Aggregate Root 访问、级联持久化和并发控制。'
+        }
+      </div>
+    </div>
+  </div>
+</article>
+
+<article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'Ontology'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'Axiom / Restriction'}
+      </div>
+    </div>
+    <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+      {'vs'}
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'DDD'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'Invariant / 业务规则'}
+      </div>
+    </div>
+  </div>
+  <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'相似点'}
+      </div>
+      <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">{'都表达约束'}</div>
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+        {'关键差异'}
+      </div>
+      <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+        {
+          'Ontology 的公理和限制用于声明逻辑含义、支持推理和一致性检查；如果要验证数据图是否满足条件，通常需要 SHACL 这类约束语言或平台机制。DDD 的不变式用于保护业务状态——"订单取消后不能再修改"，这个规则是由代码强制执行而非推理引擎推导的。'
+        }
+      </div>
+    </div>
+  </div>
+</article>
+
+<article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'Ontology'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">{'Event'}</div>
+    </div>
+    <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+      {'vs'}
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'DDD'}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+        {'Domain Event'}
+      </div>
+    </div>
+  </div>
+  <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <div>
+      <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+        {'相似点'}
+      </div>
+      <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">
+        {'都表示发生过的事实'}
+      </div>
+    </div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+        {'关键差异'}
+      </div>
+      <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+        {
+          '本体论中的事件更像世界事实的结构化描述；DDD 中的领域事件是业务系统必须响应的事实。第五节会单独展开这个区别。'
+        }
+      </div>
+    </div>
+  </div>
+</article>
+
+  <article className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start">
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'Ontology'}
+        </div>
+        <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+          {'Ontology Namespace / Module'}
+        </div>
+      </div>
+      <div className="hidden pt-7 text-xs font-semibold uppercase text-primary-500 md:block">
+        {'vs'}
+      </div>
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'DDD'}
+        </div>
+        <div className="mt-1 text-lg font-semibold text-gray-950 dark:text-gray-50">
+          {'Bounded Context'}
+        </div>
+      </div>
+    </div>
+    <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 dark:border-gray-800 md:grid-cols-[10rem_minmax(0,1fr)]">
+      <div>
+        <div className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          {'相似点'}
+        </div>
+        <div className="mt-1 text-sm leading-6 text-gray-800 dark:text-gray-200">
+          {'都处理语义边界'}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">
+          {'关键差异'}
+        </div>
+        <div className="mt-1 text-sm leading-7 text-gray-700 dark:text-gray-300">
+          {'Ontology 的命名空间和模块更常用于 IRI 标识、模块化、复用和命名冲突处理；企业共享 ontology 往往会维护可映射的一致语义。DDD 的限界上下文明确允许同名概念在不同上下文中含义不同，甚至模型完全不同——它把"上下文差异"当作系统设计的常态。'}
+        </div>
+      </div>
+    </div>
+  </article>
+</div>
+
+这个表里最需要强调的一句是：**Ontology 的 Class 不等于 DDD 的 Entity。** DDD 的 Entity 是一种有身份、有生命周期、有行为责任的领域对象。Ontology 的 Class 更像语义分类，不天然包含软件中的行为责任。如果你在 ontology 里定义了一个 Customer Class，它告诉你 Customer 有什么属性、和 Order 是什么关系、属于什么类别——它不告诉你 Customer 是否应该承担 `placeOrder()` 这个行为。那个决定是 DDD 在做，而且它可能在不同限界上下文中给 Customer 分配完全不同的行为。
+
+## 四、最关键的分野：全局语义一致性 vs 限界上下文独立性
+
+到这里，我们可以触及两种建模思想最底层的分歧。
+
+本体论常常追求跨系统共享的语义一致性。从它的四大基石出发，它的工作就是定义 Customer 到底是什么、Order 到底是什么、Payment 到底是什么——最好有统一定义，让所有人、所有系统在同一个概念层面上"说同一种语言"。这也是为什么 ontology 被定位为 Knowledge Graph、Semantic Layer 和 AI 系统的基础层——当大模型要跨 CRM、ERP、供应链系统做推理时，它需要知道这些系统中的"Customer"指的是同一个业务概念，否则推理就建立在混乱的语义之上。
+
+这个追求可以从 Palantir Foundry 的公开文档里看到一个工程化版本。Foundry 把 Object Type 定义为真实世界实体或事件的 schema definition，由具体对象实例组成；Property 是对象类型上描述真实世界实体或事件特征的 schema definition；Link Type 是两个 Object Types 之间关系的 schema definition。文档还强调，Foundry Ontology 不是抽象数据模型，而是把每个 ontological concept 映射到组织实际数据中，用 backing datasource 驱动真实应用。它的 Action Type 还把一次性修改对象、属性、链接以及提交后的 side effects 纳入 ontology 体系。这个例子能支撑的说法是：企业 ontology 不应只是数据表镜像，而应把对象、属性、关系和受控操作映射到可运行的业务应用中。
+
+DDD 的做法恰恰相反。它提醒我们：同一个词在不同业务上下文中可能不是同一个模型。
+
+举个例子。`Customer` 这个看似不证自明的概念：
+
+- 在**销售上下文**中，Customer 是潜在购买者——关心的是购买意向、产品偏好、联系人信息。
+- 在**合同上下文**中，Customer 是签约主体——关心的是法人全称、统一社会信用代码、签约能力。
+- 在**客服上下文**中，Customer 是服务请求发起人——关心的是历史工单、SLA 级别、投诉记录。
+- 在**财务上下文**中，Customer 是应收账款对象——关心的是账单、付款记录、信用额度。
+
+本体论会倾向于问："这些 Customer 的共同语义是什么？能不能抽出一个共享的核心概念？"
+
+DDD 会倾向于问："在哪个限界上下文里，我们需要哪一种 Customer？它们的模型是否应该完全独立？"
+
+这不是谁对谁错。在大型系统里，你实际上同时需要这两种能力：你需要 ontology 来定义跨系统共享的语义基础——让 AI Agent 知道从 CRM 查到的和从 ERP 查到的"Customer"是同一个东西；你也需要 DDD 来划分限界上下文——让销售团队和财务团队各自拥有适合自己业务场景的模型，不互相耦合。
+
+**本体论追求语义统一，DDD 追求上下文内的一致。复杂系统里，两者都需要，但不能互相替代。**
+
+## 五、事件的区别：发生过的事实 vs 必须响应的领域事实
+
+"事件"是两种建模方法最容易混淆、也最具实践价值的概念，值得单独展开。
+
+本体论中的事件，通常表示在某个时间点或时间段发生的事情。它关注事件与参与者（谁做的）、时间（何时发生）、地点（在何处）、对象（作用于什么）之间的关系。这种事件模型适合知识查询和因果推理——"2024 年 Q4，Supplier A 的交付延迟事件导致了哪些客户的订单变更？"
+
+DDD 中的领域事件，是另一种东西。它表示业务上重要的、已经发生的事实。关键特征是：它用过去式命名（`OrderPlaced`、`PaymentSucceeded`），它通常不可修改（如果业务要修正，发布补偿事件，而不是改写过去），它会触发后续流程——新的领域行为、跨上下文通知、出站集成、审计记录。它不是"记录给以后查询的事"，而是"系统正在响应的事"。
+
+用一个判断压住这个区别：**本体论中的事件是"世界里发生了什么"；DDD 中的领域事件是"业务系统必须响应什么"。**
+
+这个区别对系统设计的影响是直接的。如果你把 ontology 的事件模型直接用于 DDD 的事件驱动架构，你会发现单靠 `Event(participant=Supplier A, type=delay)` 这样的事实描述还不等于运行时触发语义——系统仍然需要明确哪些流程应该响应它。反过来，如果你试图用 DDD 的 Domain Event 替代 ontology 的事件模型，你会发现这些事件天然服务于流程协作，不会自动形成通用事件知识图谱。`OrderPlaced` 和 `PaymentSucceeded` 之间的因果关系、`ShipmentDispatched` 和 `DelayClaim` 之间的时间关系，如果要支持跨系统查询和推理，仍然需要显式建模。
+
+## 六、如何结合：用 Ontology 澄清语义，用 DDD 落地行为
+
+理解了边界之后，真正有价值的问题是：怎么把它们放在一起用？
+
+**第一步：用 Ontology 建立领域词汇表。** 这是最自然的起点。Ontology 擅长定义核心概念、澄清同义词和上下位关系、识别跨系统共享语义。它告诉团队"我们在讨论的到底是什么"——在动手写代码之前，先让业务概念有明确定义。这一步的产出不是数据库表，而是一个可操作的概念模型：哪些概念存在、它们之间的关系是什么、哪些约束必须成立。
+
+**第二步：用 DDD 划分限界上下文。** 拿着 ontology 提供的全局概念视图，用 DDD 的方法判断：哪些概念在不同上下文中语义不同？哪些边界内的对象需要强一致性？哪些行为应该由 Entity 承担，哪些应该由 Domain Service 承担？哪些变化需要发布 Domain Event？这一步把"什么是 Customer"的语义共识转化为"在销售上下文里 Customer 有哪些行为"的工程决策。
+
+**第三步：用二者共同支撑复杂系统。** Ontology 负责语义互操作——当多个微服务、多个 AI Agent、多个数据管道需要共享理解时，它是那个"含义层"。DDD 负责代码模型和业务流程——当业务规则需要被代码执行、被事务保护、被审计追踪时，它的 Entity、Aggregate、Domain Event 是那个"行为层"。
+
+这个分工在 AI 应用时代尤其关键。当大模型通过 GraphRAG 或知识图谱增强检索时，ontology 提供结构化、可解释的上下文——基于关系遍历和约束推理，而不是文本相似度猜测。当 Agent 需要执行业务操作时，DDD 的 Aggregate 保证事务一致性，Domain Event 驱动后续流程，Bounded Context 防止模型混淆。**Ontology 让 Agent 知道"该查什么、这些对象是什么意思"，DDD 让 Agent 通过受保护的聚合和应用边界执行变更。**
+
+这也解释了为什么一个高质量的 ontology 不是一次性的建模。它需要像基础设施一样对待——版本化、测试、审查、治理。业务定义变化时，理想状态是在 ontology 模型层更新，再通过发布流程让依赖它的消费方（查询、报表、AI、Agent）同步演化。但如果不是 operationally enforced 的——如果 ontology 只是在墙上贴的一张参考图——它很快就会沦为参考文物。
+
+## 七、一个贯穿案例：订单系统
+
+回到一个读者熟悉的场景，用订单系统把前面的概念串起来。
+
+**本体论视角看 Order：**
+
+Order 是一种交易承诺。它关联 Customer（买方）、Product（商品）、Payment（付款）、Shipment（发货）。Order 有状态（待付款/已付款/已发货/已完成）、金额（总价、折扣、实付）、时间（下单时间、支付时间、发货时间）等属性。OrderPlaced 是一个事件，它关联了 Customer、Order 和下单时间。Order 和 Customer 之间是 `Customer places Order` 的关系，Order 和 Product 之间是 `Order contains Product` 的关系。
+
+从这个视角出发，ontology 回答了：Order 是什么？它和谁有关？它的状态有哪些？它的核心属性是什么？这些回答对所有系统、所有上下文共享——是一个跨系统可推理的语义节点。
+
+**DDD 视角看 Order：**
+
+Order 是不是聚合根？如果是，OrderItem 必须属于 Order 聚合——你不能绕过 Order 直接修改订单项。Money 是不是值对象？如果是，同币种金额加减、精度控制和合法性校验可以放在 Money；如果涉及汇率，转换逻辑通常需要 Domain Service 或专门策略。OrderPlaced 事件由谁发布？由 Order 聚合根发布——因为"订单已下"是 Order 生命周期中发生的事实。支付成功后订单状态如何变化？不是 `order.status = 'paid'`，而是 `order.markAsPaid(payment)`——这个方法内部会检查当前状态是否允许转换，会更新相关数据，会发布 `OrderPaid` 事件。取消订单时要保护什么不变式？——"已发货的订单不能取消"、"取消后金额必须全额退款"，这些规则是聚合内的代码，不是 if-else 散落在 Service 层。
+
+同一个 Order，在 ontology 里是一个语义节点——它告诉机器"这是什么"、"它和谁有关"、"哪些规则成立"。在 DDD 里是一个承担业务规则的模型对象——它自己就是规则的保护者，不是规则的被审查者。
+
+## 八、结论：不要问谁替代谁，要问各自放在哪一层
+
+我们很容易陷入一种习惯：看到两种都在做"领域建模"的方法，就忍不住问"哪个更好"、"能不能用一个替代另一个"。但真正有意义的不是替代，而是分层。
+
+本体论适合放在语义层、知识层、跨系统理解层。它的工作是定义概念、声明关系、表达约束——为所有建在它之上的系统（包括 DDD 代码）提供共享的含义基础。
+
+DDD 适合放在业务行为层、应用建模层、代码实现层。它的工作是定义实体和聚合的边界、把业务规则变成代码中的不变式、用领域事件驱动流程——让软件不仅功能正确，而且能随着业务演化。
+
+本体论帮团队说清楚"词是什么意思"。DDD 帮团队决定"代码应该由谁负责什么"。两者从不同的方向逼近同一个问题：如何用模型表达复杂的领域。一个从语义出发，一个从行为出发。
+
+**如果说本体论是在给领域建立一套可推理的语言，那么 DDD 就是在把这套语言变成可运行、可维护、可演化的软件。**
+
+## 附录：参考资料与校准说明
+
+### 校准说明
+
+- 本文把 ontology 中的"约束"拆成两层：OWL 公理/限制主要用于声明逻辑含义、推理和一致性检查；数据完整性校验通常要用 SHACL、平台规则或应用代码补上闭世界验证语义。
+- 本文把 DDD 的 Bounded Context 表述为"上下文内一致"，而不是简单说"反对全局语义"。DDD 承认大型系统中多个模型并存，但仍要求每个上下文内部使用统一语言。
+- Palantir 部分只保留官方 Foundry 文档能够支持的 Object Type、Property、Link Type、Action Type 表述，删除了未能在官方文档中直接核实的"五层企业 ontology / L2 Semantic Layer"说法。
+
+### 名词与概念解释
+
+- **Cardinality（基数约束）**：描述一个关系或属性允许出现几次。比如一个 Order 至少包含 1 个 OrderItem；一个 Person 最多只能有 1 个出生日期；一个 Customer 可以有 0 到多个 Order。
+- **Optionality（可选性）**：描述一个属性或关系是否必须存在。比如订单的 `createdAt` 必填，但 `cancelledAt` 只有取消后才存在。它经常和 Cardinality 一起出现：`0..1` 表示可选且最多一个，`1..n` 表示至少一个。
+- **Validity conditions（有效性条件）**：描述某个对象、属性或关系在什么条件下才算有效。比如订单金额必须大于等于 0，合同开始日期必须早于结束日期，优惠券只能在有效期内使用。它更偏业务语义，不只是字段类型。
+- **Classification rules（分类规则）**：描述如何把实例归入某个类别。比如满足"年消费额超过 100 万且合作时间超过 3 年"的客户可分类为 Strategic Customer；发货延迟超过 SLA 的订单可分类为 Delayed Order。
+- **Access restrictions（访问限制）**：描述哪些角色、系统或上下文可以读取、修改、执行某些对象和操作。比如客服可以查看工单和客户联系信息，但不能修改客户信用额度；财务系统可以更新付款状态，但不能修改订单明细。
+- **Axiom（公理）**：ontology 中声明为真的逻辑语句，用来表达概念之间的必然关系。比如 `PreferredCustomer` 是 `Customer` 的子类，`CancelledOrder` 与 `ActiveOrder` 互斥。
+- **Restriction（限制）**：对类或属性适用范围的逻辑限定。比如 `Order` 必须关联某个 `Customer`，`hasManager` 的取值必须是 `Employee`。在 OWL 中它主要服务于推理和一致性检查，不等同于数据库里的强制字段校验。
+- **SHACL Shape（SHACL 形状）**：用于验证 RDF graph 是否满足一组条件的约束描述。可以把它理解为图数据的校验规则层：哪些属性必须有、值是什么类型、最少或最多出现几次。
+- **Invariant（不变式）**：DDD 中必须始终保持为真的业务规则。比如"已发货订单不能取消"、"订单总金额必须等于订单项金额之和"。它通常由 Aggregate Root 或领域服务在代码中强制保护。
+- **Bounded Context（限界上下文）**：一个模型和语言成立的边界。在销售、合同、客服、财务中都叫 Customer，但关注点、属性、行为可能完全不同；DDD 要求每个上下文内部一致，而不是把所有 Customer 硬压成一个通用模型。
+
+### 参考资料
+
+- [Thomas R. Gruber, "A Translation Approach to Portable Ontology Specifications", Knowledge Acquisition, 1993](https://tomgruber.org/writing/ontolingua-kaj-1993.pdf)
+- [Tom Gruber, "Ontology", Encyclopedia of Database Systems, 2009](https://tomgruber.org/writing/definition-of-ontology.pdf)
+- [W3C OWL 2 Web Ontology Language Primer](https://www.w3.org/TR/owl2-primer/)
+- [W3C Shapes Constraint Language (SHACL)](https://www.w3.org/TR/shacl/)
+- [Eric Evans, Domain-Driven Design Reference](https://www.domainlanguage.com/ddd/reference/)
+- [Palantir Foundry Ontology Types Reference](https://www.palantir.com/docs/foundry/object-link-types/type-reference/)
+- [Palantir Foundry Properties Overview](https://www.palantir.com/docs/foundry/object-link-types/properties-overview/)
+- [Palantir Foundry Action Types Overview](https://www.palantir.com/docs/foundry/action-types/overview)
+- [W3C PROV-O: The PROV Ontology](https://www.w3.org/TR/prov-o/)
+- [Microsoft Research Project GraphRAG](https://www.microsoft.com/en-us/research/project/graphrag/)
+- [本体论到底是什么：用 FCKG 电影奖项图谱做一次形象化理解](/blog/essay/2026-05-29-Ontology-FCKG)
