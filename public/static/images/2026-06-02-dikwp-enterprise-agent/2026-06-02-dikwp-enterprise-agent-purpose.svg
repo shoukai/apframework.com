@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 530" width="100%" height="100%">
+<style>text { font-family: "JetBrains Mono", "Courier New", monospace; }</style>
+
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+          <marker id="arrow-grn" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#020617"/>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+
+        <!-- Top: Business Goals -->
+        <rect x="30" y="30" width="200" height="80" rx="8" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="130" y="60" fill="white" font-size="13" font-weight="700" text-anchor="middle">业务目标</text>
+        <text x="130" y="80" fill="#fbbf24" font-size="9" text-anchor="middle">OKR / KPI / 战略意图</text>
+        <text x="130" y="98" fill="#94a3b8" font-size="8" text-anchor="middle">降低库存成本 15%</text>
+
+        <!-- Arrow to sub-goals -->
+        <line x1="230" y1="70" x2="290" y2="70" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Purpose Decomposition -->
+        <rect x="295" y="30" width="220" height="80" rx="8" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="2"/>
+        <text x="405" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">Purpose 分解</text>
+        <text x="405" y="75" fill="#fb7185" font-size="8" text-anchor="middle">子目标图 · 依赖关系 · 偏序</text>
+        <text x="405" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">P1: 缩短知识检索 → P2: 提升匹配 → P3: 减少转人工</text>
+
+        <!-- Arrow to constraints engine -->
+        <line x1="515" y1="70" x2="580" y2="70" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Constraints Engine -->
+        <rect x="585" y="30" width="200" height="80" rx="8" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="2"/>
+        <text x="685" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">约束引擎</text>
+        <text x="685" y="75" fill="#fb7185" font-size="8" text-anchor="middle">目的冲突 · 优先级仲裁</text>
+        <text x="685" y="93" fill="#94a3b8" font-size="8" text-anchor="middle">成本 vs 满足率 → 大促期间满足率优先</text>
+
+        <!-- Arrow to permission matrix -->
+        <line x1="785" y1="70" x2="830" y2="70" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Permission Matrix -->
+        <rect x="835" y="30" width="140" height="80" rx="8" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="2"/>
+        <text x="905" y="55" fill="white" font-size="10" font-weight="600" text-anchor="middle">权限矩阵</text>
+        <text x="905" y="73" fill="#fb7185" font-size="7" text-anchor="middle">R / A / P / E</text>
+        <text x="905" y="88" fill="#94a3b8" font-size="7" text-anchor="middle">Agent × Domain</text>
+        <text x="905" y="102" fill="#94a3b8" font-size="7" text-anchor="middle">操作级别限制</text>
+
+        <!-- Vertical flow down to Agent Actions -->
+        <line x1="685" y1="110" x2="685" y2="150" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Middle: Agents operating within boundaries -->
+        <rect x="30" y="155" width="940" height="120" rx="8" fill="rgba(251, 191, 36, 0.03)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="42" y="172" fill="#fbbf24" font-size="9" font-weight="600">Agent 运行空间 — 所有 Agent 在控制平面定义的边界内运行</text>
+
+        <rect x="50" y="185" width="180" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="140" y="208" fill="white" font-size="11" font-weight="600" text-anchor="middle">数据分析 Agent</text>
+        <text x="140" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">Read All · 不可 Execute</text>
+
+        <rect x="260" y="185" width="180" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="350" y="208" fill="white" font-size="11" font-weight="600" text-anchor="middle">合规 Agent</text>
+        <text x="350" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">Analyze · 拦截标记</text>
+
+        <rect x="470" y="185" width="180" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="560" y="208" fill="white" font-size="11" font-weight="600" text-anchor="middle">执行 Agent</text>
+        <text x="560" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">Propose · 需审批</text>
+
+        <rect x="680" y="185" width="180" height="55" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="770" y="208" fill="white" font-size="11" font-weight="600" text-anchor="middle">审批 Agent</text>
+        <text x="770" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">Execute · 确认放行</text>
+
+        <!-- Orchestrator -->
+        <rect x="400" y="250" width="200" height="18" rx="4" fill="rgba(34, 211, 238, 0.15)" stroke="#22d3ee" stroke-width="0.5"/>
+        <text x="500" y="263" fill="#22d3ee" font-size="8" text-anchor="middle">Orchestrator 独占：生命周期 · 计划裁决 · 路由 · 失败处理 · 硬终止</text>
+
+        <!-- Vertical flow to Audit -->
+        <line x1="500" y1="275" x2="500" y2="310" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Audit Trail -->
+        <rect x="30" y="315" width="940" height="80" rx="8" fill="rgba(136, 19, 55, 0.2)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="50" y="340" fill="#fb7185" font-size="10" font-weight="600">审计追踪</text>
+        <text x="50" y="360" fill="#94a3b8" font-size="8">每次 Action 关联 Purpose 节点："调用 X 服务于子目标 2.3（提升知识匹配精度）"</text>
+        <text x="50" y="378" fill="#94a3b8" font-size="8">推理轨迹 → 工具调用 → 执行结果 → Purpose 节点 — 全链路可追溯</text>
+
+        <!-- Bottom: key insight -->
+        <text x="500" y="435" fill="white" font-size="10" font-weight="600" text-anchor="middle">核心判断：治理不是事后检查 — 它必须嵌入系统结构，成为 Agent 行为的默认属性</text>
+        <text x="500" y="455" fill="#94a3b8" font-size="8" text-anchor="middle">Purpose 约束硬化到：工作流门禁 · 权限矩阵校验 · 审计日志强制记录 · Eval Pipeline</text>
+        <text x="500" y="475" fill="#fb7185" font-size="8" text-anchor="middle">治理发生在生成过程中，而非生成之后 (ArcKit Pattern)</text>
+
+        <text x="30" y="505" fill="#475569" font-size="7">DIKWP Purpose Layer · NIST AI RMF 1.0 · Governance as Structural Property</text>
+      </svg>

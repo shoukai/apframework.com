@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="100%" height="100%">
+<style>text { font-family: "JetBrains Mono", "Courier New", monospace; }</style>
+
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#020617"/>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+
+        <!-- User Goal -->
+        <rect x="30" y="30" width="140" height="60" rx="8" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="100" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">用户目标</text>
+        <text x="100" y="75" fill="#94a3b8" font-size="8" text-anchor="middle">业务需求输入</text>
+
+        <line x1="170" y1="60" x2="220" y2="60" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Plan -->
+        <rect x="225" y="30" width="140" height="60" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2"/>
+        <text x="295" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">Plan</text>
+        <text x="295" y="75" fill="#34d399" font-size="8" text-anchor="middle">多步任务拆解</text>
+
+        <line x1="365" y1="60" x2="420" y2="60" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Tool Selection -->
+        <rect x="425" y="30" width="140" height="60" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2"/>
+        <text x="495" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">Tool Selection</text>
+        <text x="495" y="75" fill="#34d399" font-size="8" text-anchor="middle">工具路由 · 参数构造</text>
+
+        <line x1="565" y1="60" x2="620" y2="60" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Execute -->
+        <rect x="625" y="30" width="140" height="60" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2"/>
+        <text x="695" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">Execute</text>
+        <text x="695" y="75" fill="#34d399" font-size="8" text-anchor="middle">Sandbox 预执行</text>
+
+        <!-- Feedback loop: Execute → Evaluate → Reflect → Plan -->
+        <line x1="695" y1="90" x2="695" y2="130" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Evaluate -->
+        <rect x="625" y="135" width="140" height="55" rx="8" fill="rgba(251, 146, 60, 0.25)" stroke="#fb923c" stroke-width="2"/>
+        <text x="695" y="158" fill="white" font-size="12" font-weight="600" text-anchor="middle">Evaluate</text>
+        <text x="695" y="176" fill="#fb923c" font-size="8" text-anchor="middle">结果评估 · 质量检查</text>
+
+        <!-- Reflect -->
+        <line x1="625" y1="162" x2="575" y2="162" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <rect x="425" y="135" width="150" height="55" rx="8" fill="rgba(251, 146, 60, 0.25)" stroke="#fb923c" stroke-width="2"/>
+        <text x="500" y="158" fill="white" font-size="12" font-weight="600" text-anchor="middle">Reflect</text>
+        <text x="500" y="176" fill="#fb923c" font-size="8" text-anchor="middle">推理反思 · 策略调整</text>
+
+        <!-- Reflect → Plan loop -->
+        <path d="M 425 162 L 380 162 Q 360 162 360 140 L 360 90 Q 360 60 295 60" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="355" y="120" fill="#fb923c" font-size="7">重新规划</text>
+
+        <!-- Human Approval gate -->
+        <line x1="695" y1="190" x2="695" y2="235" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
+
+        <rect x="625" y="240" width="140" height="55" rx="8" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="2"/>
+        <text x="695" y="263" fill="white" font-size="12" font-weight="600" text-anchor="middle">Human Approval</text>
+        <text x="695" y="281" fill="#fb7185" font-size="8" text-anchor="middle">不可逆操作门禁</text>
+
+        <!-- Final output -->
+        <line x1="765" y1="267" x2="830" y2="267" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <rect x="835" y="240" width="135" height="55" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="902" y="263" fill="white" font-size="12" font-weight="600" text-anchor="middle">Action</text>
+        <text x="902" y="281" fill="#22d3ee" font-size="8" text-anchor="middle">执行最终操作</text>
+
+        <!-- State Machine sidebar -->
+        <rect x="30" y="120" width="170" height="200" rx="8" fill="rgba(15, 23, 42, 0.4)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="115" y="148" fill="white" font-size="11" font-weight="600" text-anchor="middle">编排引擎</text>
+        <text x="115" y="170" fill="#94a3b8" font-size="8" text-anchor="middle">状态机 / DAG</text>
+        <text x="115" y="190" fill="#94a3b8" font-size="8" text-anchor="middle">失败计数器</text>
+        <text x="115" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">自动回滚</text>
+        <text x="115" y="230" fill="#94a3b8" font-size="8" text-anchor="middle">Token Budget</text>
+        <text x="115" y="250" fill="#94a3b8" font-size="8" text-anchor="middle">超时控制</text>
+        <text x="115" y="270" fill="#94a3b8" font-size="8" text-anchor="middle">Agent Trace</text>
+        <text x="115" y="290" fill="#94a3b8" font-size="8" text-anchor="middle">执行轨迹可回放</text>
+
+        <!-- Connect state machine to flow -->
+        <line x1="200" y1="60" x2="223" y2="60" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="3,3"/>
+        <line x1="200" y1="162" x2="223" y2="162" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="3,3"/>
+
+        <!-- Metrics bar -->
+        <text x="30" y="370" fill="white" font-size="10" font-weight="600">验收标准</text>
+        <rect x="30" y="385" width="940" height="50" rx="6" fill="rgba(15, 23, 42, 0.3)" stroke="#1e293b" stroke-width="1"/>
+        <text x="500" y="408" fill="#34d399" font-size="9" text-anchor="middle">每一步都在可观测的工作流中执行 · 失败有回滚 · 关键操作有人确认 · 执行轨迹可回放</text>
+        <text x="500" y="426" fill="#94a3b8" font-size="8" text-anchor="middle">任务成功率 / 失败恢复率 / Token 成本 · 延迟 — 四层 Eval Pipeline (Component → Trajectory → Task Completion → End-to-End)</text>
+
+        <text x="30" y="475" fill="white" font-size="9" font-weight="600">核心技术</text>
+        <text x="30" y="493" fill="#94a3b8" font-size="8">ReAct (Yao et al., ICLR 2023) · LangGraph · Temporal · Camunda · Eval Pipeline</text>
+      </svg>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 580" width="100%" height="100%">
+<style>text { font-family: "JetBrains Mono", "Courier New", monospace; }</style>
+
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#020617"/>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+
+        <!-- Step 1 -->
+        <rect x="30" y="30" width="280" height="70" rx="8" fill="rgba(8, 51, 68, 0.35)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="45" y="52" fill="#22d3ee" font-size="9" font-weight="600">Step 1</text>
+        <text x="170" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">从只读场景起步</text>
+        <text x="170" y="75" fill="#94a3b8" font-size="8" text-anchor="middle">知识问答 · 制度查询 · 经营分析 · 工单总结</text>
+        <text x="170" y="92" fill="#22d3ee" font-size="7" text-anchor="middle">价值可验证 · 风险可控 · 跑通 D→I→K 三层</text>
+
+        <line x1="310" y1="65" x2="345" y2="65" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 2 -->
+        <rect x="350" y="30" width="280" height="70" rx="8" fill="rgba(6, 78, 59, 0.35)" stroke="#34d399" stroke-width="2"/>
+        <text x="365" y="52" fill="#34d399" font-size="9" font-weight="600">Step 2</text>
+        <text x="490" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">复用已有数仓和 BI</text>
+        <text x="490" y="75" fill="#94a3b8" font-size="8" text-anchor="middle">Text-to-SQL + 语义层约束指标口径</text>
+        <text x="490" y="92" fill="#34d399" font-size="7" text-anchor="middle">继承数据治理成果 · 不重建数据管道</text>
+
+        <line x1="630" y1="65" x2="665" y2="65" stroke="#34d399" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 3 -->
+        <rect x="670" y="30" width="280" height="70" rx="8" fill="rgba(76, 29, 149, 0.35)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="685" y="52" fill="#a78bfa" font-size="9" font-weight="600">Step 3</text>
+        <text x="810" y="55" fill="white" font-size="12" font-weight="600" text-anchor="middle">复用知识库和 SOP</text>
+        <text x="810" y="75" fill="#94a3b8" font-size="8" text-anchor="middle">制度文档 → RAG + 可执行流程指令</text>
+        <text x="810" y="92" fill="#a78bfa" font-size="7" text-anchor="middle">不只是"知道"流程，而是能"执行"流程</text>
+
+        <!-- Curved arrow Step 3 → Step 4 (down) -->
+        <path d="M 810 100 L 810 140 Q 810 160 790 160 L 665 160" fill="none" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 4 -->
+        <rect x="350" y="130" width="310" height="80" rx="8" fill="rgba(251, 146, 60, 0.2)" stroke="#fb923c" stroke-width="2"/>
+        <text x="365" y="152" fill="#fb923c" font-size="9" font-weight="600">Step 4</text>
+        <text x="505" y="155" fill="white" font-size="12" font-weight="600" text-anchor="middle">封装成 Skill</text>
+        <text x="505" y="175" fill="#94a3b8" font-size="8" text-anchor="middle">查客户信息 · 生成经营日报 · 创建工单 · 合同风险检查</text>
+        <text x="505" y="195" fill="#fb923c" font-size="8" text-anchor="middle">每个 Skill：输入 Schema / 输出 Schema / 权限 / 失败处理 / 审计</text>
+
+        <line x1="505" y1="210" x2="505" y2="250" stroke="#fb923c" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 5 (center, larger) -->
+        <rect x="200" y="255" width="570" height="100" rx="10" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="2.5"/>
+        <text x="485" y="285" fill="white" font-size="14" font-weight="700" text-anchor="middle">Step 5 — 形成最小闭环</text>
+        <text x="485" y="310" fill="#22d3ee" font-size="9" text-anchor="middle">用户目标 → 检索知识(K) → 查询数据(D/I) → 推理解释(W) → 调用 Skill(W) → 人工确认(P) → 写入系统 → 评估反馈</text>
+        <text x="485" y="332" fill="#fb7185" font-size="8" text-anchor="middle">⚠ 关键门禁：写操作 / 外部通信 / 资金变动 → 必须 Human Approval</text>
+        <text x="485" y="348" fill="#94a3b8" font-size="7" text-anchor="middle">D/I K W P 四层初步打通</text>
+
+        <line x1="485" y1="355" x2="485" y2="400" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 6 -->
+        <rect x="150" y="405" width="670" height="90" rx="10" fill="rgba(136, 19, 55, 0.15)" stroke="#fb7185" stroke-width="2"/>
+        <text x="485" y="435" fill="white" font-size="14" font-weight="700" text-anchor="middle">Step 6 — 升级到多 Agent 协作</text>
+
+        <!-- 4 sub agents in step 6 -->
+        <rect x="170" y="450" width="140" height="35" rx="5" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="240" y="465" fill="white" font-size="9" font-weight="600" text-anchor="middle">数据分析 Agent</text>
+        <text x="240" y="479" fill="#94a3b8" font-size="6" text-anchor="middle">Read All · 不可 Execute</text>
+
+        <rect x="325" y="450" width="140" height="35" rx="5" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="395" y="465" fill="white" font-size="9" font-weight="600" text-anchor="middle">合规 Agent</text>
+        <text x="395" y="479" fill="#94a3b8" font-size="6" text-anchor="middle">Analyze · 拦截标记</text>
+
+        <rect x="480" y="450" width="140" height="35" rx="5" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="550" y="465" fill="white" font-size="9" font-weight="600" text-anchor="middle">执行 Agent</text>
+        <text x="550" y="479" fill="#94a3b8" font-size="6" text-anchor="middle">Propose · 需审批</text>
+
+        <rect x="635" y="450" width="140" height="35" rx="5" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="705" y="465" fill="white" font-size="9" font-weight="600" text-anchor="middle">审批 Agent</text>
+        <text x="705" y="479" fill="#94a3b8" font-size="6" text-anchor="middle">Execute · 确认放行</text>
+
+        <!-- Bottom insight -->
+        <text x="485" y="540" fill="#fb7185" font-size="9" font-weight="600" text-anchor="middle">多 Agent 质量 = 协作边界 + 共享 Purpose · Orchestrator 独占五项决策权 · 权限矩阵约束</text>
+        <text x="485" y="560" fill="#475569" font-size="7" text-anchor="middle">核心原则：复用积累 → Skill 封装 → 最小闭环 → 逐步升级 · 不要一开始就建"企业大脑"</text>
+      </svg>
