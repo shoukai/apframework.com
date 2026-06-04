@@ -1,0 +1,292 @@
+---
+title: 'Agent 的 Tool Call 不是 Function Call：它是一条生产权限请求'
+date: '2026-06-04'
+tags:
+  ['AI Agent', 'Security', 'Tool Call', 'Function Calling', 'Agent Architecture', 'Authorization']
+draft: false
+summary: '整个行业用 "function calling" 来描述模型调用工具，让所有开发者都下意识地把它当函数调用来处理。但工具不是函数——工具背后是数据库、文件系统、邮件服务、生产 API、Shell 和 MCP Server。每一次 Agent 的 tool call，本质上是一次资源授权请求，应该进入授权、审批、审计链路，而不是被 SDK 自动执行。本文是「AI Agent 安全最佳实践 2026」的续篇，专门拆解这个核心判断。'
+images:
+  ['/static/images/2026-06-04-tool-call-not-function-call/pavel-moiseev-ev4QtMIMixc-unsplash.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-06-04-tool-call-not-function-call/pavel-moiseev-ev4QtMIMixc-unsplash.jpg"
+    alt="Agent 的 Tool Call 不是 Function Call"
+  />
+  <figcaption>
+    {'Agent 的 Tool Call 不是 Function Call：它是一条生产权限请求（Photo by '}
+    <a href="https://unsplash.com/@pavelmois?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      {'Pavel Moiseev'}
+    </a>
+    {' on '}
+    <a href="https://unsplash.com/photos/bicyclists-ride-through-a-modern-city-square-ev4QtMIMixc?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">
+      {'Unsplash'}
+    </a>
+    {'）'}
+  </figcaption>
+</figure>
+
+## 目录
+
+<TOCInline toc={props.toc} exclude="概述" toHeading={3} />
+
+> 本文是「[AI Agent 安全最佳实践 2026](/blog/2026-05-23-agent-security-2026)」的续篇，聚焦一个核心判断的深度展开。
+
+我在上一篇「AI Agent 安全最佳实践 2026」里写过一句话：**Agent 的每一次 tool call，本质上是一次资源授权请求，不是一个 function call。** 写的时候就知道，这句话可以单独展开成一篇文章。
+
+因为它触及的是当前 Agent 安全讨论里最根本的认知错位：整个行业用 "function calling" 这个名字来描述模型调用工具，然后所有开发者都下意识地把它当函数调用来处理——传参、执行、返回结果。但工具不是函数。工具背后是数据库、文件系统、邮件服务、生产 API、Shell 和 MCP Server。
+
+每一次 Agent 的 tool call，翻译成安全语言是：某个用户，通过某个 Agent，在某个上下文中，申请对某个资源执行某个动作。它应该进入授权、审批、审计链路，而不是被 SDK 自动执行。
+
+**Function calling 解决的是模型如何表达行动意图。它解决不了这个行动是否被授权。**
+
+这就是本文要拆开来讲的判断。
+
+## 一、最危险的误解，是把 Tool Call 当成 Function Call
+
+OpenAI 的 API 文档里，这个能力叫 function calling，也叫 tool calling。LangChain 里叫 `bind_tools`。LangGraph 里有 `ToolNode`。无论哪个框架，开发者看到的都是一个很自然的模式：给模型一个工具列表，模型返回工具名和参数，你的代码去执行，然后把结果传回去。
+
+这个抽象对开发效率极其友好——不到十行代码就能让模型"调用函数"。但恰恰是这种友好，让人忘记了工具和函数之间的本质区别。
+
+函数是确定性的。它的调用者是业务代码，参数来自受控流程，失败了是 bug，权限在入口处就已经确定了。
+
+工具不是。工具的调用者是受上下文影响的模型——这个上下文可能包含 prompt、网页片段、RAG 检索结果、MCP Server 返回的数据、甚至攻击者精心构造的恶意输入。工具的参数来源不可控。工具失败可能是安全事故，而不是 bug。
+
+真正的问题不是"模型会不会调用函数"，而是"模型请求的动作是否应该被执行"。**调用意图是模型的职责，执行权限是工程系统的职责。** 混淆这两件事，就是把安全交给了最不可靠的那一层。
+
+## 二、OpenAI 的 Function Calling 到底发生了什么
+
+在批判之前，先把这个协议本身讲清楚。因为很多讨论建立在误解之上，以为模型真的在"执行函数"。
+
+OpenAI 的 function calling / tool calling 协议是这样工作的：
+
+1. 你在请求里附带一个工具列表，每个工具包含名称、描述和 JSON Schema 定义参数形状。
+2. 模型根据对话上下文，决定是否调用工具。如果调用，它返回一个结构化的工具调用对象：Chat Completions 里通常是 `tool_calls`，Responses API 里是 `function_call` output item，包含工具名、参数和调用 ID。
+3. **模型到此为止。** 它不执行任何代码。
+4. 你的应用或框架拿到这个工具调用请求，去执行真正的代码——查数据库、调 API、读文件。
+5. 执行结果以 tool output / `function_call_output` 的形式回传给模型。
+6. 模型基于结果继续生成回答，或者继续请求更多工具。
+
+注意第三步和第四步之间的裂缝：**模型只生成一个结构化请求，真正的执行发生在你的应用、你的框架、你的运行时里。**
+
+OpenAI 在协议层面也提供了一些约束手段：`tool_choice` 可以指定必须调用哪个工具、`allowed_tools` 可以限制工具范围、`strict` schema 可以强制参数格式。但这些约束有一个共同特征：它们约束的是**参数形状**，而不是**动作语义**。
+
+Schema 能保证用户 ID 是一个字符串，不能保证这个用户 ID 不应该被操作。Schema 能保证金额是一个数字，不能保证这个金额不应该被退款。
+
+**参数校验和安全授权是两层问题。** 而 function calling 协议只在第一层提供了工具。
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-06-04-tool-call-not-function-call/tool-call-not-function-call-function-calling-flow.svg"
+    alt="Function Calling Protocol Flow"
+  />
+  <figcaption>{'Function calling / tool calling 协议闭环'}</figcaption>
+</figure>
+
+## 三、Function Call 这个比喻，到底遮蔽了什么
+
+现在回到那个根本问题：为什么"像函数"这个比喻有问题。
+
+如果把一次 Agent tool call 和一次普通函数调用放在同一张表里比较，五个维度的差异立刻显现：
+
+| 维度     | 普通函数调用                 | Agent Tool Call                       |
+| -------- | ---------------------------- | ------------------------------------- |
+| 调用者   | 确定性业务代码               | 受上下文影响的模型                    |
+| 参数来源 | 受控流程、类型系统           | prompt、网页、RAG、MCP 返回、历史消息 |
+| 失败性质 | 通常是 bug                   | 可能是安全事故                        |
+| 权限模型 | 入口处完成，调用链路内部可信 | 每次工具执行都可能跨资源边界          |
+| 日志性质 | 调试信息                     | 审计证据                              |
+
+这五行对应的是五种安全假设的崩塌。
+
+第一个崩塌：调用者的确定性。在普通程序里，你调用 `delete_user(id)`，你知道是谁、在哪一行、在什么条件下调用的。Agent 不是这样——同一个 prompt 在不同时刻可能触发完全不同的工具链，而 prompt 本身可能被注入、RAG 内容可能被污染、记忆可能被篡改。**调用意图的生成过程是非确定性的，你不知道模型是怎么走到"我要删这个用户"这一步的。**
+
+第二个崩塌：参数的可信度。普通函数参数来自类型系统、校验层和业务逻辑——在生产代码里，参数经过了层层把关才到达执行函数。Agent 的工具参数可能来自用户输入、网页抓取、MCP Server 返回的任意 JSON、甚至前面工具调用的输出。攻击者不需要绕过你的类型系统，只需要在对话的任何一个环节注入一个合法的参数结构。
+
+第三个崩塌：失败的语义。函数返回 `null` 或抛异常，是 bug。Agent 调用 `send_email` 把一封内部邮件发给了错误的收件人，或者调用 `refund_payment` 退了一笔不该退的款——这不是 bug，这是安全事故。区别在于后果的可逆性：bug 可以修，但邮件发出去就收不回来，退款打出去就不一定能追回。
+
+第四个崩塌：权限的一刀切。传统应用在用户登录时完成权限判断，之后的业务逻辑默认在信任域内运行。Agent 不是——一个 Agent 可能先查询天气（低风险），再读内部文档（中风险），再更新数据库（高风险）。入口处的权限判断覆盖不了这种跨资源、跨危险等级的工具调用序列。
+
+第五个崩塌：日志的审计能力。函数调用的日志通常记录的是"谁、什么时候、调了什么函数、花了多少时间"——这是调试视角。Agent Tool Call 的日志必须记录的是"每次调用是否被授权、参数是否被篡改、拒绝原因是什么、是否经过了人工审批"——这是审计视角。调试日志告诉你"系统做了什么"，审计日志告诉你"系统为什么被允许这么做"。
+
+总结成一句话：**普通函数调用默认发生在可信程序内部；Agent tool call 默认发生在不可信上下文和真实资源之间。** 把后者当前者处理，等于在安全模型里开了一个结构性的盲区。
+
+## 四、工具背后不是函数，是生产能力
+
+上面说的是抽象层面。这一节把风险具体化。
+
+随便列几个常见的 Agent 工具，看看它们背后连接的是什么：
+
+**`read_file`**：看起来只是"读文件"。但文件里可能是密钥配置、客户合同、工资单、内部代码仓库。Agent 不会区分"这个文件能不能读"——它只知道这是一个可用的工具。如果你没有在文件级别做权限控制，Agent 读到的东西可能远超它的合法需要。
+
+**`write_database` / `execute_sql`**：背后是订单表、库存表、账务流水、用户隐私数据。一条 `UPDATE` 语句写错一个 WHERE 条件，影响的不是一行，而是整个生产数据集。
+
+**`send_email`**：这是一个从内部系统向外部世界发送信息的能力。Agent 不会判断"这封邮件应不应该发"——它判断的是"根据上下文，发邮件是不是当前任务的一部分"。而上下文可以被操纵。
+
+**`run_shell` / `execute_code`**：这是最高权限等级的工具之一。Shell 可以访问本机文件系统、网络、环境变量中的凭证、Git 历史、SSH 密钥。一个用 Python 写的"帮我处理数据"请求，在 Agent 的 Shell 里执行的可能是任意命令。
+
+**`call_mcp_server`**：MCP 把风险从单个系统扩展到工具供应链。Agent 调用的 MCP Server 可能来自第三方，其暴露的工具列表、参数 schema 和描述文本都可能成为攻击向量——恶意 MCP Server 可以通过精心设计的工具描述诱导 Agent 调用危险功能。
+
+**`publish_article` / `create_ticket` / `refund_payment`**：这些工具产生的是组织外部可见后果。文章发出去就有了读者。工单创建了就进入了业务流程。退款执行了就涉及财务责任。Agent 不会对后果负责，但你的组织会。
+
+给 Agent 一个工具，不是给它一个函数，**而是给它一把钥匙**。这把钥匙能开哪扇门、有没有时限、用的时候留不留痕、出了问题谁能查到——这些问题在 function call 的思维框架里根本没有对应的概念。
+
+把工具治理看作"功能开发完以后再加的安全层"，是 Agent 落地最常见也最昂贵的错误。正确的顺序是反过来的：**先建治理层，再暴露工具。** 哪怕只有三个工具，也从第一天起强制走 Tool Registry。工具治理是结构层，不是装饰层——如果一开始没有统一入口，后面每个 Agent 各自调用工具，系统会迅速演化成"散落的特权代码"，再想收回来代价极高。
+
+## 五、真正的问题：这次调用是否被授权
+
+说清楚了"为什么不是 function call"，接下来要回答"那应该是什么"。
+
+当前大多数 Agent 系统的权限模型可以概括为一句话：Agent 有 token，所以能调用工具。这是一个二元模型——`canUse(agent, tool)`，回答"能"或"不能"。问题在于，这个模型太粗糙了。
+
+它回答不了这些问题：
+
+- 同一个 Agent，处理用户 A 的请求和处理用户 B 的请求时，权限应该一样吗？
+- 同一个工具，读自己的订单和读别人的订单，风险一样吗？
+- 同一个操作，在凌晨三点的自动化任务里做，和在上班时间的交互式会话里做，审批门槛一样吗？
+
+正确的授权问题不是"Agent 能不能用这个工具"，而是：
+
+> **这个用户、在这个会话、通过这个 Agent、调用这个工具、访问这个资源、在当前上下文中——是否允许？**
+
+拆开来就是六元组：
+
+| 维度         | 问的是什么              | 对应信息                                          |
+| ------------ | ----------------------- | ------------------------------------------------- |
+| **User**     | 原始用户是谁？          | `userId`                                          |
+| **Agent**    | 哪个 Agent 在代理执行？ | `agentId`                                         |
+| **Action**   | 做什么操作？            | read / write / delete / execute / send / publish  |
+| **Tool**     | 通过哪个工具？          | `toolId`（含 MCP Server 标识）                    |
+| **Resource** | 访问哪个资源？          | 文件路径、数据库表、API endpoint、客户 ID、订单号 |
+| **Context**  | 在什么条件下？          | `sessionId`、`riskLevel`、时间窗口、调用频率      |
+
+这六个维度，缺任何一个，授权判断就是不完整的。
+
+举个例子。假设一个客服 Agent 调用 `query_order`，查一个订单。如果只检查"Agent 能不能用 `query_order`"，答案是"能"，因为这是客服 Agent 的核心能力。但真正的问题是：**客服 Agent 代表用户 X，在会话 Y 中，调用 `query_order` 查询订单 Z——允许吗？** 如果订单 Z 不属于用户 X，这个调用就应该被拒绝。而拒绝的判断，依赖的是 Resource 和 User 维度的交叉检查，不是 Agent 和 Tool 的二元关系。
+
+维度越多，开销越大。低风险工具可以简化检查——比如查天气只需要 User + Agent + Tool 就够。但一旦涉及写操作、外部发送或生产数据，六个维度一个都不能少。策略粒度也需要平衡：Context 维度从 `sessionId` + `riskLevel` 两个子维度起步，按需扩展。太细会导致策略爆炸，太粗会失去六元组的意义。
+
+**"Agent 能不能用这个工具"是设计时的配置问题。"这一次、这个资源、这个动作、这个上下文是否允许"是运行时的授权问题。** 前者是 Tool Registry 的职责，后者是 Policy Engine 的职责。两者必须分开——把运行时授权折叠成设计时配置，就是在把安全交给一个永远不会更新的静态白名单。
+
+## 六、工程架构：Tool Gateway 是唯一入口
+
+判断有了，模型有了，下一步是工程落地。
+
+正确的工具调用链路应该长这样：
+
+```text
+LLM / Agent
+  → tool_call request
+  → Tool Gateway（唯一入口）
+    → Schema Validation
+    → Policy Engine（六元组裁决）
+      → 允许 → Tool Executor
+      → 审批 → HITL Service → Tool Executor
+      → 拒绝 → 返回拒绝原因
+    → Audit Trace
+  → Tool Result
+  → LLM
+```
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-06-04-tool-call-not-function-call/tool-call-not-function-call-gateway-architecture.svg"
+    alt="Tool Gateway Architecture"
+  />
+  <figcaption>{'Tool Gateway：工具调用进入授权、审批和审计链路'}</figcaption>
+</figure>
+
+这条链路上有五个关键组件：
+
+**Tool Registry**：登记每一个工具的元信息——名称、描述、参数 JSON Schema、允许调用的 Agent 列表（RBAC）、超时和速率限制、风险等级（low/medium/high/critical）、是否需要人工确认、输出结构、审计日志策略。总共九项。这是"谁能用什么"的设计时定义。
+
+**Tool Gateway**：所有工具调用的唯一入口。不可绕过。只要 Agent 能绕过 Gateway 直连数据库或直接调 HTTP API，前面的权限模型、Token Exchange、审计日志全部失效。**这不是架构建议，而是一个安全约束：Gateway 必须是物理上不可绕过的唯一通道。** Gateway 的职责不是"转发调用"，而是在每次调用前强制执行 Schema Validation → Policy Engine → HITL 这条裁决链。
+
+**Policy Engine**：执行六元组裁决。返回三种结果之一：允许、拒绝、需要审批。Policy Engine 的逻辑是确定性的——同样的输入永远返回同样的输出。不允许模型参与这个裁决过程。
+
+**HITL Service**：处理高风险动作的人工审批流程。关键设计原则：审批触发必须是确定性规则，不能依赖模型判断。不是让模型判断"这个操作有没有风险"，而是让规则判断"这个操作类型在审批清单里吗"。任何 delete、write、send、publish、execute 类型的工具调用，如果在 Tool Registry 里被标记为 high 或 critical 风险等级，自动进入审批队列。原因很简单：如果审批触发规则写在 Prompt 里，攻击者可以通过 Prompt Injection 让模型觉得"这次不需要审批"。确定性代码规则不可被绕过。
+
+**Audit Trace**：记录完整调用链路——userId、agentId、sessionId、traceId、toolId、resource、args hash、policy decision、审批人、执行结果、时间戳。不是在事后补日志，而是在每次调用时同步写入。没有完整的 Audit Trace，安全事故发生后连"谁干的、什么时间、通过哪个 Agent、调了什么工具"都回答不了。
+
+Registry 和 Gateway 的关系值得多说一句。Registry 管的是"谁能用什么"——它是设计时的静态配置。Gateway 管的是"这次调用是否通过"——它是运行时的动态裁决。同一个工具，Agent A 在白名单里、Agent B 不在，这是 Registry 决定的。同一个 Agent、同一个工具，在会话 X 里允许、在会话 Y 里拒绝，这是 Gateway 通过 Policy Engine 裁决的。
+
+## 七、LangChain / LangGraph 并不是问题，它们是接入点
+
+有读者到这里可能会问：我用 LangChain 的 `bind_tools` 和 `tool_calls`，是不是就已经在做你说的这些事了？
+
+不是。LangChain 的 `bind_tools` 做的事情是：把不同模型供应商（OpenAI、Anthropic、Google 等）的工具调用格式统一成一套接口。这解决的是**开发效率问题**，不是**安全问题**。它在帮你更快地让模型"想调用什么"，但没有帮你判断"是否应该执行"。
+
+但这不意味着你要扔掉 LangChain。正确的姿势是把 LangChain 的工具执行节点变成策略执行点：
+
+- 你在 LangChain 里注册的不是真实工具，而是工具的**受控包装器**。
+- 每个包装器在调用真实工具之前，先过 Tool Gateway。
+- LangChain 的 middleware 机制可以拦截工具调用，在模型生成工具调用请求之后、真实执行之前，插入 Policy Engine 检查。
+- 如果 Policy Engine 返回"需要审批"，LangChain 的工具返回一个"等待审批"的状态，而不是实际结果。
+
+LangGraph 在这方面比 LangChain 更有优势。LangGraph 有 state graph、checkpoint、conditional edge 和 interrupt 机制。你可以在高风险工具节点之前设置 interrupt——Agent 执行到这一步时自动暂停，等待人工确认后再继续。这比在 linear chain 里插入审批逻辑更自然，也更不容易被绕过。
+
+关键判断是：**不需要反对 LangChain 或 LangGraph。正确做法是把它们的工具执行节点变成策略执行点。** 框架做的是"让 Agent 能跑起来"，而 Tool Gateway + Policy Engine 做的是"让 Agent 跑不出去"。
+
+## 八、风险分级：不是所有 Tool Call 都需要同样重
+
+如果把六元组授权 + 确定性 HITL + 全链路审计全量应用到每一个工具调用上，确实会过重。查个天气也要走完整审批流程显然不合理。
+
+所以需要分级。工具的风险不是由工具本身单一决定的，而是由它关联的资源和对组织的潜在影响决定的：
+
+| 等级         | 典型工具                                           | 默认策略                                 |
+| ------------ | -------------------------------------------------- | ---------------------------------------- |
+| **Low**      | 天气查询、公开文档搜索、时间日期                   | Schema 校验 + 基础日志                   |
+| **Medium**   | 内部知识库检索、CRM 只读查询、数据分析             | 用户权限检查 + Resource scope 限制       |
+| **High**     | 发送邮件、写入数据库、修改工单、调用内部 API       | Policy Engine 完整六元组 + 审计          |
+| **Critical** | 删除数据、退款、发布内容、执行 Shell、调用外部支付 | 强制 HITL + 二次确认 + trace replay 能力 |
+
+四个等级对应四种治理强度。Low 级别基本就是"传统 API 调用"的安全开销——schema 校验和日志。Medium 级别引入了用户维度和资源维度的交叉检查。High 级别要求完整的六元组裁决。Critical 级别在六元组基础上追加了人工审批和事后回放能力。
+
+分级的目的不是给开发者增加工作量，而是让**风险和控制强度匹配**。每个工具在注册到 Tool Registry 时就需要明确风险等级——这是设计时的决策，不是运行时的判断。同一个工具可能因为访问的资源不同而处于不同等级：`read_file` 读公开文档是 Low，读内部合同是 Medium 或 High，取决于文件的内容敏感度。
+
+## 九、一个最小可落地方案
+
+如果你看完前面的架构觉得"好，但我只有三个工具和一个 Agent，真的要建这么多东西吗"——答案是：不需要一步到位。但需要从第一天就有了正确的结构。
+
+最小方案，七个步骤：
+
+**所有工具必须注册到 Tool Registry。** 哪怕你只有三个工具，也建一个 registry。不需要完整的九项元信息，可以先从名称、描述、Schema、风险等级四项开始。关键是养成"工具不注册不可用"的习惯。结构层的价值不在于内容多丰富，而在于入口是统一的。
+
+**Agent 不直接拿工具函数，只拿工具描述。** Agent 的 prompt 里出现的是工具的 JSON Schema 描述，不是工具的实现引用。模型的职责是选择工具和构造参数，它不需要——也不应该——知道工具是怎么实现的。
+
+**工具执行统一走 Tool Gateway。** 不需要一个完整的企业级网关。一个最简版本可以是一个函数：接收工具调用请求，查 Registry 验证工具存在，查 Policy Engine 做基本授权检查，然后调用真正的工具。关键不是实现有多复杂，而是所有工具调用都经过同一个入口。
+
+**每次调用生成 ToolInvocation 事件。** 不一定要有完整的 OTel trace pipeline。最开始可以把每次调用的 userId、agentId、toolId、action、resource、decision、timestamp 写入结构化日志。这就已经是一种 audit trace 了。
+
+**Policy Engine 至少检查 user + agent + tool + action + resource。** 六元组先上五元，Context 维度等策略复杂了再加。关键是 Policy Engine 的逻辑是确定性的、可测试的——给它相同的输入，永远返回相同的输出。
+
+**高风险工具默认 require_approval = true。** 配置驱动。只要 Registry 里标记了需要审批的工具，Gateway 就不直接执行，而是返回"等待审批"状态。HITL 的实现可以先从最简单的 Slack 通知或内部审批页面开始。
+
+**失败默认 fail closed。** 如果 Policy Engine 无法做出裁决（策略配置缺失，Registry 查询失败），默认拒绝，而不是允许。模型可以重新规划，但每一次新的工具调用都必须重新经过 Gateway，不能靠换参数、换工具绕过授权链路。
+
+这七个步骤的核心思想是一致的：**模型可以决定"想调用什么"，但不能绕过 Gateway 决定"是否执行"。** 这是整个架构的底线。
+
+## 十、Function Calling 是接口，不是安全边界
+
+回到文章开篇那句话。
+
+Function calling 是一个了不起的工程创新。它让语言模型能够稳定表达可执行的行动意图——不只是生成文本，而是表达"我想做这个动作，参数是这些"。这一步的意义相当于从 read-only 到 read-write。
+
+但可执行意图不等于执行权限。
+
+当一个 Agent 系统进入生产环境，当它的工具连接到数据库、邮件服务器、支付网关和 Shell，每一次 tool call 都应该被看作一次授权请求。调用栈上多一层 Policy Engine，不是过度工程，而是安全工程的基本功。多一层 Audit Trace，不是运维的额外负担，而是事后追溯的唯一手段。
+
+安全边界不在 prompt 里，也不在模型里。
+
+**安全边界在工具执行路径上。** 在那条从模型输出工具调用请求到真实代码执行之间的裂缝里。填上这道裂缝——用 Tool Registry、Tool Gateway、Policy Engine、HITL 和 Audit Trace——就是把 Agent 从不设防的"函数调用者"变成一个可控的"权限请求者"。
+
+## 参考资料
+
+1. [OpenAI Function Calling Guide](https://platform.openai.com/docs/guides/function-calling?api-mode=responses)
+2. [OpenAI Using Tools Guide](https://platform.openai.com/docs/guides/tools?api-mode=responses)
+3. [LangChain Tool Calling Flow](https://docs.langchain.com/oss/python/langchain/models)
+4. [LangChain Tool Call Middleware](https://docs.langchain.com/oss/python/langchain/middleware/custom)
+5. [LangGraph Interrupts / HITL](https://docs.langchain.com/oss/python/langgraph/interrupts)
+6. [Microsoft: Defense in depth for autonomous AI agents](https://www.microsoft.com/en-us/security/blog/2026/05/14/defense-in-depth-autonomous-ai-agents/) — 2026 年 5 月
+7. [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="100%" height="100%">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700');
+  text { font-family: 'JetBrains Mono', monospace; }
+</style>
+<defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+<rect width="1000" height="520" fill="#020617" />
+
+        
+
+        <rect  fill="url(#grid)" />
+
+        <!-- Column 1: LLM / Model Side -->
+        <rect x="30" y="60" width="200" height="400" rx="10" fill="rgba(30, 41, 59, 0.3)" stroke="#334155" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="130" y="45" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">LLM / Model</text>
+
+        <!-- Step 1: Tools provided to model -->
+        <rect x="50" y="80" width="160" height="60" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="130" y="105" fill="white" font-size="11" font-weight="600" text-anchor="middle">Tool Definitions</text>
+        <text x="130" y="122" fill="#94a3b8" font-size="9" text-anchor="middle">name + JSON Schema</text>
+
+        <!-- Step 2: Model generates tool_call -->
+        <rect x="50" y="180" width="160" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="130" y="205" fill="white" font-size="11" font-weight="600" text-anchor="middle">Generate tool_call</text>
+        <text x="130" y="222" fill="#94a3b8" font-size="9" text-anchor="middle">name + args + call_id</text>
+
+        <!-- Step 5: Model receives result -->
+        <rect x="50" y="370" width="160" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="130" y="395" fill="white" font-size="11" font-weight="600" text-anchor="middle">Process Result</text>
+        <text x="130" y="412" fill="#94a3b8" font-size="9" text-anchor="middle">generate or call again</text>
+
+        <!-- Column 3: Application / Runtime -->
+        <rect x="290" y="60" width="240" height="400" rx="10" fill="rgba(30, 41, 59, 0.3)" stroke="#334155" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="410" y="45" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">Application / Framework</text>
+
+        <!-- Step 3: App executes tool -->
+        <rect x="310" y="180" width="200" height="60" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="410" y="205" fill="white" font-size="11" font-weight="600" text-anchor="middle">Execute Tool</text>
+        <text x="410" y="222" fill="#94a3b8" font-size="9" text-anchor="middle">real code runs here</text>
+
+        <!-- Step 4: Return result -->
+        <rect x="310" y="370" width="200" height="60" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="410" y="395" fill="white" font-size="11" font-weight="600" text-anchor="middle">Return tool_output</text>
+        <text x="410" y="412" fill="#94a3b8" font-size="9" text-anchor="middle">result → model</text>
+
+        <!-- Column 2: The Gap / Security Boundary -->
+        <rect x="245" y="160" width="30" height="260" rx="4" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <text x="260" y="300" fill="#fbbf24" font-size="8" text-anchor="middle" transform="rotate(-90, 260, 300)">SECURITY GAP</text>
+
+        <!-- Column 4: Real World Resources -->
+        <rect x="590" y="60" width="200" height="400" rx="10" fill="rgba(30, 41, 59, 0.3)" stroke="#334155" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="690" y="45" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">Real Resources</text>
+
+        <rect x="610" y="80" width="160" height="40" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="690" y="100" fill="white" font-size="10" font-weight="600" text-anchor="middle">Database</text>
+        <text x="690" y="113" fill="#94a3b8" font-size="8" text-anchor="middle">PostgreSQL / MySQL</text>
+
+        <rect x="610" y="130" width="160" height="40" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="690" y="150" fill="white" font-size="10" font-weight="600" text-anchor="middle">External API</text>
+        <text x="690" y="163" fill="#94a3b8" font-size="8" text-anchor="middle">REST / gRPC</text>
+
+        <rect x="610" y="180" width="160" height="40" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="690" y="200" fill="white" font-size="10" font-weight="600" text-anchor="middle">File System</text>
+        <text x="690" y="213" fill="#94a3b8" font-size="8" text-anchor="middle">read / write / delete</text>
+
+        <rect x="610" y="230" width="160" height="40" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="690" y="250" fill="white" font-size="10" font-weight="600" text-anchor="middle">Email Service</text>
+        <text x="690" y="263" fill="#94a3b8" font-size="8" text-anchor="middle">SMTP / SendGrid</text>
+
+        <rect x="610" y="280" width="160" height="40" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="690" y="300" fill="white" font-size="10" font-weight="600" text-anchor="middle">Shell / Code Exec</text>
+        <text x="690" y="313" fill="#94a3b8" font-size="8" text-anchor="middle">bash / python / node</text>
+
+        <rect x="610" y="330" width="160" height="40" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="690" y="350" fill="white" font-size="10" font-weight="600" text-anchor="middle">MCP Server</text>
+        <text x="690" y="363" fill="#94a3b8" font-size="8" text-anchor="middle">3rd-party tools</text>
+
+        <!-- Arrows between steps -->
+        <line x1="210" y1="140" x2="308" y2="178" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+        <text x="255" y="155" fill="#94a3b8" font-size="8" text-anchor="middle">① provides tools</text>
+
+        <line x1="410" y1="210" x2="410" y2="368" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="425" y="295" fill="#fbbf24" font-size="8">② executes</text>
+        <text x="425" y="307" fill="#fbbf24" font-size="8">real code</text>
+
+        <line x1="510" y1="210" x2="608" y2="160" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-rose)"/>
+        <text x="555" y="178" fill="#fb7185" font-size="8" text-anchor="middle">accesses</text>
+
+        <line x1="510" y1="400" x2="210" y2="400" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="360" y="393" fill="#94a3b8" font-size="9" text-anchor="middle">③ returns tool_output</text>
+
+        <!-- Critical Annotation -->
+        <rect x="820" y="160" width="150" height="100" rx="6" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="895" y="185" fill="#fbbf24" font-size="9" font-weight="600" text-anchor="middle">⚠️ Critical</text>
+        <text x="895" y="200" fill="#94a3b8" font-size="8" text-anchor="middle">Model never executes.</text>
+        <text x="895" y="214" fill="#94a3b8" font-size="8" text-anchor="middle">Real execution happens</text>
+        <text x="895" y="228" fill="#94a3b8" font-size="8" text-anchor="middle">in App → Resources.</text>
+        <text x="895" y="246" fill="#fb7185" font-size="8" text-anchor="middle">This is where security</text>
+        <text x="895" y="260" fill="#fb7185" font-size="8" text-anchor="middle">must be enforced.</text>
+
+        <!-- Legend -->
+        <text x="50" y="490" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="50" y="500" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="72" y="508" fill="#94a3b8" font-size="8">Model-side (LLM)</text>
+        <rect x="210" y="500" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="232" y="508" fill="#94a3b8" font-size="8">App/Runtime (execution)</text>
+        <line x1="50" y1="520" x2="66" y2="520" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="72" y="523" fill="#94a3b8" font-size="8">Access to real resources</text>
+        <rect x="50" y="530" width="16" height="10" rx="2" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="72" y="538" fill="#94a3b8" font-size="8">Security gap — guard here</text>
+      
+</svg>
