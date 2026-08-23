@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">企业 Agent 的语义核心与控制面：从数据到受控行动的责任链</title>
+  <desc id="desc">数据与映射基础流入语义核心；语义核心通过查询契约向 Agent 提供可信证据；Agent 的行动提案由行动契约和策略控制面裁决后才进入业务系统；查询与执行的证据进入评估和演化层，并反馈到语义与控制定义。</desc>
+  <defs>
+    <style>text{font-family:Arial,'PingFang SC','Noto Sans CJK SC',sans-serif;fill:#172033}.h{font-size:25px;font-weight:700}.s{font-size:18px;font-weight:700}.b{font-size:14px}.tiny{font-size:13px}.muted{fill:#475569}.box{stroke-width:2;rx:16}.arrow{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.feedback{stroke:#0f766e;stroke-width:2.5;stroke-dasharray:7 6;fill:none;marker-end:url(#feedbackArrow)}</style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <marker id="feedbackArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f766e"/></marker>
+  </defs>
+  <rect width="1200" height="720" fill="#f8fafc"/>
+  <text x="55" y="55" class="h">企业 Agent：语义核心与控制面</text>
+  <text x="55" y="82" class="b muted">先以语义定义业务事实，再以策略约束行动；查询和执行证据持续反馈，校准两类定义。</text>
+  <rect x="55" y="116" width="1090" height="96" class="box" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="82" y="151" class="s">数据与映射基础</text><text x="82" y="181" class="b">数据产品 · 事件流 · 主数据 · 业务系统 · 实体 ID 对齐 · 血缘 · 新鲜度</text>
+  <path d="M190 212 V270" class="arrow"/><text x="205" y="246" class="tiny muted">权威来源与映射</text>
+  <rect x="55" y="274" width="255" height="172" class="box" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="80" y="310" class="s">1. 语义核心</text><text x="80" y="342" class="b">业务对象、指标、关系</text><text x="80" y="368" class="b">时间口径、合法 Join</text><text x="80" y="405" class="b muted">定义“什么是真的、怎样计算”</text>
+  <path d="M310 360 H350" class="arrow"/><text x="316" y="344" class="tiny muted">可用口径</text>
+  <rect x="354" y="296" width="175" height="128" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
+  <text x="376" y="330" class="s">2. Query</text><text x="376" y="354" class="s">Contract</text><text x="376" y="389" class="tiny muted">受限输入 · 证据输出</text>
+  <path d="M529 360 H568" class="arrow"/><text x="532" y="344" class="tiny muted">可信证据</text>
+  <rect x="572" y="274" width="195" height="172" class="box" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="598" y="310" class="s">3. Agent</text><text x="598" y="342" class="b">读取证据、解释影响</text><text x="598" y="368" class="b">生成行动提案</text><text x="598" y="405" class="b muted">表达意图，不裁决权限</text>
+  <path d="M767 360 H806" class="arrow"/><text x="771" y="344" class="tiny muted">动作提案</text>
+  <rect x="810" y="274" width="335" height="172" class="box" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="836" y="310" class="s">4. 控制面：Action Contract + Policy</text><text x="836" y="342" class="b">前置条件 · dry-run · 审批 · 幂等 · 补偿</text><text x="836" y="368" class="b">身份委派 · 范围 · 风险 · 允许 / 拒绝 / 审批</text><text x="836" y="405" class="b muted">规定“怎样做”，并裁决“能否在此刻做”</text>
+  <path d="M977 446 V490" class="arrow"/><text x="992" y="473" class="tiny muted">允许 / 审批后</text>
+  <rect x="810" y="494" width="335" height="66" class="box" fill="#fff" stroke="#64748b"/><text x="836" y="534" class="s">5. 业务系统执行</text>
+  <path d="M977 560 V592" class="arrow"/><text x="992" y="582" class="tiny muted">执行事实</text>
+  <rect x="55" y="596" width="1090" height="82" class="box" fill="#ecfdf5" stroke="#059669"/>
+  <text x="82" y="630" class="s">证据、评估与演化层</text><text x="82" y="656" class="b">查询来源与数据快照 · 策略决定与审批记录 · 执行轨迹 · Golden Cases · 回归评估 · Owner · 版本与变更</text>
+  <path d="M250 596 V548 H182 V446" class="feedback"/><text x="267" y="550" class="tiny" fill="#0f766e">版本、评估与变更反馈</text>
+  <path d="M720 596 V548 H976 V446" class="feedback"/>
+</svg>

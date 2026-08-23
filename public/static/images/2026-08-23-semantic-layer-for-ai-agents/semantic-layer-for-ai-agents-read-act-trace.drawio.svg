@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">仓库延误场景的读建议执行闭环</title><desc id="desc">延误事件经由语义核心得到影响评估，Agent 生成建议，网关和策略控制审批与行动，最终审计和反馈。</desc>
+  <defs><style>text{font-family:Arial,'PingFang SC','Noto Sans CJK SC',sans-serif;fill:#172033}.h{font-size:24px;font-weight:700}.s{font-size:17px;font-weight:700}.b{font-size:14px}.muted{fill:#475569}.lane{stroke:#cbd5e1;stroke-width:2}.arrow{stroke:#475569;stroke-width:2.4;fill:none;marker-end:url(#a)}</style><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker></defs>
+  <rect width="1200" height="720" fill="#f8fafc"/><text x="52" y="55" class="h">仓库延误：从可信读取到受控执行</text>
+  <g class="lane"><line x1="145" y1="130" x2="145" y2="665"/><line x1="385" y1="130" x2="385" y2="665"/><line x1="625" y1="130" x2="625" y2="665"/><line x1="865" y1="130" x2="865" y2="665"/><line x1="1080" y1="130" x2="1080" y2="665"/></g>
+  <g class="s"><text x="95" y="105">事件与数据</text><text x="330" y="105">语义核心</text><text x="579" y="105">Agent</text><text x="805" y="105">网关与策略</text><text x="1015" y="105">营销系统</text></g>
+  <rect x="72" y="155" width="146" height="52" rx="10" fill="#e0f2fe" stroke="#0284c7"/><text x="88" y="185" class="b">确认 Chicago 延误</text><path d="M218 181 H370" class="arrow"/><text x="240" y="169" class="b muted">事件 ID、状态、时间</text>
+  <rect x="300" y="235" width="170" height="62" rx="10" fill="#ede9fe" stroke="#7c3aed"/><text x="319" y="261" class="b">解析“受影响订单”</text><text x="319" y="281" class="b">与 VIP 口径</text><path d="M470 266 H610" class="arrow"/>
+  <rect x="550" y="318" width="150" height="56" rx="10" fill="#dbeafe" stroke="#2563eb"/><text x="568" y="342" class="b">生成影响评估</text><text x="568" y="362" class="b">与证据说明</text><path d="M700 346 H850" class="arrow"/>
+  <rect x="785" y="402" width="160" height="61" rx="10" fill="#fff7ed" stroke="#ea580c"/><text x="804" y="428" class="b">策略裁决与审批</text><text x="804" y="448" class="b">范围、权限、阈值</text><path d="M945 432 H1065" class="arrow"/>
+  <rect x="992" y="487" width="160" height="56" rx="10" fill="#fee2e2" stroke="#dc2626"/><text x="1010" y="511" class="b">暂停活动或拒绝</text><text x="1010" y="531" class="b">写入幂等与回滚信息</text>
+  <path d="M1080 554 V600 H145 V216" class="arrow"/><text x="440" y="625" class="b muted">审计记录、数据快照、语义版本、审批结论与执行结果进入反馈闭环</text>
+</svg>

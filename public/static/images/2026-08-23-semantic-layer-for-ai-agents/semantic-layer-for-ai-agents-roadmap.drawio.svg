@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="470" viewBox="0 0 1200 470" role="img" aria-labelledby="title desc">
+  <title id="title">从单一业务决策建设语义层</title><desc id="desc">六步路线图：选择决策、建立最小词汇、完成映射、编译契约、写入控制、持续验证。</desc>
+  <defs><style>text{font-family:Arial,'PingFang SC','Noto Sans CJK SC',sans-serif;fill:#172033}.h{font-size:24px;font-weight:700}.n{font-size:24px;font-weight:700;fill:#fff}.s{font-size:16px;font-weight:700}.b{font-size:13px}.muted{fill:#475569}.arrow{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#a)}</style><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+  <rect width="1200" height="470" fill="#f8fafc"/><text x="55" y="56" class="h">从一个业务决策开始建设语义层</text><text x="55" y="84" class="b muted">每一步都产生可审阅的 artifact；先验证读取，再逐步开放建议与行动。</text>
+  <g>
+    <path d="M208 215 H260 M388 215 H440 M568 215 H620 M748 215 H800 M928 215 H980" class="arrow"/>
+    <circle cx="145" cy="215" r="63" fill="#2563eb"/><text x="137" y="223" class="n">1</text><text x="96" y="310" class="s">选择决策</text><text x="76" y="334" class="b">价值、风险、禁止项</text>
+    <circle cx="325" cy="215" r="63" fill="#7c3aed"/><text x="317" y="223" class="n">2</text><text x="274" y="310" class="s">最小词汇</text><text x="250" y="334" class="b">对象、指标、Owner</text>
+    <circle cx="505" cy="215" r="63" fill="#0891b2"/><text x="497" y="223" class="n">3</text><text x="452" y="310" class="s">映射与证明</text><text x="432" y="334" class="b">来源、ID、质量、新鲜度</text>
+    <circle cx="685" cy="215" r="63" fill="#059669"/><text x="677" y="223" class="n">4</text><text x="630" y="310" class="s">编译契约</text><text x="606" y="334" class="b">查询、行动、补偿</text>
+    <circle cx="865" cy="215" r="63" fill="#d97706"/><text x="857" y="223" class="n">5</text><text x="810" y="310" class="s">写入控制</text><text x="794" y="334" class="b">策略、审批、审计</text>
+    <circle cx="1045" cy="215" r="63" fill="#dc2626"/><text x="1037" y="223" class="n">6</text><text x="987" y="310" class="s">持续验证</text><text x="973" y="334" class="b">Golden cases、回归、运营</text>
+  </g>
+  <rect x="150" y="385" width="900" height="44" rx="14" fill="#e2e8f0"/><text x="248" y="413" class="s">成熟度路径：可信读取 → 有证据的建议 → 受治理的执行 → 可持续演化的业务能力</text>
+</svg>
