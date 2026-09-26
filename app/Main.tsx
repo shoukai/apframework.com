@@ -18,7 +18,7 @@ export default function Home({ posts }) {
             <div className="h-80 md:h-[28rem]">
               <Image
                 src="/static/images/main.jpeg"
-                alt="Shoukai Discovery Tour"
+                alt="Discovery Tour"
                 fill
                 className="object-cover object-center"
                 priority
@@ -33,10 +33,10 @@ export default function Home({ posts }) {
               
               <div className="bg-black/20 backdrop-blur-md p-5 md:p-6 rounded-xl max-w-xl border border-white/10 shadow-xl">
                 <h1 className="text-3xl font-normal leading-9 tracking-tight text-white sm:text-4xl sm:leading-10 md:text-5xl md:leading-14 mb-3">
-                  Shoukai Discovery Tour
+                  Discovery Tour
                 </h1>
                 <p className="text-lg leading-7 text-gray-100">
-                  互联网架构 | 技术管理 | AI 技术探索 | 终身阅读
+                  架构演进 | AI 探索 | 行业洞察 | 终身阅读
                 </p>
               </div>
             </div>
