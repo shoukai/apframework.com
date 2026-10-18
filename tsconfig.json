@@ -18,7 +18,9 @@
     "baseUrl": ".",
     "paths": {
       "@/components/*": ["components/*"],
+      "@/config/*": ["config/*"],
       "@/data/*": ["data/*"],
+      "@/lib/*": ["lib/*"],
       "@/layouts/*": ["layouts/*"],
       "@/css/*": ["css/*"],
       "contentlayer/generated": ["./.contentlayer/generated"]

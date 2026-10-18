@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next'
-import { allBlogs, allAuthors } from 'contentlayer/generated'
+import { allBlogs, allAuthors, allReadNotes } from 'contentlayer/generated'
 import siteMetadata from '@/data/siteMetadata'
+import books from '@/config/read-books.json'
+import { getReadingYears } from '@/lib/readBooks'
 
 export const dynamic = 'force-static'
 
@@ -18,10 +20,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     }))
 
+  const readNoteRoutes = allReadNotes
+    .filter((note) => !note.draft)
+    .map((note) => ({
+      url: `${siteUrl}/${note.path}`,
+      lastModified: note.date,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }))
+
+  const readingYearRoutes = getReadingYears(books).map(({ year }) => ({
+    url: `${siteUrl}/read/list/${year}`,
+    lastModified: currentDate,
+    changeFrequency: 'monthly' as const,
+    priority: 0.5,
+  }))
+
   // 主要页面路由 - 添加频率和优先级
   const mainRoutes = [
     { route: '', priority: 1.0, changeFrequency: 'daily' as const },
     { route: 'blog', priority: 0.9, changeFrequency: 'daily' as const },
+    { route: 'read', priority: 0.7, changeFrequency: 'monthly' as const },
+    { route: 'read/list', priority: 0.6, changeFrequency: 'monthly' as const },
     { route: 'projects', priority: 0.7, changeFrequency: 'weekly' as const },
     { route: 'tags', priority: 0.6, changeFrequency: 'weekly' as const },
     { route: 'about', priority: 0.5, changeFrequency: 'monthly' as const },
@@ -50,5 +70,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
 
   // 合并所有路由
-  return [...mainRoutes, ...authorRoutes, ...tagRoutes, ...blogRoutes]
+  return [
+    ...mainRoutes,
+    ...readingYearRoutes,
+    ...authorRoutes,
+    ...tagRoutes,
+    ...blogRoutes,
+    ...readNoteRoutes,
+  ]
 }

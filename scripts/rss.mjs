@@ -1,63 +1,31 @@
-import { writeFileSync, mkdirSync } from 'fs'
-import path from 'path'
+import { writeFileSync, mkdirSync } from 'node:fs'
+import path from 'node:path'
 import { slug } from 'github-slugger'
-import { escape } from 'pliny/utils/htmlEscaper.js'
 import siteMetadata from '../data/siteMetadata.js'
 import tagData from '../app/tag-data.json' with { type: 'json' }
-import { allBlogs } from '../.contentlayer/generated/index.mjs'
-import { sortPosts } from 'pliny/utils/contentlayer.js'
+import { allBlogs, allReadNotes } from '../.contentlayer/generated/index.mjs'
+import { generateRss } from './rss-xml.mjs'
 
 const outputFolder = process.env.EXPORT ? 'out' : 'public'
 
-const generateRssItem = (config, post) => `
-  <item>
-    <guid>${config.siteUrl}/blog/${post.slug}</guid>
-    <title>${escape(post.title)}</title>
-    <link>${config.siteUrl}/blog/${post.slug}</link>
-    ${post.summary && `<description>${escape(post.summary)}</description>`}
-    <pubDate>${new Date(post.date).toUTCString()}</pubDate>
-    <author>${config.email} (${config.author})</author>
-    ${post.tags && post.tags.map((t) => `<category>${t}</category>`).join('')}
-  </item>
-`
+function writeFeed(feedPath, posts, channelPath, channelTitle) {
+  const filePath = path.join(outputFolder, feedPath)
+  mkdirSync(path.dirname(filePath), { recursive: true })
+  writeFileSync(filePath, generateRss(siteMetadata, posts, feedPath, channelPath, channelTitle))
+}
 
-const generateRss = (config, posts, page = 'feed.xml') => `
-  <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-    <channel>
-      <title>${escape(config.title)}</title>
-      <link>${config.siteUrl}/blog</link>
-      <description>${escape(config.description)}</description>
-      <language>${config.language}</language>
-      <managingEditor>${config.email} (${config.author})</managingEditor>
-      <webMaster>${config.email} (${config.author})</webMaster>
-      <lastBuildDate>${new Date(posts[0].date).toUTCString()}</lastBuildDate>
-      <atom:link href="${config.siteUrl}/${page}" rel="self" type="application/rss+xml"/>
-      ${posts.map((post) => generateRssItem(config, post)).join('')}
-    </channel>
-  </rss>
-`
+export default function rss() {
+  const blogs = allBlogs.filter((post) => !post.draft)
+  writeFeed('feed.xml', blogs, 'blog', siteMetadata.title)
+  writeFeed('blog/feed.xml', blogs, 'blog', `${siteMetadata.title} · AI 技术`)
+  writeFeed('read/feed.xml', allReadNotes, 'read', `${siteMetadata.title} · 阅读`)
 
-async function generateRSS(config, allBlogs, page = 'feed.xml') {
-  const publishPosts = allBlogs.filter((post) => post.draft !== true)
-  // RSS for blog post
-  if (publishPosts.length > 0) {
-    const rss = generateRss(config, sortPosts(publishPosts))
-    writeFileSync(`./${outputFolder}/${page}`, rss)
-  }
-
-  if (publishPosts.length > 0) {
-    for (const tag of Object.keys(tagData)) {
-      const filteredPosts = allBlogs.filter((post) => post.tags.map((t) => slug(t)).includes(tag))
-      const rss = generateRss(config, filteredPosts, `tags/${tag}/${page}`)
-      const rssPath = path.join(outputFolder, 'tags', tag)
-      mkdirSync(rssPath, { recursive: true })
-      writeFileSync(path.join(rssPath, page), rss)
+  for (const tag of Object.keys(tagData)) {
+    const tagged = blogs.filter((post) => post.tags?.some((item) => slug(item) === tag))
+    if (tagged.length > 0) {
+      writeFeed(`tags/${tag}/feed.xml`, tagged, `tags/${tag}`, `${siteMetadata.title} · ${tag}`)
     }
   }
-}
 
-const rss = () => {
-  generateRSS(siteMetadata, allBlogs)
-  console.log('RSS feed generated...')
+  console.log('RSS feeds generated...')
 }
-export default rss

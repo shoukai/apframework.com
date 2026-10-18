@@ -21,34 +21,31 @@ export default function Footer() {
           {siteMetadata.twitter && (
             <SocialIcon kind="twitter" href={siteMetadata.twitter} size={6} />
           )}
-          {siteMetadata.x && (
-            <SocialIcon kind="x" href={siteMetadata.x} size={6} />
-          )}
+          {siteMetadata.x && <SocialIcon kind="x" href={siteMetadata.x} size={6} />}
           {siteMetadata.instagram && (
             <SocialIcon kind="instagram" href={siteMetadata.instagram} size={6} />
           )}
           {siteMetadata.threads && (
             <SocialIcon kind="threads" href={siteMetadata.threads} size={6} />
           )}
-          {siteMetadata.jike && (
-            <SocialIcon kind="jike" href={siteMetadata.jike} size={6} />
-          )}
-          {siteMetadata.rss && (
-            <SocialIcon kind="rss" href={siteMetadata.rss} size={6} />
-          )}
+          {siteMetadata.jike && <SocialIcon kind="jike" href={siteMetadata.jike} size={6} />}
+          {siteMetadata.rss && <SocialIcon kind="rss" href={siteMetadata.rss} size={6} />}
         </div>
-        <div className="mb-2 flex space-x-2 text-sm text-gray-500 dark:text-gray-400">
-          <div>{siteMetadata.author}</div>
-          <div>{` • `}</div>
-          <div>{`© 2025`}</div>
-          <div>{` • `}</div>
-          <Link href="/">{siteMetadata.title}</Link>
-        </div>
-        <div className="mb-8 text-sm text-gray-500 dark:text-gray-400">
-          <Link href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=21010602000309">
-            辽公网安备 21010602000309 号
-          </Link>
-        </div>
+        <p className="mb-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+          <span className="whitespace-nowrap">
+            © 2026 <Link href="/">{siteMetadata.title}</Link>
+          </span>
+          <span className="whitespace-nowrap">
+            <span aria-hidden="true">•</span>{' '}
+            <Link href="https://beian.miit.gov.cn/">辽ICP备2020014339号-1</Link>
+          </span>
+          <span className="whitespace-nowrap">
+            <span aria-hidden="true">•</span>{' '}
+            <Link href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=21010602000309">
+              辽公网安备 21010602000309 号
+            </Link>
+          </span>
+        </p>
       </div>
     </footer>
   )
