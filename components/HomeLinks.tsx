@@ -9,10 +9,10 @@ const LINKS = [
 ]
 
 const descriptions = {
-  blog: '知识沉淀的创作空间',
-  projects: '探索与技术创新的实验室',
-  read: '年阅百本的认知进化之旅',
-  about: '终身学习者的故事',
+  blog: '记录技术实践与思考',
+  projects: '正在构建的工具',
+  read: '读过的书与留下的笔记',
+  about: '关于我和这个网站',
 }
 
 export default function HomeLinks() {
@@ -27,8 +27,7 @@ export default function HomeLinks() {
             aria-label={link.title}
             className="relative flex flex-col justify-between h-28 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-sm hover:shadow-lg transition-all duration-300 group hover:border-primary-300 dark:hover:border-primary-700"
           >
-            {/* 左上角大号英文单词 */}
-            <span className="absolute left-4 top-4 text-xl font-extrabold tracking-wide text-gray-300 group-hover:text-primary-400 select-none uppercase">
+            <span className="absolute left-4 top-4 text-xl font-extrabold text-gray-300 group-hover:text-primary-400 select-none">
               {link.title}
             </span>
             {/* 右上角icon */}

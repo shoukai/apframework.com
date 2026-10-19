@@ -19,7 +19,7 @@ const Header = () => {
           <div className="mr-3">
             <ApImage
               src="/static/favicons/Logo.svg"
-              alt="ApFramework Logo"
+              alt="ApFramework 标志"
               width={44}
               height={44}
             />

@@ -18,7 +18,7 @@ export default function Home({ posts }) {
             <div className="h-80 md:h-[28rem]">
               <Image
                 src="/static/images/main.jpeg"
-                alt="Discovery Tour"
+                alt="书桌上的电脑、台灯与绿植"
                 fill
                 className="object-cover object-center"
                 priority
@@ -28,15 +28,15 @@ export default function Home({ posts }) {
             
             <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
               <div className="self-end bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-white shadow-sm border border-white/20">
-                人生在于体会，今时哪及昔时 -- 木心
+                人生在于体会，今时哪及昔时 —— 木心
               </div>
               
               <div className="bg-black/20 backdrop-blur-md p-5 md:p-6 rounded-xl max-w-xl border border-white/10 shadow-xl">
                 <h1 className="text-3xl font-normal leading-9 tracking-tight text-white sm:text-4xl sm:leading-10 md:text-5xl md:leading-14 mb-3">
-                  Discovery Tour
+                  探索与记录
                 </h1>
                 <p className="text-lg leading-7 text-gray-100">
-                  架构演进 | AI 探索 | 行业洞察 | 终身阅读
+                  架构实践 · AI 探索 · 行业观察 · 阅读笔记
                 </p>
               </div>
             </div>
@@ -48,7 +48,7 @@ export default function Home({ posts }) {
           </div>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          {!posts.length && 'No posts found.'}
+          {!posts.length && '暂无文章。'}
           {posts.slice(0, MAX_DISPLAY).map((post) => {
             const { slug, date, title, summary, tags } = post
             return (
@@ -56,7 +56,7 @@ export default function Home({ posts }) {
                 <article>
                   <div className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                     <dl>
-                      <dt className="sr-only">Published on</dt>
+                      <dt className="sr-only">发布日期</dt>
                       <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
                         <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
                       </dd>
@@ -86,9 +86,9 @@ export default function Home({ posts }) {
                         <Link
                           href={`/blog/${slug}`}
                           className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                          aria-label={`Read more: "${title}"`}
+                          aria-label={`阅读全文：${title}`}
                         >
-                          Read more &rarr;
+                          阅读全文 →
                         </Link>
                       </div>
                     </div>
@@ -104,9 +104,9 @@ export default function Home({ posts }) {
           <Link
             href="/blog"
             className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-            aria-label="All posts"
+            aria-label="查看全部文章"
           >
-            All Posts &rarr;
+            查看全部文章 →
           </Link>
         </div>
       )}

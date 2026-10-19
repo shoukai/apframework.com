@@ -43,6 +43,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { route: 'read', priority: 0.7, changeFrequency: 'monthly' as const },
     { route: 'read/list', priority: 0.6, changeFrequency: 'monthly' as const },
     { route: 'projects', priority: 0.7, changeFrequency: 'weekly' as const },
+    { route: 'projects/open-context-clipper', priority: 0.6, changeFrequency: 'monthly' as const },
     { route: 'tags', priority: 0.6, changeFrequency: 'weekly' as const },
     { route: 'about', priority: 0.5, changeFrequency: 'monthly' as const },
   ].map(({ route, priority, changeFrequency }) => ({
