@@ -41,7 +41,7 @@ Google Cloud AI Research 的 [Harness² 项目](https://harness2.github.io/)研�
 
 ![Harness² 论文 Figure 3：左侧任务级递归依次包含基础执行、通用与领域候选、候选探测和组合；右侧经验反思更新改进 Harness，并引导下一任务。](/static/images/2026-10-21-Harness2-Recursive-Agent-Harnessing/harness2-paper-figure-3.png)
 
-*图 1：Harness² 的双层递归流程。图源：Ruiyao Xu 等，《Harness²: Recursive Agent Harnessing for an Open World》，arXiv:2610.14224v1（2026），原论文 Figure 3；[论文图注](https://arxiv.org/html/2610.14224)、[原图文件](https://arxiv.org/html/2610.14224v1/harness2_main_new.png)、[项目官网](https://harness2.github.io/)。图片内容未修改；论文页面标注 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。*
+*图 1：Harness² 的双层递归流程。图源：Ruiyao Xu 等，《Harness²: Recursive Agent Harnessing for an Open World》，arXiv:2610.14224v1（2026），原论文 Figure 3；[论文图注](https://arxiv.org/html/2610.14224)、[查看高清原图](https://arxiv.org/html/2610.14224v1/harness2_main_new.png)、[项目官网](https://harness2.github.io/)。图片内容未修改；论文页面标注 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。*
 
 这张图最好按箭头读，而不是只看中间的几个角色。蓝色区域处理当前的 **Task t**，紫色区域处理下一次改进将参考的经验。它们相连，但保存和传递的对象不同。[论文 §2 与 Figure 3](https://arxiv.org/html/2610.14224)
 
@@ -135,7 +135,7 @@ Google Cloud AI Research 的 [Harness² 项目](https://harness2.github.io/)研�
 
 ![Harness² 与 DeerFlow 的集成方案：业务路由继续选择 DeerFlow 或 Octop，旁路进化服务连接 Harness² 方法核心、DeerFlow 隔离 Worker、执行证据和独立回归发布。](/static/images/2026-10-21-Harness2-Recursive-Agent-Harnessing/harness2-evidence-driven-evolution-integration.drawio.svg)
 
-*图 2：本文建议的职责边界。紫色对应 Harness² 方法核心，蓝色对应现有执行器，绿色对应需要补充的发布门禁；虚线表示证据回流与受控发布。该图是本文工程方案，不是官方交付架构。*
+*图 2：本文建议的职责边界。紫色对应 Harness² 方法核心，蓝色对应现有执行器，绿色对应需要补充的发布门禁；虚线表示证据回流与受控发布。该图是本文工程方案，不是官方交付架构。[查看高清架构图](/static/images/2026-10-21-Harness2-Recursive-Agent-Harnessing/harness2-evidence-driven-evolution-integration.drawio.svg)可放大阅读。*
 
 “独立”不一定意味着第一天就拆成多个微服务。先在一个进化服务里封装提交、查询、取消、预算与幂等；执行 Worker 可单独扩容。Harness² 核心目前以候选 Harness 目录和运行结果目录为主要接口，远程 Worker 因此需要一个桥接层：上传任务快照与候选包，执行后把结构化轨迹、交付物和必要文件落回可追溯的运行目录。这个目录契约跑通后，再考虑分布式存储和服务拆分。[适配协议源码](https://github.com/google-research/harness2/blob/main/harness2/core/spec.py)、[仓库运行说明](https://github.com/google-research/harness2/blob/main/README.md)
 
