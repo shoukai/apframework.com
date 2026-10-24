@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1865" height="960" viewBox="0 0 1865 960" role="img" aria-labelledby="title desc">
+  <title id="title">从来源走向长期知识 · 流程示意</title>
+  <desc id="desc">左侧显示来源材料，右侧依次显示原文快照、证据分析、知识笔记。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7f7f5"/><stop offset="1" stop-color="#e6eaed"/></linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#273341"/><stop offset="1" stop-color="#17212c"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#24303b" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="1865" height="960" fill="url(#background)"/>
+  <circle cx="151" cy="102" r="205" fill="#e0f4ed" opacity=".9"/>
+  <circle cx="1757" cy="873" r="260" fill="#dce8ec" opacity=".8"/>
+  <g filter="url(#shadow)">
+    <rect x="64" y="58" width="1737" height="844" rx="32" fill="#fff"/>
+    <path d="M96 58h1673a32 32 0 0 1 32 32v66H64V90a32 32 0 0 1 32-32Z" fill="#f9fafb"/>
+    <path d="M64 156h1737" stroke="#e6e9ed" stroke-width="2"/>
+    <circle cx="113" cy="108" r="10" fill="#168064" opacity=".55"/>
+    <circle cx="147" cy="108" r="10" fill="#e6cf94"/>
+    <circle cx="181" cy="108" r="10" fill="#b6d4c7"/>
+    <text x="252" y="119" fill="#52606e" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="29" font-weight="600">文章来源 · 工作流程示意</text>
+    <rect x="118" y="207" width="996" height="638" rx="22" fill="#fcfcfb" stroke="#e4e6e8" stroke-width="2"/>
+    <rect x="157" y="248" width="218" height="44" rx="22" fill="#e0f4ed"/>
+    <text x="188" y="278" fill="#168064" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600">文章来源</text>
+    <text x="160" y="361" fill="#25313d" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="47" font-weight="700">从来源走向长期知识</text>
+    <rect x="160" y="400" width="646" height="17" rx="8.5" fill="#d5dce1"/>
+    <rect x="160" y="441" width="783" height="17" rx="8.5" fill="#e0e5e8"/>
+    <rect x="160" y="482" width="719" height="17" rx="8.5" fill="#e0e5e8"/>
+    <rect x="147" y="536" width="871" height="107" rx="14" fill="#e0f4ed"/>
+    <rect x="147" y="536" width="8" height="107" rx="4" fill="#168064"/>
+    <rect x="179" y="567" width="720" height="17" rx="8.5" fill="#168064" opacity=".52"/>
+    <rect x="179" y="601" width="492" height="15" rx="7.5" fill="#168064" opacity=".28"/>
+    <rect x="160" y="689" width="758" height="17" rx="8.5" fill="#e0e5e8"/>
+    <rect x="160" y="730" width="648" height="17" rx="8.5" fill="#e0e5e8"/>
+    <rect x="160" y="771" width="369" height="17" rx="8.5" fill="#e0e5e8"/>
+    <path d="M1114 524h53" stroke="#168064" stroke-width="5" stroke-linecap="round"/>
+    <path d="m1150 506 20 18-20 18" fill="none" stroke="#168064" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="1185" y="207" width="561" height="638" rx="22" fill="url(#panel)"/>
+    <text x="1231" y="277" fill="#e7edf1" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="25" font-weight="600">让每条知识可以回查</text>
+    <path d="M1232 311h466M1232 455h466M1232 600h466M1232 760h466" stroke="#44505e" stroke-width="2"/>
+    
+    <circle cx="1262" cy="382" r="26" fill="#168064"/>
+    <text x="1247" y="391" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="23" font-weight="700">01</text>
+    <text x="1310" y="374" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="32" font-weight="650">原文快照</text>
+    <text x="1310" y="412" fill="#b9c5cf" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22">保留来源与版本</text>
+    
+    <circle cx="1262" cy="527" r="26" fill="#168064"/>
+    <text x="1247" y="536" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="23" font-weight="700">02</text>
+    <text x="1310" y="519" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="32" font-weight="650">证据分析</text>
+    <text x="1310" y="557" fill="#b9c5cf" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22">核对旧笔记与新主张</text>
+    
+    <circle cx="1262" cy="672" r="26" fill="#168064"/>
+    <text x="1247" y="681" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="23" font-weight="700">03</text>
+    <text x="1310" y="664" fill="#fff" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="32" font-weight="650">知识笔记</text>
+    <text x="1310" y="702" fill="#b9c5cf" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22">写下可复用的判断</text>
+    <text x="1232" y="803" fill="#899aa8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="20" letter-spacing="2">VAULT MAINTAINER</text>
+  </g>
+</svg>

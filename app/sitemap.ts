@@ -3,6 +3,7 @@ import { allBlogs, allAuthors, allReadNotes } from 'contentlayer/generated'
 import siteMetadata from '@/data/siteMetadata'
 import books from '@/config/read-books.json'
 import { getReadingYears } from '@/lib/readBooks'
+import projectsData from '@/data/projectsData'
 
 export const dynamic = 'force-static'
 
@@ -43,7 +44,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { route: 'read', priority: 0.7, changeFrequency: 'monthly' as const },
     { route: 'read/list', priority: 0.6, changeFrequency: 'monthly' as const },
     { route: 'projects', priority: 0.7, changeFrequency: 'weekly' as const },
-    { route: 'projects/open-context-clipper', priority: 0.6, changeFrequency: 'monthly' as const },
+    ...projectsData.map((project) => ({
+      route: `projects/${project.slug}`,
+      priority: 0.6,
+      changeFrequency: 'monthly' as const,
+    })),
     { route: 'tags', priority: 0.6, changeFrequency: 'weekly' as const },
     { route: 'about', priority: 0.5, changeFrequency: 'monthly' as const },
   ].map(({ route, priority, changeFrequency }) => ({

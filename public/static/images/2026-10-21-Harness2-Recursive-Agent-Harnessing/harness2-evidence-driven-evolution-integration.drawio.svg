@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1240" height="640" viewBox="0 0 1240 640" role="img" aria-labelledby="title desc">
   <title id="title">Harness² 接入 DeerFlow 的独立进化服务方案</title>
-  <desc id="desc">业务路由维持 DeerFlow 和 Octop 两个独立执行器；旁路进化服务由 Harness² 方法核心、DeerFlow 隔离实验 Worker、证据记录和独立回归发布门组成。运行证据反馈方法核心，通过回归的不可变版本用于后续 DeerFlow 生产任务。</desc>
+  <desc id="desc">DeerFlow 承担现有业务生产执行；旁路进化服务由 Harness² 方法核心、DeerFlow 隔离实验 Worker、证据记录和独立回归发布门组成。运行证据反馈方法核心，通过回归的不可变版本用于后续 DeerFlow 生产任务。</desc>
   <defs>
     <style>
       text{font-family:Arial,'PingFang SC','Noto Sans CJK SC',sans-serif;fill:#172033}
@@ -21,18 +21,14 @@
   <text x="48" y="78" class="subtitle">本文工程方案。紫色为 Harness² 方法核心；蓝色为现有执行器；绿色为需要新增的生产门禁。</text>
 
   <rect x="48" y="108" width="1144" height="158" rx="20" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
-  <text x="74" y="138" class="lane" fill="#1d4ed8">现有业务执行</text>
-  <rect x="74" y="164" width="220" height="73" class="box" fill="#ffffff" stroke="#60a5fa"/>
-  <text x="96" y="193" class="boxTitle">业务任务路由</text>
-  <text x="96" y="219" class="body">根据任务选择执行器</text>
-  <rect x="444" y="164" width="224" height="73" class="box" fill="#dbeafe" stroke="#3b82f6"/>
-  <text x="468" y="193" class="boxTitle">DeerFlow 生产执行</text>
-  <text x="468" y="219" class="body">固定已发布版本</text>
-  <rect x="847" y="164" width="224" height="73" class="box" fill="#dbeafe" stroke="#3b82f6"/>
-  <text x="878" y="193" class="boxTitle">Octop 生产执行</text>
-  <text x="878" y="219" class="body">维持独立适配</text>
-  <path d="M294 198 H438" class="arrow"/>
-  <path d="M294 216 H365 V250 H805 V216 H841" class="arrow"/>
+  <text x="74" y="138" class="lane" fill="#1d4ed8">现有业务执行：DeerFlow</text>
+  <rect x="190" y="164" width="285" height="73" class="box" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="215" y="193" class="boxTitle">业务任务入口</text>
+  <text x="215" y="219" class="body">接收任务与已发布配置</text>
+  <rect x="717" y="164" width="285" height="73" class="box" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="741" y="193" class="boxTitle">DeerFlow 生产执行</text>
+  <text x="741" y="219" class="body">固定已发布 Harness 版本</text>
+  <path d="M475 200 H711" class="arrow"/>
 
   <text x="74" y="313" class="lane" fill="#7c3aed">独立进化服务：先接 DeerFlow</text>
   <text x="845" y="313" class="note">任务快照与候选配置进入旁路实验</text>
@@ -63,8 +59,8 @@
   <path d="M858 420 H911" class="arrow"/>
   <path d="M747 481 V523 H184 V487" class="feedback"/>
   <text x="315" y="546" class="note">运行证据回到下一次编辑与经验反思</text>
-  <path d="M1028 359 V293 H556 V244" class="publish"/>
-  <text x="620" y="281" class="note">通过回归的版本供后续生产任务使用</text>
+  <path d="M1028 359 V293 H860 V244" class="publish"/>
+  <text x="639" y="281" class="note">通过回归的版本供后续生产任务使用</text>
 
-  <text x="48" y="601" class="note">图中服务协议、Worker、回归和版本发布为本文建议；Octop 可在相同协议稳定后再增加适配器。</text>
+  <text x="48" y="601" class="note">图中服务协议、实验 Worker、独立回归与版本发布均为本文建议，尚需结合业务任务验证。</text>
 </svg>

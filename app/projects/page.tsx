@@ -1,15 +1,16 @@
 import Image from '@/components/Image'
 import Link from '@/components/Link'
 import projectsData from '@/data/projectsData'
+import type { Project } from '@/data/projectsData'
 import siteMetadata from '@/data/siteMetadata'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '项目',
-  description: 'Shoukai 正在构建的工具与项目',
+  description: 'Shoukai 正在构建的工具与 Agent 技能',
   openGraph: {
     title: '项目',
-    description: 'Shoukai 正在构建的工具与项目',
+    description: 'Shoukai 正在构建的工具与 Agent 技能',
     url: `${siteMetadata.siteUrl}/projects`,
     siteName: siteMetadata.title,
     locale: siteMetadata.locale,
@@ -17,6 +18,89 @@ export const metadata: Metadata = {
     images: ['/static/images/projects-hero.webp'],
   },
   alternates: { canonical: `${siteMetadata.siteUrl}/projects` },
+}
+
+const sections = [
+  {
+    kind: 'tool',
+    id: 'tools-heading',
+    title: '工具',
+    description: '解决日常工作中的具体问题，让内容更容易留在自己手中。',
+  },
+  {
+    kind: 'skill',
+    id: 'skills-heading',
+    title: 'Agent 技能',
+    description: '从文章和图书阅读，到知识编译、技术写作与发布准备。',
+  },
+] as const
+
+function ProjectCard({
+  project,
+  compact,
+  wide,
+}: {
+  project: Project
+  compact: boolean
+  wide: boolean
+}) {
+  const content = (
+    <div
+      className={
+        compact ? 'flex flex-1 flex-col p-5 sm:p-6' : 'flex flex-col justify-center p-6 sm:p-9'
+      }
+    >
+      <p className="text-sm font-medium text-primary-600 dark:text-primary-400">
+        {project.category}
+      </p>
+      <h3
+        className={`mt-3 font-semibold text-gray-900 dark:text-gray-100 ${compact ? 'text-2xl' : 'text-2xl sm:text-3xl'}`}
+      >
+        <Link
+          href={`/projects/${project.slug}`}
+          className="hover:text-primary-600 dark:hover:text-primary-400"
+        >
+          {project.title}
+        </Link>
+      </h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{project.subtitle}</p>
+      <p className={`${compact ? 'mt-4' : 'mt-5'} leading-7 text-gray-600 dark:text-gray-300`}>
+        {project.description}
+      </p>
+      <Link
+        href={`/projects/${project.slug}`}
+        className={`${compact ? 'mt-auto pt-5' : 'mt-6'} inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400`}
+      >
+        了解项目 <span aria-hidden="true">→</span>
+      </Link>
+    </div>
+  )
+
+  const image = (
+    <Link
+      href={`/projects/${project.slug}`}
+      aria-label={`了解 ${project.title}`}
+      className={`${compact ? 'block p-3 sm:p-4' : 'flex items-center p-4 sm:p-6'} bg-slate-100 dark:bg-slate-800`}
+    >
+      <Image
+        src={project.image}
+        alt={project.imageAlt}
+        width={1865}
+        height={960}
+        sizes={compact ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 1024px) 100vw, 55vw'}
+        className="w-full rounded-md border border-slate-200 object-contain shadow-sm dark:border-slate-700"
+      />
+    </Link>
+  )
+
+  return (
+    <article
+      className={`${compact ? 'flex h-full flex-col' : 'grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]'} ${wide ? 'md:col-span-2' : ''} overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900`}
+    >
+      {compact ? image : content}
+      {compact ? content : image}
+    </article>
+  )
 }
 
 export default function Projects() {
@@ -36,7 +120,7 @@ export default function Projects() {
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-9">
             <h1 className="text-4xl font-semibold text-white sm:text-5xl">项目</h1>
             <p className="mt-3 text-base text-gray-100 sm:text-lg">
-              正在做的工具，和它们背后的想法。
+              可复用的工具与技能，以及它们解决的问题。
             </p>
           </div>
           <p className="absolute right-3 top-3 z-10 max-w-[calc(100%-1.5rem)] rounded-sm bg-black/50 px-2.5 py-1.5 text-right text-[11px] leading-4 text-white sm:right-4 sm:top-4">
@@ -62,65 +146,38 @@ export default function Projects() {
         </div>
       </header>
 
-      <section aria-labelledby="projects-heading" className="pt-10">
-        <div className="border-b border-gray-200 pb-7 dark:border-gray-700">
-          <h2
-            id="projects-heading"
-            className="text-2xl font-semibold text-gray-900 dark:text-gray-100"
+      {sections.map((section) => (
+        <section key={section.kind} aria-labelledby={section.id} className="pt-10">
+          <div className="border-b border-gray-200 pb-7 dark:border-gray-700">
+            <h2 id={section.id} className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+              {section.title}
+            </h2>
+            <p className="mt-3 max-w-xl leading-7 text-gray-600 dark:text-gray-400">
+              {section.description}
+            </p>
+          </div>
+          <div
+            className={
+              section.kind === 'skill' ? 'grid gap-6 pt-8 md:grid-cols-2' : 'space-y-8 pt-8'
+            }
           >
-            当前项目
-          </h2>
-          <p className="mt-3 max-w-xl leading-7 text-gray-600 dark:text-gray-400">
-            从实际问题出发，做一些能长期使用的小工具。
-          </p>
-        </div>
-        <div className="pt-8">
-          {projectsData.map((project) => (
-            <article
-              key={project.slug}
-              className="grid overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
-            >
-              <div className="flex flex-col justify-center p-6 sm:p-9">
-                <p className="text-sm font-medium text-primary-600 dark:text-primary-400">
-                  {project.category}
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100 sm:text-3xl">
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    {project.title}
-                  </Link>
-                </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{project.subtitle}</p>
-                <p className="mt-5 leading-7 text-gray-600 dark:text-gray-300">
-                  {project.description}
-                </p>
-                <Link
-                  href={`/projects/${project.slug}`}
-                  className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                >
-                  了解项目 <span aria-hidden="true">→</span>
-                </Link>
-              </div>
-              <Link
-                href={`/projects/${project.slug}`}
-                aria-label={`了解 ${project.title}`}
-                className="flex items-center bg-slate-100 p-4 dark:bg-slate-800 sm:p-6"
-              >
-                <Image
-                  src={project.image}
-                  alt={project.imageAlt}
-                  width={1865}
-                  height={960}
-                  sizes="(max-width: 1024px) 100vw, 55vw"
-                  className="w-full rounded-md border border-slate-200 object-contain shadow-sm dark:border-slate-700"
-                />
-              </Link>
-            </article>
-          ))}
-        </div>
-      </section>
+            {projectsData
+              .filter((project) => project.kind === section.kind)
+              .map((project, index, group) => {
+                const wide =
+                  section.kind === 'skill' && group.length % 2 === 1 && index === group.length - 1
+                return (
+                  <ProjectCard
+                    key={project.slug}
+                    project={project}
+                    compact={section.kind === 'skill' && !wide}
+                    wide={wide}
+                  />
+                )
+              })}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }
