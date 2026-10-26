@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+<rect width="1200" height="520" fill="#f7f9fc"/>
+<text x="60" y="55" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#172033">从 LOOP 到 CyclicGraph Engine</text>
+<text x="60" y="88" font-family="Arial, sans-serif" font-size="16" fill="#596579">每次架构重构，都是对上一个版本暴露出的真实问题的回应</text>
+<line x1="150" y1="270" x2="1050" y2="270" stroke="#9aa8bd" stroke-width="4"/>
+<polygon points="1050,270 1035,261 1035,279" fill="#9aa8bd"/>
+<g font-family="Arial, sans-serif">
+<rect x="80" y="140" rx="14" width="290" height="260" fill="#ffffff" stroke="#d65a4a" stroke-width="3"/>
+<text x="110" y="180" font-size="22" font-weight="700" fill="#b33f32">V1 · LOOP</text>
+<text x="110" y="216" font-size="17" fill="#172033">一条时间线，串行循环</text>
+<text x="110" y="260" font-size="16" fill="#344054">• 定时触发</text>
+<text x="110" y="290" font-size="16" fill="#344054">• 检查、分析、改代码</text>
+<text x="110" y="320" font-size="16" fill="#344054">• 训练后 keep / reset</text>
+<text x="110" y="362" font-size="15" fill="#7a4250">暴露：上下文膨胀、等待、</text>
+<text x="110" y="385" font-size="15" fill="#7a4250">探索只能沿一条路径前进</text>
+<circle cx="150" cy="270" r="8" fill="#d65a4a"/>
+<rect x="455" y="140" rx="14" width="290" height="260" fill="#ffffff" stroke="#4f83cc" stroke-width="3"/>
+<text x="485" y="180" font-size="22" font-weight="700" fill="#3268aa">V2 · 状态机</text>
+<text x="485" y="216" font-size="17" fill="#172033">会话可以退出，状态不会丢</text>
+<text x="485" y="260" font-size="16" fill="#344054">• 新会话异步触发</text>
+<text x="485" y="290" font-size="16" fill="#344054">• JSON 保存最小决策状态</text>
+<text x="485" y="320" font-size="16" fill="#344054">• Monitor / Iterator 分工</text>
+<text x="485" y="362" font-size="15" fill="#3f628d">解决：长训练等待、上下文</text>
+<text x="485" y="385" font-size="15" fill="#3f628d">遗忘和断点恢复</text>
+<circle cx="600" cy="270" r="8" fill="#4f83cc"/>
+<rect x="830" y="140" rx="14" width="290" height="260" fill="#ffffff" stroke="#4b9b78" stroke-width="3"/>
+<text x="860" y="180" font-size="22" font-weight="700" fill="#2d7d5d">V3 · 图探索</text>
+<text x="860" y="216" font-size="17" fill="#172033">路径可分叉，也必须收拢</text>
+<text x="860" y="260" font-size="16" fill="#344054">• Spawn：拆互斥假设</text>
+<text x="860" y="290" font-size="16" fill="#344054">• 隔离：独立执行验证</text>
+<text x="860" y="320" font-size="16" fill="#344054">• Converge：比较后决策</text>
+<text x="860" y="362" font-size="15" fill="#387257">目标：提高有效信息量，</text>
+<text x="860" y="385" font-size="15" fill="#387257">而不是只增加实验数量</text>
+<circle cx="975" cy="270" r="8" fill="#4b9b78"/>
+</g>
+<text x="80" y="470" font-family="Arial, sans-serif" font-size="15" fill="#596579">说明：图示为对原文架构演进的解释性重绘，不是美团系统的完整实现图。</text>
+</svg>

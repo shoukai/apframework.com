@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+<rect width="1200" height="650" fill="#f7f9fc"/>
+<text x="60" y="52" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#172033">Spawn-Converge：分叉不是终点，收拢才产生研究价值</text>
+<text x="60" y="84" font-family="Arial, sans-serif" font-size="16" fill="#596579">主 Agent 负责组织探索，子 Agent 负责隔离验证，结果回到决策层</text>
+<g font-family="Arial, sans-serif">
+<rect x="430" y="120" rx="14" width="340" height="90" fill="#ffffff" stroke="#4f83cc" stroke-width="3"/>
+<text x="600" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="#3268aa">主 Agent：当前指标未提升</text>
+<text x="600" y="188" text-anchor="middle" font-size="16" fill="#344054">拆分互斥、差异化假设</text>
+<line x1="600" y1="210" x2="600" y2="255" stroke="#9aa8bd" stroke-width="3"/>
+<line x1="600" y1="255" x2="210" y2="310" stroke="#9aa8bd" stroke-width="3"/>
+<line x1="600" y1="255" x2="600" y2="310" stroke="#9aa8bd" stroke-width="3"/>
+<line x1="600" y1="255" x2="990" y2="310" stroke="#9aa8bd" stroke-width="3"/>
+<polygon points="210,310 225,302 222,318" fill="#9aa8bd"/>
+<polygon points="600,310 592,295 608,295" fill="#9aa8bd"/>
+<polygon points="990,310 975,302 978,318" fill="#9aa8bd"/>
+<rect x="55" y="310" rx="14" width="310" height="150" fill="#ffffff" stroke="#d65a4a" stroke-width="3"/>
+<text x="210" y="350" text-anchor="middle" font-size="19" font-weight="700" fill="#b33f32">子 Agent A</text>
+<text x="210" y="382" text-anchor="middle" font-size="16" fill="#344054">假设：特征不足</text>
+<text x="210" y="414" text-anchor="middle" font-size="15" fill="#596579">独立上下文 / 修改 / 训练</text>
+<text x="210" y="442" text-anchor="middle" font-size="14" fill="#7a4250">只提交原始指标与 diff</text>
+<rect x="445" y="310" rx="14" width="310" height="150" fill="#ffffff" stroke="#d6a13a" stroke-width="3"/>
+<text x="600" y="350" text-anchor="middle" font-size="19" font-weight="700" fill="#a57414">子 Agent B</text>
+<text x="600" y="382" text-anchor="middle" font-size="16" fill="#344054">假设：模型结构不足</text>
+<text x="600" y="414" text-anchor="middle" font-size="15" fill="#596579">独立上下文 / 修改 / 训练</text>
+<text x="600" y="442" text-anchor="middle" font-size="14" fill="#86651b">不读取 A 的中间结论</text>
+<rect x="835" y="310" rx="14" width="310" height="150" fill="#ffffff" stroke="#4b9b78" stroke-width="3"/>
+<text x="990" y="350" text-anchor="middle" font-size="19" font-weight="700" fill="#2d7d5d">子 Agent C</text>
+<text x="990" y="382" text-anchor="middle" font-size="16" fill="#344054">假设：目标定义有问题</text>
+<text x="990" y="414" text-anchor="middle" font-size="15" fill="#596579">独立上下文 / 修改 / 训练</text>
+<text x="990" y="442" text-anchor="middle" font-size="14" fill="#387257">保留与其他分支的差异</text>
+<line x1="210" y1="460" x2="600" y2="515" stroke="#9aa8bd" stroke-width="3"/>
+<line x1="600" y1="460" x2="600" y2="515" stroke="#9aa8bd" stroke-width="3"/>
+<line x1="990" y1="460" x2="600" y2="515" stroke="#9aa8bd" stroke-width="3"/>
+<polygon points="600,515 592,500 608,500" fill="#9aa8bd"/>
+<rect x="365" y="515" rx="14" width="470" height="90" fill="#ffffff" stroke="#6c5bb8" stroke-width="3"/>
+<text x="600" y="553" text-anchor="middle" font-size="20" font-weight="700" fill="#514394">Converge：主 Agent 汇总对比</text>
+<text x="600" y="582" text-anchor="middle" font-size="16" fill="#344054">保留分歧，组合下一轮方向</text>
+</g>
+</svg>
