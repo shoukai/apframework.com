@@ -4,7 +4,12 @@ import AuthorLayout from '@/layouts/AuthorLayout'
 import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 
-export const metadata = genPageMetadata({ title: '关于' })
+export const metadata = genPageMetadata({
+  title: '关于',
+  path: '/about',
+  description:
+    'About Shoukai Huang and ApFramework: software architecture, AI agents, and Agentic Practice.',
+})
 
 export default function Page() {
   const author = allAuthors.find((p) => p.slug === 'default') as Authors

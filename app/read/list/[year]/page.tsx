@@ -2,6 +2,7 @@ import ReadingList from '@/components/read/ReadingList'
 import books from '@/config/read-books.json'
 import siteMetadata from '@/data/siteMetadata'
 import { getReadingYears } from '@/lib/readBooks'
+import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
@@ -17,13 +18,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { year } = await params
-  return {
+  return genPageMetadata({
     title: `${year} 年阅读`,
+    path: `/read/list/${year}`,
+    description: `Shoukai 的 ${year} 年阅读记录、评分与阅读时间。`,
     alternates: {
-      canonical: `${siteMetadata.siteUrl}/read/list/${year}`,
       types: { 'application/rss+xml': `${siteMetadata.siteUrl}/read/feed.xml` },
     },
-  }
+  })
 }
 
 export default async function ReadingYearPage({ params }: Params) {

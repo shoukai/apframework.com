@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-muted" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .title{font-family:sans-serif;font-size:28px;font-weight:700;fill:#0f172a}
+      .subtitle{font-family:sans-serif;font-size:15px;fill:#475569}
+      .stage{font-family:sans-serif;font-size:17px;font-weight:700;fill:#0f172a}
+      .artifact{font-family:monospace;font-size:14px;font-weight:700;fill:#1e3a8a}
+      .detail{font-family:sans-serif;font-size:13px;fill:#334155}
+      .gate{font-family:sans-serif;font-size:13px;font-weight:700;fill:#9a3412}
+      .small{font-family:sans-serif;font-size:12px;fill:#64748b}
+      .stagebox{fill:#eff6ff;stroke:#93c5fd;stroke-width:2}
+      .artifactbox{fill:#ffffff;stroke:#2563eb;stroke-width:2}
+      .gatebox{fill:#fff7ed;stroke:#fb923c;stroke-width:2}
+      .edge{stroke:#2563eb;stroke-width:3;fill:none;marker-end:url(#arrow)}
+      .feedback{stroke:#64748b;stroke-width:2.5;stroke-dasharray:8 7;fill:none;marker-end:url(#arrow-muted)}
+      .human{stroke:#ea580c;stroke-width:2;stroke-dasharray:5 5;fill:none}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#f8fafc"/>
+  <text x="600" y="48" text-anchor="middle" class="title">AI-native SDLC：artifact 驱动的交付闭环</text>
+  <text x="600" y="76" text-anchor="middle" class="subtitle">六个阶段仍然存在，变化发生在阶段交接、控制方式和反馈路径</text>
+
+  <rect x="55" y="110" width="1090" height="535" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="80" y="142" class="small">主流程：每个阶段提交一个可版本化产物，下一阶段读取并继续执行</text>
+
+  <g transform="translate(90 185)">
+    <rect width="280" height="110" rx="16" class="stagebox"/>
+    <text x="140" y="30" text-anchor="middle" class="stage">01 Plan</text>
+    <rect x="30" y="48" width="220" height="34" rx="8" class="artifactbox"/>
+    <text x="140" y="70" text-anchor="middle" class="artifact">intent.md</text>
+    <text x="140" y="100" text-anchor="middle" class="detail">问题 · 结果 · 约束 · 开放问题</text>
+  </g>
+  <g transform="translate(460 185)">
+    <rect width="280" height="110" rx="16" class="stagebox"/>
+    <text x="140" y="30" text-anchor="middle" class="stage">02 Design</text>
+    <rect x="30" y="48" width="220" height="34" rx="8" class="artifactbox"/>
+    <text x="140" y="70" text-anchor="middle" class="artifact">spec.md</text>
+    <text x="140" y="100" text-anchor="middle" class="detail">需求 · 设计 · 规则冲突</text>
+  </g>
+  <g transform="translate(830 185)">
+    <rect width="240" height="110" rx="16" class="stagebox"/>
+    <text x="120" y="30" text-anchor="middle" class="stage">03 Build</text>
+    <rect x="25" y="48" width="190" height="34" rx="8" class="artifactbox"/>
+    <text x="120" y="70" text-anchor="middle" class="artifact">plan.md</text>
+    <text x="120" y="100" text-anchor="middle" class="detail">文件 · 顺序 · 风险 · 证明</text>
+  </g>
+
+  <path d="M 370 240 L 445 240" class="edge"/>
+  <path d="M 740 240 L 815 240" class="edge"/>
+
+  <g transform="translate(830 380)">
+    <rect width="240" height="110" rx="16" class="stagebox"/>
+    <text x="120" y="30" text-anchor="middle" class="stage">04 Test</text>
+    <rect x="20" y="48" width="200" height="34" rx="8" class="artifactbox"/>
+    <text x="120" y="70" text-anchor="middle" class="artifact">code + tests</text>
+    <text x="120" y="100" text-anchor="middle" class="detail">构建 · 测试 · 截图 · eval</text>
+  </g>
+  <g transform="translate(460 380)">
+    <rect width="280" height="110" rx="16" class="stagebox"/>
+    <text x="140" y="30" text-anchor="middle" class="stage">05 Deploy</text>
+    <rect x="30" y="48" width="220" height="34" rx="8" class="artifactbox"/>
+    <text x="140" y="70" text-anchor="middle" class="artifact">PR + review</text>
+    <text x="140" y="100" text-anchor="middle" class="detail">发现 · 修复 · 人工授权</text>
+  </g>
+  <g transform="translate(90 380)">
+    <rect width="280" height="110" rx="16" class="stagebox"/>
+    <text x="140" y="30" text-anchor="middle" class="stage">06 Maintain</text>
+    <rect x="30" y="48" width="220" height="34" rx="8" class="artifactbox"/>
+    <text x="140" y="70" text-anchor="middle" class="artifact">incident → intent.md</text>
+    <text x="140" y="100" text-anchor="middle" class="detail">监控 · 诊断 · 回滚 · 复盘</text>
+  </g>
+
+  <path d="M 950 295 L 950 365" class="edge"/>
+  <path d="M 830 435 L 755 435" class="edge"/>
+  <path d="M 460 435 L 385 435" class="edge"/>
+  <path d="M 230 380 L 230 310" class="edge"/>
+  <path d="M 230 310 C 230 145, 600 125, 950 185" class="feedback"/>
+  <rect x="415" y="126" width="360" height="28" rx="8" fill="#ffffff"/>
+  <text x="595" y="145" text-anchor="middle" class="small">生产问题重新进入 Plan，形成持续反馈</text>
+
+  <g transform="translate(115 545)">
+    <rect width="970" height="70" rx="14" class="gatebox"/>
+    <text x="25" y="28" class="gate">控制层</text>
+    <text x="125" y="28" class="detail">CLAUDE.md：共享上下文</text>
+    <text x="350" y="28" class="detail">Skills：可复用的软约束</text>
+    <text x="585" y="28" class="detail">Hooks：确定性阻断与审批门</text>
+    <text x="25" y="54" class="detail">Human gates：意图、风险、例外和生产授权仍由人判断</text>
+  </g>
+
+  <text x="600" y="704" text-anchor="middle" class="small">来源：Anthropic, The AI-native SDLC playbook；图中结构是对来源流程的概念化表达</text>
+</svg>

@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     images: [siteMetadata.socialBanner],
   },
   alternates: {
+    canonical: `${siteMetadata.siteUrl}/read`,
     types: { 'application/rss+xml': `${siteMetadata.siteUrl}/read/feed.xml` },
   },
 }

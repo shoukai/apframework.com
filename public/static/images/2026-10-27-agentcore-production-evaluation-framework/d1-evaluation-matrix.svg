@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <style>
+      .bg{fill:#ffffff}.title{font:700 26px sans-serif;fill:#1f2937}.sub{font:400 14px sans-serif;fill:#64748b}.head{font:700 15px sans-serif;fill:#ffffff}.row{font:700 15px sans-serif;fill:#1f2937}.cell{font:400 13px sans-serif;fill:#334155}.small{font:400 12px sans-serif;fill:#64748b}.grid{stroke:#cbd5e1;stroke-width:1}.blue{fill:#e8f1fb}.teal{fill:#e7f6f2}.amber{fill:#fff5dc}.purple{fill:#f1ecfb}.slate{fill:#f8fafc}
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1200" height="700"/>
+  <text class="title" x="600" y="42" text-anchor="middle">评估对象 × 生命周期阶段</text>
+  <text class="sub" x="600" y="68" text-anchor="middle">基于文章内容的结构化理解，不是 Amazon Bedrock AgentCore 官方架构图</text>
+
+  <rect x="70" y="105" width="220" height="70" rx="10" fill="#475569"/>
+  <text class="head" x="180" y="135" text-anchor="middle">评估对象</text>
+  <text class="head" x="180" y="158" text-anchor="middle">生命周期动作</text>
+
+  <rect x="290" y="105" width="270" height="70" rx="10" fill="#2563eb"/>
+  <text class="head" x="425" y="135" text-anchor="middle">定义与实验</text>
+  <text class="head" x="425" y="158" text-anchor="middle">Foundation · Experiment</text>
+  <rect x="560" y="105" width="270" height="70" rx="10" fill="#0f766e"/>
+  <text class="head" x="695" y="135" text-anchor="middle">合并与发布</text>
+  <text class="head" x="695" y="158" text-anchor="middle">Merge · Gate · Canary</text>
+  <rect x="830" y="105" width="270" height="70" rx="10" fill="#b45309"/>
+  <text class="head" x="965" y="135" text-anchor="middle">生产与反馈</text>
+  <text class="head" x="965" y="158" text-anchor="middle">Adversary · Drift · Pulse · Loop</text>
+
+  <rect x="70" y="175" width="220" height="135" class="blue"/>
+  <text class="row" x="180" y="214" text-anchor="middle">工具层</text>
+  <text class="cell" x="180" y="241" text-anchor="middle">工具选择 · 参数 · 返回值</text>
+  <text class="cell" x="180" y="264" text-anchor="middle">实体 · SQL · 单位</text>
+  <text class="small" x="180" y="289" text-anchor="middle">确定性检查优先</text>
+  <rect x="290" y="175" width="270" height="135" class="blue"/>
+  <text class="cell" x="425" y="214" text-anchor="middle">建立工具级 golden set</text>
+  <text class="cell" x="425" y="241" text-anchor="middle">比较查询、检索和工具版本</text>
+  <text class="cell" x="425" y="268" text-anchor="middle">定义可判定的真实值</text>
+  <rect x="560" y="175" width="270" height="135" class="blue"/>
+  <text class="cell" x="695" y="214" text-anchor="middle">sentinel 阻断工具回归</text>
+  <text class="cell" x="695" y="241" text-anchor="middle">sandbox replay 与 canary</text>
+  <text class="cell" x="695" y="268" text-anchor="middle">监测上游数据变化</text>
+  <rect x="830" y="175" width="270" height="135" class="blue"/>
+  <text class="cell" x="965" y="214" text-anchor="middle">发现长尾输入与漂移</text>
+  <text class="cell" x="965" y="241" text-anchor="middle">trace 定位具体调用</text>
+  <text class="cell" x="965" y="268" text-anchor="middle">失败样本回流回归集</text>
+
+  <rect x="70" y="310" width="220" height="135" class="teal"/>
+  <text class="row" x="180" y="349" text-anchor="middle">Agent 层</text>
+  <text class="cell" x="180" y="376" text-anchor="middle">事实 · 相关性 · 帮助性</text>
+  <text class="cell" x="180" y="399" text-anchor="middle">指令遵循 · 成本 · 时延</text>
+  <text class="small" x="180" y="424" text-anchor="middle">语义评估与人工校准</text>
+  <rect x="290" y="310" width="270" height="135" class="teal"/>
+  <text class="cell" x="425" y="349" text-anchor="middle">定义业务结果与质量阈值</text>
+  <text class="cell" x="425" y="376" text-anchor="middle">拆解 failure taxonomy</text>
+  <text class="cell" x="425" y="403" text-anchor="middle">比较 prompt / model 版本</text>
+  <rect x="560" y="310" width="270" height="135" class="teal"/>
+  <text class="cell" x="695" y="349" text-anchor="middle">CI 质量与安全门禁</text>
+  <text class="cell" x="695" y="376" text-anchor="middle">CD 逐题阈值与基线</text>
+  <text class="cell" x="695" y="403" text-anchor="middle">生产流量金丝雀</text>
+  <rect x="830" y="310" width="270" height="135" class="teal"/>
+  <text class="cell" x="965" y="349" text-anchor="middle">线上评估与漂移检测</text>
+  <text class="cell" x="965" y="376" text-anchor="middle">dashboard 观察趋势</text>
+  <text class="cell" x="965" y="403" text-anchor="middle">优化 prompt / tool description</text>
+
+  <rect x="70" y="445" width="220" height="135" class="amber"/>
+  <text class="row" x="180" y="484" text-anchor="middle">多 Agent 层</text>
+  <text class="cell" x="180" y="511" text-anchor="middle">路由 · 上下文传递</text>
+  <text class="cell" x="180" y="534" text-anchor="middle">跨 Agent 合成 · 端到端结果</text>
+  <text class="small" x="180" y="559" text-anchor="middle">协作链路整体验收</text>
+  <rect x="290" y="445" width="270" height="135" class="amber"/>
+  <text class="cell" x="425" y="484" text-anchor="middle">建立编排级 golden set</text>
+  <text class="cell" x="425" y="511" text-anchor="middle">定义路由与协作成功标准</text>
+  <text class="cell" x="425" y="538" text-anchor="middle">比较编排方案</text>
+  <rect x="560" y="445" width="270" height="135" class="amber"/>
+  <text class="cell" x="695" y="484" text-anchor="middle">端到端 replay</text>
+  <text class="cell" x="695" y="511" text-anchor="middle">协作回归门禁</text>
+  <text class="cell" x="695" y="538" text-anchor="middle">canary 观察合成质量</text>
+  <rect x="830" y="445" width="270" height="135" class="amber"/>
+  <text class="cell" x="965" y="484" text-anchor="middle">分析完整执行 trace</text>
+  <text class="cell" x="965" y="511" text-anchor="middle">定位跨 Agent 失败</text>
+  <text class="cell" x="965" y="538" text-anchor="middle">反馈进入新的回归保护</text>
+
+  <rect x="70" y="610" width="1030" height="45" rx="8" class="slate" stroke="#cbd5e1"/>
+  <text class="small" x="585" y="638" text-anchor="middle">五个质量维度贯穿每个单元：安全性 · 质量 · 性能 · 成本 · 运营控制</text>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/></marker>
+    <style>
+      .bg{fill:#ffffff}.title{font:700 26px sans-serif;fill:#1f2937}.sub{font:400 14px sans-serif;fill:#64748b}.node{stroke:#cbd5e1;stroke-width:1.5}.t{font:700 16px sans-serif;fill:#1f2937}.s{font:400 13px sans-serif;fill:#475569}.edge{fill:none;stroke:#2563eb;stroke-width:3;marker-end:url(#arrow)}.note{font:400 12px sans-serif;fill:#64748b}
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1000" height="560"/>
+  <text class="title" x="500" y="42" text-anchor="middle">从发现问题到形成回归保护</text>
+  <text class="sub" x="500" y="68" text-anchor="middle">评估、trace、golden set 与反馈动作组成闭环</text>
+
+  <rect class="node" x="390" y="105" width="220" height="82" rx="14" fill="#e8f1fb"/>
+  <text class="t" x="500" y="137" text-anchor="middle">1. 发现</text>
+  <text class="s" x="500" y="163" text-anchor="middle">评估分数下降 / 漂移 / 告警</text>
+
+  <rect class="node" x="720" y="220" width="220" height="82" rx="14" fill="#e7f6f2"/>
+  <text class="t" x="830" y="252" text-anchor="middle">2. 定位</text>
+  <text class="s" x="830" y="278" text-anchor="middle">trace · 工具 · 阶段 · 失败类型</text>
+
+  <rect class="node" x="560" y="390" width="220" height="82" rx="14" fill="#fff5dc"/>
+  <text class="t" x="670" y="422" text-anchor="middle">3. 修复</text>
+  <text class="s" x="670" y="448" text-anchor="middle">prompt · 工具描述 · 路由 · 数据</text>
+
+  <rect class="node" x="220" y="390" width="220" height="82" rx="14" fill="#f1ecfb"/>
+  <text class="t" x="330" y="422" text-anchor="middle">4. 回归</text>
+  <text class="s" x="330" y="448" text-anchor="middle">新样本进入 golden set</text>
+
+  <path class="edge" d="M610 165 C700 170 760 190 795 220"/>
+  <path class="edge" d="M825 302 C810 350 760 380 735 397"/>
+  <path class="edge" d="M560 435 C510 435 475 435 442 435"/>
+  <path class="edge" d="M220 397 C120 330 135 165 390 145"/>
+
+  <rect x="55" y="185" width="255" height="135" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="t" x="182" y="216" text-anchor="middle">质量资产</text>
+  <text class="s" x="182" y="244" text-anchor="middle">golden set</text>
+  <text class="s" x="182" y="268" text-anchor="middle">failure taxonomy</text>
+  <text class="s" x="182" y="292" text-anchor="middle">sentinel cases</text>
+
+  <rect x="55" y="342" width="255" height="90" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="t" x="182" y="375" text-anchor="middle">验证边界</text>
+  <text class="s" x="182" y="401" text-anchor="middle">确定性检查 + 人工校准</text>
+
+  <text class="note" x="500" y="520" text-anchor="middle">概念示意：文章描述了这些机制，但未提供统一的内部实现拓扑。</text>
+</svg>

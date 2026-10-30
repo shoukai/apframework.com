@@ -4,7 +4,11 @@ import { slug } from 'github-slugger'
 import tagData from 'app/tag-data.json'
 import { genPageMetadata } from 'app/seo'
 
-export const metadata = genPageMetadata({ title: '标签', description: '按主题浏览博客文章' })
+export const metadata = genPageMetadata({
+  title: '标签',
+  path: '/tags',
+  description: '按主题浏览 ApFramework 的软件架构与 AI 智能体文章。',
+})
 
 export default async function Page() {
   const tagCounts = tagData as Record<string, number>

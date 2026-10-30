@@ -97,6 +97,26 @@ function createSearchIndex(allBlogs, allReadNotes) {
   }
 }
 
+function getFeaturedImage(doc: { images?: unknown; body: { raw: string } }): string {
+  const images = Array.isArray(doc.images)
+    ? doc.images
+    : typeof doc.images === 'string'
+      ? [doc.images]
+      : []
+  const htmlImage = doc.body.raw.match(/<(?:img|Image)\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i)?.[1]
+  const markdownImage = doc.body.raw.match(/!\[[^\]]*\]\(([^\s)]+)/)?.[1]
+  const image =
+    images.find((value): value is string => typeof value === 'string') ||
+    htmlImage ||
+    markdownImage ||
+    siteMetadata.socialBanner
+
+  const imageUrl = new URL(image, siteMetadata.siteUrl)
+  return imageUrl.protocol === 'https:'
+    ? imageUrl.toString()
+    : new URL(siteMetadata.socialBanner, siteMetadata.siteUrl).toString()
+}
+
 export const Blog = defineDocumentType(() => ({
   name: 'Blog',
   filePathPattern: 'blog/**/*.mdx',
@@ -116,6 +136,7 @@ export const Blog = defineDocumentType(() => ({
   },
   computedFields: {
     ...computedFields,
+    featuredImage: { type: 'string', resolve: getFeaturedImage },
     structuredData: {
       type: 'json',
       resolve: (doc) => ({
@@ -125,7 +146,7 @@ export const Blog = defineDocumentType(() => ({
         datePublished: doc.date,
         dateModified: doc.lastmod || doc.date,
         description: doc.summary,
-        image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
+        image: getFeaturedImage(doc),
         url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
       }),
     },

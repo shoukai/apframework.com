@@ -4,7 +4,8 @@ const siteMetadata = {
   author: 'Shoukai Huang',
   headerText: 'Recording Technology and Life',
   headerTitle: 'ApFramework',
-  description: 'Shoukai 技术博客，软件架构、AI、领域驱动、开源软件、阅读笔记',
+  description:
+    'ApFramework（Agentic Practice）：探索 AI 智能体的架构与实践，分享软件架构、Agent Skills、开源项目与阅读思考。',
   language: 'zh',
   theme: 'system', // system, dark or light
   siteUrl: 'https://apframework.com',
@@ -14,8 +15,8 @@ const siteMetadata = {
   mastodon: 'https://mastodon.social/@mastodonuser',
   email: 'huangshoukai@yeah.net',
   github: 'https://github.com/shoukai',
-  x: 'https://x.com/skhuang315067',
-  // twitter: 'https://x.com/skhuang315067',
+  x: 'https://x.com/apframework',
+  // twitter: 'https://x.com/apframework',
   jike: 'https://okjk.co/dJheTr',
   rss: '/feed.xml',
   // facebook: 'https://facebook.com',
