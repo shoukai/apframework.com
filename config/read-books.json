@@ -1,5 +1,145 @@
 [
   {
+    "id": 1054,
+    "title": "精益创业 2.0",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/35156081/"
+  },
+  {
+    "id": 1055,
+    "title": "淘宝交付之道",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/36244805/"
+  },
+  {
+    "id": 1056,
+    "title": "MCP极简开发",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/37376258/"
+  },
+  {
+    "id": 1057,
+    "title": "精益创业（全新修订版）",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/38438987/"
+  },
+  {
+    "id": 1058,
+    "title": "三国打工人",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/38644926/"
+  },
+  {
+    "id": 1059,
+    "title": "高效能工作法",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38935289/"
+  },
+  {
+    "id": 1060,
+    "title": "减压脑科学",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/35599770/"
+  },
+  {
+    "id": 1061,
+    "title": "学习脑科学",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/36110136/"
+  },
+  {
+    "id": 1062,
+    "title": "大脑的24小时",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38616689/"
+  },
+  {
+    "id": 1063,
+    "title": "理科思维读书法",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/36207653/"
+  },
+  {
+    "id": 1064,
+    "title": "数据架构知识体系指南",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/38541987/"
+  },
+  {
+    "id": 1065,
+    "title": "全球经济新转型",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38571814/"
+  },
+  {
+    "id": 1066,
+    "title": "丰田一页纸极简整理法",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/34460418/"
+  },
+  {
+    "id": 1067,
+    "title": "中产觉醒",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38575186/"
+  },
+  {
+    "id": 1068,
+    "title": "因果AI",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38574985/"
+  },
+  {
+    "id": 1069,
+    "title": "后劲",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38631821/"
+  },
+  {
+    "id": 1070,
+    "title": "安心之道",
+    "readDate": "2026-11-01",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/37305245/"
+  },
+  {
+    "id": 1071,
+    "title": "李诞工作手册",
+    "readDate": "2026-11-01",
+    "rating": 3,
+    "doubanUrl": "https://book.douban.com/subject/38390184/"
+  },
+  {
+    "id": 1072,
+    "title": "FDE",
+    "readDate": "2026-10-18",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/38922844/"
+  },
+  {
+    "id": 1073,
+    "title": "知识图谱",
+    "readDate": "2026-10-18",
+    "rating": 4,
+    "doubanUrl": "https://book.douban.com/subject/35916084/"
+  },
+  {
     "id": 1051,
     "title": "AI一人公司 : 从0到1搭建可变现的个人商业系统",
     "readDate": "2026-10-18",

@@ -22,11 +22,11 @@ const topics = [
     featuredTitle: '为 AI Agent 构建企业语义层',
   },
   {
-    title: 'Agent Skills 实践',
-    description: '将阅读、知识整理和技术写作方法做成可复用的工具与技能。',
-    href: '/tags/agent-skills',
-    featuredHref: '/blog/essay/2025-12-14-Claude-Agent-Skills',
-    featuredTitle: 'Claude Agent Skills 实践',
+    title: 'Agent 评估与生产质量',
+    description: '从工具调用到端到端回答，理解静默失败与质量反馈。',
+    href: '/tags/agent-evaluation',
+    featuredHref: '/blog/essay/2026-10-27-agentcore-production-evaluation-framework',
+    featuredTitle: 'AgentCore 生产级评估',
   },
 ] as const
 
@@ -65,7 +65,7 @@ const topicIntro = (
 )
 
 export const metadata = genPageMetadata({
-  title: '博客',
+  title: '文章',
   path: '/blog',
   description: '探索 AI 智能体架构、上下文工程、领域建模与软件实践的文章和研究笔记。',
 })

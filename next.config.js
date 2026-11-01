@@ -88,6 +88,16 @@ module.exports = () => {
         },
       ]
     },
+    async redirects() {
+      return [
+        { source: '/tags/ai-agents', destination: '/tags/ai-agent', permanent: true },
+        { source: '/tags/agent', destination: '/tags/ai-agent', permanent: true },
+        { source: '/tags/智能体', destination: '/tags/ai-agent', permanent: true },
+        { source: '/tags/ai代理', destination: '/tags/ai-agent', permanent: true },
+        { source: '/tags/智能代理', destination: '/tags/ai-agent', permanent: true },
+        { source: '/tags/上下文工程', destination: '/tags/context-engineering', permanent: true },
+      ]
+    },
     webpack: (config, options) => {
       config.module.rules.push({
         test: /\.svg$/,

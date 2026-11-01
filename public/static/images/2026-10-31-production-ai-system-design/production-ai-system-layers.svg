@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">生产 AI 系统的职责分层示意</title>
+  <desc id="desc">从上至下为客户端层、入口层、应用编排层、AI 处理层、数据层和运营层。运营层横向支撑各层。</desc>
+  <rect width="1200" height="780" fill="#ffffff"/>
+  <text x="64" y="58" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#17212b">生产 AI 系统：按职责拆分</text>
+  <text x="64" y="91" font-family="Arial, sans-serif" font-size="16" fill="#53616d">结构示意，不代表固定部署拓扑</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="64" y="125" width="1072" height="74" rx="4" fill="#e8f3f6" stroke="#3b7685" stroke-width="2"/>
+    <text x="88" y="157" font-size="20" font-weight="700" fill="#173d49">客户端层</text>
+    <text x="285" y="157" font-size="16" fill="#273640">输入与结果展示；不持有私有密钥，不做特权决策</text>
+
+    <rect x="64" y="215" width="1072" height="74" rx="4" fill="#f1f4f5" stroke="#617680" stroke-width="2"/>
+    <text x="88" y="247" font-size="20" font-weight="700" fill="#263b44">入口层</text>
+    <text x="285" y="247" font-size="16" fill="#273640">认证 · 授权 · 请求校验 · 限流 · 负载均衡</text>
+
+    <rect x="64" y="305" width="1072" height="86" rx="4" fill="#f4efe3" stroke="#9b7b3f" stroke-width="2"/>
+    <text x="88" y="340" font-size="20" font-weight="700" fill="#554322">应用编排层</text>
+    <text x="285" y="340" font-size="16" fill="#3f382b">识别任务、检查权限，选择处理路径</text>
+    <rect x="285" y="353" width="190" height="25" rx="3" fill="#ffffff" stroke="#b8a477"/>
+    <rect x="489" y="353" width="190" height="25" rx="3" fill="#ffffff" stroke="#b8a477"/>
+    <rect x="693" y="353" width="190" height="25" rx="3" fill="#ffffff" stroke="#b8a477"/>
+    <rect x="897" y="353" width="215" height="25" rx="3" fill="#ffffff" stroke="#b8a477"/>
+    <text x="380" y="371" text-anchor="middle" font-size="13" fill="#3f382b">确定性处理</text>
+    <text x="584" y="371" text-anchor="middle" font-size="13" fill="#3f382b">知识检索</text>
+    <text x="788" y="371" text-anchor="middle" font-size="13" fill="#3f382b">业务工具</text>
+    <text x="1004" y="371" text-anchor="middle" font-size="13" fill="#3f382b">人工接管</text>
+
+    <rect x="64" y="407" width="1072" height="74" rx="4" fill="#eaf2e9" stroke="#587a55" stroke-width="2"/>
+    <text x="88" y="439" font-size="20" font-weight="700" fill="#284528">AI 处理层</text>
+    <text x="285" y="439" font-size="16" fill="#273c29">分类 · RAG · 模型路由 · 缓存 · 输入输出检查</text>
+
+    <rect x="64" y="497" width="1072" height="74" rx="4" fill="#f5ece9" stroke="#916858" stroke-width="2"/>
+    <text x="88" y="529" font-size="20" font-weight="700" fill="#54382d">数据层</text>
+    <text x="285" y="529" font-size="16" fill="#3e302b">来源文档 · 检索索引 · 业务数据 · 权限与同步策略</text>
+
+    <line x1="600" y1="199" x2="600" y2="213" stroke="#53616d" stroke-width="2"/>
+    <line x1="600" y1="289" x2="600" y2="303" stroke="#53616d" stroke-width="2"/>
+    <line x1="600" y1="391" x2="600" y2="405" stroke="#53616d" stroke-width="2"/>
+    <line x1="600" y1="481" x2="600" y2="495" stroke="#53616d" stroke-width="2"/>
+    <path d="M590 207 L600 215 L610 207" fill="none" stroke="#53616d" stroke-width="2"/>
+    <path d="M590 297 L600 305 L610 297" fill="none" stroke="#53616d" stroke-width="2"/>
+    <path d="M590 399 L600 407 L610 399" fill="none" stroke="#53616d" stroke-width="2"/>
+    <path d="M590 489 L600 497 L610 489" fill="none" stroke="#53616d" stroke-width="2"/>
+
+    <rect x="64" y="600" width="1072" height="104" rx="4" fill="#edf0f2" stroke="#59656d" stroke-width="2"/>
+    <text x="88" y="635" font-size="20" font-weight="700" fill="#28343b">运营与治理（横向支撑）</text>
+    <text x="88" y="669" font-size="16" fill="#273640">日志与追踪 · 质量评估 · 成本与配额 · 发布与回滚 · 故障恢复</text>
+    <path d="M1110 640 C1160 565 1160 255 1110 160" fill="none" stroke="#59656d" stroke-width="2" stroke-dasharray="7 6"/>
+    <path d="M1101 171 L1110 158 L1117 173" fill="none" stroke="#59656d" stroke-width="2"/>
+    <text x="1138" y="390" transform="rotate(-90 1138 390)" text-anchor="middle" font-size="13" fill="#53616d">贯穿请求全生命周期</text>
+  </g>
+  <text x="64" y="752" font-family="Arial, sans-serif" font-size="13" fill="#53616d">依据：Piyush Kashyap, “AI System Design: A Practical Guide to Production AI”，架构章节；层次为文章中的逻辑职责划分。</text>
+</svg>

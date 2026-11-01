@@ -1,9 +1,11 @@
 ---
-title: '从 LOOP 到图探索：AutoResearch 如何成为长期运行的研究系统'
+title: 'AutoResearch 架构演进：从 LOOP 到 CyclicGraph Engine 的图探索'
 date: '2026-10-26'
-tags: []
+tags: ['AI Agent', '深度研究', '状态机', 'Harness']
+lastmod: '2026-11-01'
 draft: false
-summary: '从 LOOP、状态机到 CyclicGraph Engine，解释 AutoResearch 如何通过分叉探索、证据验证和 Harness 机制，演进为可长期运行的研究系统。'
+summary: '分析美团 AutoResearch 从串行 LOOP、异步状态机到 CyclicGraph Engine 的三次架构演进，解释 Spawn-Converge 分叉探索、证据验证与 Harness 控制如何支撑长期运行的研究任务。'
+images: ['/static/images/2026-10-26-autoresearch-cyclicgraph-engine/social-card.png']
 ---
 
 <figure className="flex flex-col items-center text-center">
@@ -24,6 +26,8 @@ summary: '从 LOOP、状态机到 CyclicGraph Engine，解释 AutoResearch 如�
 美团技术团队分享的 AutoResearch 系统，起点是 Karpathy 的 AutoResearch 原型，终点则不再是一个简单的“自动改代码、自动跑实验”脚本。三个月里，系统经历了三次重构：先把 LOOP 搬上云端，再用状态机解决长周期运行，最后用 CyclicGraph Engine 把单线探索改成可以分叉和汇合的研究流程。
 
 这篇文章的重点，不在于复述一套名词，而在于解释：为什么一个能跑的自动化循环，最后必须长成一套带状态、带证据、带边界的运行系统。
+
+**核心结论：** AutoResearch 从串行 LOOP 发展到状态机和 CyclicGraph Engine，分别解决运行、长周期状态管理与分叉探索问题；分支收敛还需要可比较的实验结果和人工判断。案例展示的是特定研究流程的架构演进，不能据此认定自动探索总能找到更优答案。
 
 > “我们如何在三个月内经历三次架构重构，最终跳出 LOOP 架构，从‘跑起来’走到‘能自动化、自进化’。”
 >

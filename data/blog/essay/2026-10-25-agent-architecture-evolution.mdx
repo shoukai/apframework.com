@@ -1,9 +1,11 @@
 ---
-title: '智能体系统的演进：从 Agent 架构选择到运行时控制'
+title: '智能体架构选型：Agent Loop、Subagents 与 Thin Orchestrator'
 date: '2026-10-25'
-tags: []
+tags: ['AI Agent', '多智能体系统', '软件架构', 'Agent Skills']
+lastmod: '2026-11-01'
 draft: false
-summary: '从 Single Agent Loop、Multi-Agent Architecture、Thin Orchestrator 和 Harness 讨论智能体系统如何重新分层。'
+summary: '比较 Single Agent Loop、Subagents、Handoffs、Router 与 Thin Orchestrator 的适用条件，说明 Skills、Tools 和 Harness 如何分担上下文、流程控制与运行时治理，并给出智能体架构选型思路。'
+images: ['/static/images/2026-10-25-agent-architecture-evolution/social-card.png']
 ---
 
 <figure className="flex flex-col items-center text-center">
@@ -28,6 +30,8 @@ summary: '从 Single Agent Loop、Multi-Agent Architecture、Thin Orchestrator �
 这些建议并不一定互相矛盾。它们分别回答了不同问题：模型应该如何保持推理上下文，哪些能力应该被隔离，哪些步骤必须确定性执行，以及系统如何在生产环境中被评估和治理。
 
 因此，智能体系统的演进不宜简单概括为“从多 Agent 退回单 Agent”。更准确的描述是：模型推理、能力封装、工具行动、上下文隔离、运行时控制、工作流门禁和评估反馈正在重新分层。Agent 的数量只是其中一个表面变量。
+
+**核心结论：** 架构选型应先看任务是否需要共享上下文、独立并行、持续状态或确定性门禁，再决定使用主 Agent Loop、Subagents、Handoffs 或 Thin Orchestrator；Harness 则承担预算、权限和恢复等运行时约束。这些模式可以组合，不能仅凭 Agent 数量判断优劣。
 
 ## 一、从按组织拆 Agent，转向按上下文和约束选型
 
@@ -180,6 +184,11 @@ Single Agent Loop、Subagents、Skills、Handoffs、Router 和 Thin Orchestrator
 在这个意义上，智能体系统的演进更接近运行时系统的演进：能力越来越可组合，边界越来越明确，控制越来越可验证。真正需要回答的问题，也从“要不要多 Agent”，转向了“哪些决策可以交给模型，哪些边界必须由运行时固定，以及哪些能力应该沉淀为可复用资产”。
 
 ---
+
+## 延伸阅读
+
+- [The Thin Orchestrator：生产级 Agent 系统的编排边界与工作流设计](/blog/essay/2026-10-24-thin-orchestrator-production-agent-orchestration)：展开 Meta 案例中的控制面与 specialist 分工。
+- [Harness² 深度解析：让 Agent 的执行方式持续改进](/blog/essay/2026-10-21-Harness2-Recursive-Agent-Harnessing)：讨论运行时 Harness 如何依执行证据迭代。
 
 ## 参考资料
 

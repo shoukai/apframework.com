@@ -1,7 +1,8 @@
 ---
 title: '构建 AI 智能体应用（四）：验证与测量'
 date: '2026-02-19'
-tags: ['AI Agents', 'Evaluation', 'Testing', 'Metrics', 'LLM-as-Judge', 'Best Practices', 'Engineering', '读书笔记']
+tags: ['AI Agent', 'Agent Evaluation', 'Evaluation', 'Testing', 'Metrics', 'LLM-as-Judge', 'Best Practices', 'Engineering', '读书笔记']
+lastmod: '2026-11-01'
 draft: false
 summary: '本文是《Building Applications with AI Agents》系列解读的第四篇。AI Agent 的质量不等于“回答写得好”，而取决于它在真实环境里是否能稳定完成任务。本文提供从离线评估到生产监控的全链路落地指南，帮助工程团队把“看起来更聪明”的改动，变成“可证明更可靠”的改动。'
 ---
@@ -598,4 +599,9 @@ Judge 提示词模板（示意）：
 * [Yao et al. τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains (arXiv:2406.12045)](https://arxiv.org/abs/2406.12045)
 * [τ-bench repository](https://github.com/sierra-research/tau-bench)
 * [OpenAI. BrowseComp: a benchmark for browsing agents](https://openai.com/index/browsecomp/)
-* [Andriushchenko et al. AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents (arXiv:2410.09024)](https://arxiv.org/abs/2410.09024)  
+* [Andriushchenko et al. AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents (arXiv:2410.09024)](https://arxiv.org/abs/2410.09024)
+
+## 延伸阅读：从测量原则到生产闭环
+
+- [AgentCore 生产级评估](/blog/essay/2026-10-27-agentcore-production-evaluation-framework)：以 AWS 公开案例看工具、Agent 与多智能体协作三层评估，以及静默失败。
+- [生产 AI 系统设计](/blog/essay/2026-10-31-production-ai-system-design)：将质量门禁与权限、安全、恢复和发布责任一起设计。

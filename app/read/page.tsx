@@ -104,11 +104,33 @@ export default function ReadPage() {
         <ul className="mt-4 divide-y divide-gray-200 dark:divide-gray-700">
           {notes.map((note) => (
             <li key={note.path} className="py-7">
-              <article className="space-y-2 sm:grid sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-6 sm:space-y-0">
+              <article
+                className={`space-y-2 sm:grid sm:gap-6 sm:space-y-0 ${
+                  note.cover
+                    ? 'sm:grid-cols-[8rem_3.5rem_minmax(0,1fr)] sm:items-start'
+                    : 'sm:grid-cols-[8rem_minmax(0,1fr)]'
+                }`}
+              >
                 <time dateTime={note.date} className="text-sm text-gray-500 dark:text-gray-400">
                   {formatDate(note.date, siteMetadata.locale)}
                 </time>
-                <div>
+                {note.cover && (
+                  <Link
+                    href={`/${note.path}`}
+                    aria-label={`阅读《${note.title}》`}
+                    className="block h-20 w-14 overflow-hidden rounded-sm bg-gray-100 sm:row-span-2 dark:bg-gray-800"
+                  >
+                    <Image
+                      src={note.cover}
+                      alt={`${note.title}封面`}
+                      width={56}
+                      height={80}
+                      sizes="56px"
+                      className="h-full w-full object-cover"
+                    />
+                  </Link>
+                )}
+                <div className={note.cover ? 'sm:col-start-3' : undefined}>
                   <h3 className="text-xl font-semibold leading-snug text-gray-900 dark:text-gray-100">
                     <Link
                       href={`/${note.path}`}

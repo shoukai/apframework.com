@@ -5,6 +5,8 @@ import books from '@/config/read-books.json'
 import { getReadingYears } from '@/lib/readBooks'
 import projectsData from '@/data/projectsData'
 import { slug } from 'github-slugger'
+import tagData from 'app/tag-data.json'
+import { isIndexableTag } from '@/lib/tagIndex'
 
 export const dynamic = 'force-static'
 
@@ -42,16 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const tagSlugs = [
     ...new Set(publishedPosts.flatMap((post) => (post.tags || []).map((tag) => slug(tag)))),
   ]
-  const tagRoutes = tagSlugs.map((tag) => ({
-    url: `${siteUrl}/tags/${tag}`,
-  }))
+  const tagRoutes = tagSlugs
+    .filter((tag) => isIndexableTag(tag, tagData))
+    .map((tag) => ({
+      url: `${siteUrl}/tags/${encodeURIComponent(tag)}`,
+    }))
 
   // 合并所有路由
-  return [
-    ...mainRoutes,
-    ...readingYearRoutes,
-    ...tagRoutes,
-    ...blogRoutes,
-    ...readNoteRoutes,
-  ]
+  return [...mainRoutes, ...readingYearRoutes, ...tagRoutes, ...blogRoutes, ...readNoteRoutes]
 }

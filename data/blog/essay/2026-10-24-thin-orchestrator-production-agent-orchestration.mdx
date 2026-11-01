@@ -1,9 +1,11 @@
 ---
 title: 'The Thin Orchestrator：生产级 Agent 系统的编排边界与工作流设计'
 date: '2026-10-24'
-tags: []
+tags: ['AI Agent', '多智能体系统', '软件架构', 'Workflow']
+lastmod: '2026-11-01'
 draft: false
-summary: '介绍并分析 Thin Orchestrator 架构案例，讨论编排器与专业 Agent 的职责分工、上下文隔离、工作流模板及适用边界。'
+summary: '基于 Meta 数据管道 Agent 案例，解释 Thin Orchestrator 如何划分控制面与专业 Agent 的职责，并通过上下文隔离、可靠性门禁和工作流模板管理复杂流程；同时说明适用条件与案例证据的边界。'
+images: ['/static/images/2026-10-24-thin-orchestrator-production-agent-orchestration/social-card.png']
 ---
 
 <figure className="flex flex-col items-center text-center">
@@ -24,6 +26,8 @@ Meta 工程团队公开分享了一个数据管道 Agent 案例：一个约 1,30
 它主要负责确认任务类型、检查目标状态、收集必要输入、执行可靠性检查，再把任务交给合适的 specialist。领域推理和具体执行发生在后续的专业 Agent 中。
 
 本文不把这种设计归结为“多 Agent 必然优于单 Agent”，而是从架构分工的角度，分析 Thin Orchestrator 试图解决什么问题、通过哪些机制工作，以及它在什么条件下可能适用。
+
+**核心结论：** Thin Orchestrator 让编排器处理路由、状态检查和可靠性门禁，让 specialist 在隔离的上下文中完成领域任务；当流程固定且涉及多个知识域时，这种分工值得验证。Meta 报告的效率改善来自其特定场景，不能直接推算为其他团队的收益。
 
 ## 一、背景：复杂工作流中的上下文与职责问题
 
@@ -193,7 +197,12 @@ Thin Orchestrator 案例呈现了一种生产 Agent 的组件分工方式：中�
 
 从这个案例中可以观察到的，是一种把概率性推理放在局部、把流程控制显式化的架构思路。
 
+## 延伸阅读
+
+- [智能体架构选型：Agent Loop、Subagents 与 Thin Orchestrator](/blog/essay/2026-10-25-agent-architecture-evolution)：比较共享上下文与专业 Agent 隔离的选型条件。
+- [Amazon Bedrock AgentCore 生产级评估](/blog/essay/2026-10-27-agentcore-production-evaluation-framework)：进一步了解生产 Agent 的质量门禁和反馈闭环。
+
 ## 来源说明
 
-- Plawan Rath, “The Thin Orchestrator: How We Made Our AI Agents More Reliable by Giving the Router Less to Do,” Meta Engineering, 2026-10-19. https://engineering.fb.com/2026/10/19/ml-applications/thin-orchestrator-ai-agent-architecture/
+- Plawan Rath, [“The Thin Orchestrator: How We Made Our AI Agents More Reliable by Giving the Router Less to Do”](https://engineering.fb.com/2026/10/19/ml-applications/thin-orchestrator-ai-agent-architecture/), Meta Engineering, 2026-10-19.
 - 本文中的 Meta 案例数字、架构规模和结果均按原文作者陈述转述；其普遍适用性与因果关系未在本文中独立复现。

@@ -1,9 +1,11 @@
 ---
 title: 'Graphify：代码知识图谱如何进入编码 Agent 的上下文链路'
 date: '2026-10-29'
-tags: []
+tags: ['AI Coding', '知识图谱', 'Context Engineering', 'Graphify']
+lastmod: '2026-11-01'
 draft: false
-summary: '基于 Graphify 最新实现与 ApFramework 受控源码验证，分析代码知识图谱如何进入编码 Agent 的上下文链路，以及它与源码阅读、测试和其他记忆层的边界。'
+summary: '基于 Graphify 实现与 ApFramework 的受控源码验证，说明代码知识图谱怎样帮助编码 Agent 定位文件、符号与关系，并明确结构预检索与源码阅读、测试及长期记忆的边界。'
+images: ['/static/images/2026-10-29-graphify-codebase-knowledge-graph/social-card.png']
 ---
 
 <figure className="flex flex-col items-center text-center">
@@ -16,6 +18,8 @@ summary: '基于 Graphify 最新实现与 ApFramework 受控源码验证，分�
 Graphify 是一个把代码库、文档和其他输入转换成可查询知识图的开源工具。对编码 Agent 来说，它更像一张代码关系地图：先帮 Agent 找到相关文件和符号，再回到源码理解、修改和测试。这里的“结构预检索层”是本文根据接口和内部验证做出的判断，不是 Graphify 对 Agent 效果的官方结论。
 
 下面的内容来自一次内部验证。使用的是 2026 年 10 月 23 日的 Graphify 版本（`graphifyy 0.9.95`），测试项目是 ApFramework 博客。为了先看清代码分析能力，只取了 `app/`、`components/`、`lib/`、`scripts/`、`package.json` 和 `tsconfig.json`，没有把整个项目都放进去。
+
+**核心结论：** Graphify 的代码图适合作为编码 Agent 的结构预检索入口，帮助定位文件、符号与关联路径；真正修改代码仍要回到源码和测试。本文的受控验证只说明局部查询如何工作，没有证明它能普遍提高修改正确率或降低成本。
 
 ## 一、从“读哪些文件”到“代码如何连接”
 
@@ -280,6 +284,11 @@ Graphify 的价值不只是把代码画成网络图，而是给 Agent 一个可�
 在项目里使用时，可以先选一小块源码：先建图、查询，再回源码核对。确认这套关系对当前项目有帮助后，再考虑接入 Skill、MCP、hooks 和持续更新。
 
 代码知识图谱可以作为编码 Agent 上下文中的一层结构记忆，但不是完整的记忆系统。它回答“代码现在怎样连接”，其他记忆层回答“发生过什么”“为什么这样决定”以及“这里通常应该怎么做”。实际使用时，需要把这些信息接起来。
+
+## 延伸阅读
+
+- [编码 Agent 的长期记忆：从会话上下文到代码结构](/blog/essay/2026-10-28-coding-agent-long-term-memory)：理解代码图在长期记忆中的位置。
+- [Google OKF 与 Context Plane](/blog/essay/2026-07-14-Google-OKF-Context-Plane)：比较结构关系与其他知识资产的治理方式。
 
 ## 参考资料
 

@@ -1,9 +1,11 @@
 ---
-title: 'Amazon Bedrock AgentCore 生产级评估框架：静默失败到质量闭环'
+title: 'Amazon Bedrock AgentCore 生产级评估：九阶段质量闭环与静默失败'
 date: '2026-10-27'
-tags: []
+tags: ['AI Agent', 'Agent Evaluation', '多智能体系统', 'Amazon Bedrock']
+lastmod: '2026-11-01'
 draft: false
-summary: '客观理解 AWS 基于 Amazon Bedrock AgentCore 的生产级评估框架，拆解静默失败、三层评估对象、九阶段生命周期、评估器栈、Golden set 与持续反馈闭环。'
+summary: '基于 AWS 的 Amazon Bedrock AgentCore 生产案例，拆解 Agent 静默失败、工具/Agent/多智能体三层评估、九阶段质量闭环、Golden set 与持续反馈机制，并区分案例经验和通用结论。'
+images: ['/static/images/2026-10-27-agentcore-production-evaluation-framework/social-card.png']
 ---
 
 <figure className="flex flex-col items-center text-center">
@@ -18,6 +20,8 @@ summary: '客观理解 AWS 基于 Amazon Bedrock AgentCore 的生产级评估框
 </figure>
 
 > 本文基于 AWS Artificial Intelligence 的文章《为 AI 智能体建立信任：基于 Amazon Bedrock AgentCore 的生产级评估框架》整理。文中会区分文章明确陈述的内容与基于材料形成的分析，不把 AWS 个案中的指标直接当作行业基准。
+
+**核心结论：** 生产 Agent 评估要覆盖工具、单个 Agent 和多智能体协作，并贯穿定义、实验、合并、发布、线上监测与反馈阶段。Golden set、评估器栈和执行轨迹帮助发现表面正常但内容错误的“静默失败”；AWS 的具体阈值仍需按业务重新制定。
 
 ## 开头：Agent 最危险的错误，是看起来像正确答案
 
@@ -181,4 +185,9 @@ Feedback Loop 阶段把低分会话和失败模式回流到后续改进中：它
 
 ---
 
-**来源**：AWS Artificial Intelligence，《为 AI 智能体建立信任：基于 Amazon Bedrock AgentCore 的生产级评估框架》，https://www.bestblogs.dev/article/cb235bd6c2
+## 延伸阅读
+
+- [构建 AI 智能体应用（四）：验证与测量](/blog/essay/2026-02-19-Validation-Measurement)：补充 Agent 评估对象和指标设计的基础框架。
+- [生产 AI 系统设计：需求、容量、安全与质量评估](/blog/essay/2026-10-31-production-ai-system-design)：把答案质量与容量、权限和故障恢复放在同一系统中考虑。
+
+**来源**：[AWS Artificial Intelligence 原文：Building trust in AI agents](https://aws.amazon.com/blogs/machine-learning/building-trust-in-ai-agents-a-production-ready-evaluation-framework-with-amazon-bedrock-agentcore/)；[中文转述](https://www.bestblogs.dev/article/cb235bd6c2)。

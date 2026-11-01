@@ -1,0 +1,169 @@
+---
+title: 'AI-native SDLC：当代码不再是唯一瓶颈'
+date: '2026-10-30'
+tags: ['AI Coding', 'Agent Skills', 'Workflow', 'DevOps']
+lastmod: '2026-11-01'
+draft: false
+summary: '解读 Anthropic 的 AI-native SDLC playbook：当 AI 加快代码实现后，如何用 Plan、Design、Build、Test、Deploy、Maintain 六阶段的 artifact 交接、Skills、Hooks 和评估门禁组织软件交付。'
+images: ['/static/images/2026-10-30-ai-native-sdlc-playbook/social-card.png']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-10-30-ai-native-sdlc-playbook/joao-emanuel-IaaHmVg8_ok-unsplash.jpg" alt="现代深棕色砖墙建筑的入口与庭院" className="w-full rounded-lg" />
+  <figcaption>Photo by <a href="https://unsplash.com/@jjemanuel?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">João Emanuel</a> on <a href="https://unsplash.com/photos/modern-dark-brown-building-with-brick-IaaHmVg8_ok?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></figcaption>
+</figure>
+
+Anthropic 的《The AI-native SDLC playbook》关注的不是如何让 Agent 多写一些代码，而是另一个更具体的问题：当代码实现被 AI 加速后，从需求到生产的流程是否还要按原来的方式组织？
+
+这篇文章提出的做法，是在传统 SDLC 的六个阶段中引入 AI，并用一组可提交、可读取、可审查的文件和记录来组织交接。Plan、Design、Build、Test、Deploy、Maintain 仍然存在；变化主要在于，部分原本依赖人工转述和手工触发的工作，可以由版本化 artifact 连接起来，同时保留必要的人工判断和审批。
+
+vateo 的二次解读抓住了其中的一个矛盾：局部步骤变快后，设计、评审、审批和部署仍可能按人的速度排队。这是评论者的概括；Anthropic 原文给出的回应，则是重新设计这些阶段之间的接口。
+
+**核心结论：** AI-native SDLC 的重点是让六个交付阶段通过可审查的 artifact 连接，并在构建、测试、部署和维护中配置不同的自动化控制。代码生成提速只有在需求确认、验证证据和发布责任清晰时，才可能转化为可控的交付提速。
+
+## 一、它要解决的不是“代码写得不够快”
+
+传统 SDLC 把软件交付拆成计划、设计、开发、测试、部署和维护等阶段。不同角色在阶段之间交接需求、设计稿、代码、测试结果和审批记录。这样的流程并不是偶然形成的：它通过文档、评审和签名建立责任边界，也适应了过去代码实现本身需要较长时间的情况。
+
+《The AI-native SDLC playbook》从一个流程判断出发：Build 阶段被 AI 压缩后，Plan、Review/Test 和 Deploy 仍可能按人的速度运行；原有的逐行审查和周期性审批也可能承接不了更高的代码产出。这里的“瓶颈转移”是 Anthropic 对自身实践的描述，不能当作跨组织的统一测量。
+
+因此，Anthropic 的 AI-native SDLC 不是在传统流程旁边增加一个代码生成工具，而是尝试把 AI 的参与从 Build 扩展到各个阶段，并减少部分手工交接。它保留需求确认、设计审查和发布授权等控制目标，只是把其中一部分控制前移，并交给自动化工具协助执行。
+
+## 二、六个阶段：流程名称不变，交接接口改变
+
+官方 playbook 将 AI-native SDLC 分为六个阶段：Plan、Design、Build、Test、Deploy 和 Maintain。它们与传统 SDLC 的名称相近，差异主要体现在每个阶段结束时留下什么，以及下一阶段如何被启动。
+
+| 阶段 | 传统流程中的典型做法 | AI-native SDLC 中的主要变化 |
+| --- | --- | --- |
+| Plan | 需求会议、用户故事、评审和排期 | 将发起人的问题整理为 `intent.md`，由产品负责人校正和接受 |
+| Design | 需求和设计由不同角色多次传递 | 从 `intent.md` 生成 `spec.md`，并在写入时应用安全、合规和 UX 规则 |
+| Build | 工程师根据设计开始编码，实施计划可能留在个人经验中 | 先用 plan mode 形成 `plan.md`，明确改哪些文件、如何验证以及可能的风险 |
+| Test | 在阶段化流程中，测试常在交接点或 CI 中集中执行 | 会话持续运行测试、构建或截图反馈；Agent 配置也进入 eval |
+| Deploy | 人工阅读变更并通过发布流程 | Agent 做标准化审查和修复，人类关注意图与风险，生产门仍需要授权 |
+| Maintain | 告警或事故通常需要人工重新组织后续工作 | 确定性监控可触发分级诊断或行动；需要进入开发流程时，再生成新的 `intent.md` |
+
+这里的重点不在于每个阶段都自动化，而在于让一个阶段的产物成为下一阶段的输入。文章把这条链描述为：
+
+```text
+intent.md
+   ↓
+spec.md
+   ↓
+plan.md
+   ↓
+代码与测试
+   ↓
+PR 与 review findings
+   ↓
+incident record
+   ↓
+新的 intent.md
+```
+
+![AI-native SDLC artifact 驱动的交付闭环](/static/images/2026-10-30-ai-native-sdlc-playbook/ai-native-sdlc-artifact-loop.png)
+
+*图：AI-native SDLC 的六阶段 artifact loop。Maintain 阶段的生产信号可以重新生成 `intent.md`，进入下一轮 Plan。*
+
+这条链可以被理解为一种 artifact loop。它不是要求所有组织使用完全相同的文件名，也不意味着所有交接都必须迁移到 Git；它强调的是，在关键阶段交接处留下可版本化、可追踪、能被人和 Agent 共同理解的中间产物。
+
+## 三、Artifact 链：文档从备忘录变成工作接口
+
+### 1. `intent.md` 保存问题的原始形态
+
+Plan 阶段从 `intent.md` 开始。它可以来自一个人的想法、一个工单，也可以来自生产告警。文件需要描述问题、希望得到的结果、受影响的用户和系统、约束条件以及尚未解决的问题。
+
+这个设计针对的是一种常见的信息损失：想法先被转成 backlog 条目，再被转成用户故事和估算，最后才到达工程团队。经过多次转述，原始问题可能被压缩成一个脱离上下文的任务。
+
+但 `intent.md` 并不是用户说完就直接进入开发。原文要求产品负责人审阅和修正 Agent 写出的内容，并决定它是否进入 Design。Agent 可以帮助整理意图，但目标是否成立，仍由人来确认。
+
+### 2. `spec.md` 把需求和约束放在一起
+
+Design 阶段接收已接受的 `intent.md`，生成需求和设计规格。品牌、安全、合规和 UX 等组织规则通过 Skills 提供给 Agent，冲突或无法满足的地方需要被标记，并交给对应的规则负责人处理。
+
+这相当于把部分政策要求前置到 spec 生成阶段。传统流程中，一些问题可能到设计评审或安全审查时才暴露；在 playbook 的模型中，规则先作为生成 spec 的输入。
+
+这并不意味着设计评审消失了。产品负责人仍需判断 spec 是否回应原始意图，技术负责人或政策负责人仍需处理高风险问题。变化是，人工评审面对的对象从一份未经规则引导的初稿，变成一份已经经过约束提示、并显式标注部分冲突的 artifact。
+
+### 3. `plan.md` 把实施路径变成可审查对象
+
+Build 阶段的一个重要变化是先计划、后执行。工程师把已经接受的 `intent.md` 和 `spec.md` 交给 Agent，让它在不修改代码的情况下分析代码库，生成 `plan.md`。
+
+一个可用的计划至少要回答四个问题：哪些文件会变化，工作按什么顺序进行，什么地方最可能出错，以及用什么测试或证据证明任务完成。只有工程师接受计划后，Agent 才开始实施；如果实现过程偏离计划，计划也应在同一次变更中同步更新。
+
+这会把一部分人工审查提前。人类可以在代码产生之前先看方向、风险和验证方式，而不是等完整 diff 生成后才第一次理解方案。批准过的计划还可以作为 PR review 的比较基准，用来检查最终 diff 是否偏离原定方案。
+
+## 四、从 Build 到 Maintain：控制层如何组合
+
+### Build：共享上下文、Skills 和 Hooks
+
+Playbook 将 `CLAUDE.md` 描述为 Agent 的项目上下文文件，包含构建、测试和 lint 命令、架构约定，以及 Agent 反复犯错的地方。它更接近一份面向新成员的工程手册，而不是一次性 prompt。
+
+Skills 承担的是另一种职责：把需要被一致应用的组织知识写成可触发、可版本控制的流程和规则。例如安全标准、API 约定或品牌要求。Skills 使 Agent 更可能按照规则行动，但它本身仍属于 advisory control，不能单独成为不可绕过的安全边界。
+
+Hooks 则处于更确定性的层次。它们可以在文件编辑或命令执行前阻断敏感路径、运行格式化检查、阻止凭证进入 diff，也可以在发布时要求指定人员授权。这个组合可以概括为：共享上下文告诉 Agent“项目如何工作”，Skills 告诉它“这类任务应遵循什么规则”，Hooks 和权限系统决定“哪些动作实际上可以发生”。
+
+### Test：让 Agent 先提供自己的证据
+
+在这个模型中，不能只以 Agent 自己说“完成”为准。一次会话应运行测试、构建、lint 或截图检查，并在失败后继续修复。对于 Bug 修复，playbook 还提出先把问题复现为失败测试，再修复代码，并限制 Agent 修改测试文件的能力。
+
+测试对象也不再只有业务代码。模型、Prompt、`CLAUDE.md`、Skills 和 Hooks 都会影响 Agent 的行为，因此这些配置发生变化时，也应运行一组真实任务 eval。生产事故则可以转化为新的回归样例，留在评估集合中。
+
+这样，测试就不再只发生在代码交给 QA 之后，而是被放进会话的持续反馈循环。但它并没有把所有验证交给模型判断。测试命令、Schema 校验、权限检查和构建结果仍然适合由确定性工具提供证据；模型更适合解释失败、选择下一步和处理需要上下文的判断。
+
+### Deploy：Agent 可以走到生产门前
+
+Deploy 阶段包括两类动作：一类是 PR review，另一类是发布和部署。Playbook 让 Agent 对 PR 进行统一的 bug、安全和合规检查，也可以处理评论和失败检查。
+
+人类的审查重点因此被重新定义为两个问题：这个变更是否实现了计划中的意图？它带来的风险是否可以接受？这不是减少人类责任，而是把人类注意力从机械地阅读每一行代码，转向意图、风险和例外。
+
+生产发布仍然是明确的边界。开发环境可以有更高自治程度，staging 和 production 则需要不同的权限等级。分支保护、短期凭证、审批 Hook 和发布系统共同保证：Agent 可以准备发布，但不能绕过指定人的授权直接进入生产。
+
+### Maintain：用确定性触发器重新启动开发
+
+Maintain 阶段是这个模型中最接近闭环的部分。监控系统先用确定性脚本判断指标是否偏离滚动基线；只有越过预设控制带，才唤醒 Agent。
+
+Playbook 给出的思路是分级授权：较小偏差只记录，进一步偏差允许只读诊断，更严重的偏差才允许开 PR 或触发经过预批准的回滚 runbook。Agent 不是直接获得无限运维权限，而是在检测脚本和权限配置划定的范围内行动。
+
+对需要进入后续开发流程的诊断结果，可以整理成新的 `intent.md`，回到 Plan 阶段。较小的偏差可能只被记录，或停留在只读诊断层。这样，生产问题不必只是一个被关闭的事件，也可以成为下一轮需求的结构化输入。这个闭环成立的前提是监控基线稳定、触发脚本可测试、回滚路径被反复演练，并且每个动作都有日志和人工升级路线。
+
+## 五、二次解读提供了什么视角
+
+vateo 的文章没有改变 Anthropic playbook 的六阶段结构，但提供了一个便于理解的解释框架：过去的瀑布、敏捷和 DevOps 都是在工具变化之后重新组织流程；AI 编程工具的出现，也可能迫使团队重新审视软件交付的流程层。
+
+这个判断不应直接当作行业结论。它的分析价值在于指出一个容易被忽略的现象：如果产品到 UI、开发到测试、部署到运维之间仍然使用 Agent 无法可靠读取、验证或继续执行的交接物，那么单个环节的提速不会自动转化为全流程吞吐。
+
+因此，`intent.md`、`spec.md` 和 `plan.md` 并不只是多写几份 Markdown。它们把阶段之间原本隐含的上下文写出来，让下一阶段能够通过文件和提交记录了解上一阶段的决定。文档也就不再只是给人阅读的备忘录，而成为交接接口。
+
+## 六、这套模型改变了什么，又没有改变什么
+
+这套做法主要改变了三处。
+
+第一，阶段之间的接口变得更明确。每个阶段应当提交什么、下个阶段读取什么、哪些条件会触发下一步，都可以在版本历史中观察。
+
+第二，治理被部分前置和自动化。规则不必全部等到发布前的会议才出现，可以在生成 spec、执行命令、运行测试和创建 PR 时分别施加。
+
+第三，在测试、审计和门禁足够可靠的前提下，人工关注点可能发生转移。人类不必把同样多的时间用于逐项陪同 Agent 动作，而可以更多检查意图是否正确、风险是否可接受、异常是否需要升级，以及生产授权是否成立。
+
+不过，有几件事并没有因此改变。
+
+需求仍需要由人确认。Agent 可以整理意图，却不能替组织决定问题是否值得解决。高风险设计仍需要规则负责人和技术负责人判断。测试结果和监控信号仍需要解释，不能只依赖一个模型生成的“通过”。生产发布和不可逆操作仍需要明确的责任主体。
+
+它也不是一套必须一次性部署的完整流程。对小型项目，先建立 `plan.md` 和可重复测试，可能比同时部署 Skills、Hooks、连续 eval 和自动维护更合适。对强监管系统，反过来还需要补充审计、权限、凭证隔离、数据分类和供应链控制等 playbook 没有完全展开的内容。
+
+## 结语
+
+《The AI-native SDLC playbook》可以被理解为一套面向 Agent 时代的软件交付流程模型。它保留了传统 SDLC 的阶段目标，但用 artifact 链重新组织阶段交接，用 Skills 和 Hooks 分层处理软约束与硬约束，用测试和持续 eval 提供反馈，再用确定性监控把生产问题送回计划阶段。
+
+它最值得分析的部分，不是某个产品能否自动生成多少代码，而是软件开发流程是否拥有足够清晰的中间产物、验证证据和人工判断门。只有这些条件存在，代码生成速度的提升才有机会转化为可控的交付速度；否则，原来的排队、返工和审批只会以更快的代码产出为背景继续存在。
+
+---
+
+## 延伸阅读
+
+- [当 AI 开始大量写代码，Code Review 应该审什么？](/blog/essay/2026-10-18-AI-Code-Review-Risk-Routing)：进一步讨论代码评审如何按风险安排人工检查。
+- [Amazon Bedrock AgentCore 生产级评估](/blog/essay/2026-10-27-agentcore-production-evaluation-framework)：对照生产质量门禁与反馈闭环。
+
+## 参考来源
+
+1. Louis Claxton，[《The AI-native SDLC playbook》](https://claude.com/resources/articles/the-ai-native-sdlc-playbook)，Anthropic。
+2. vateo，[《After waterfall, agile, and DevOps — Anthropic’s AI-Native SDLC playbook》](https://vateo.medium.com/after-waterfall-agile-and-devops-anthropics-ai-native-sdlc-playbook-0131a3a9156e)。

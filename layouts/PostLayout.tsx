@@ -29,10 +29,18 @@ interface LayoutProps {
   authorDetails: CoreContent<Authors>[]
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
+  relatedReadNote?: { path: string; title: string }
   children: ReactNode
 }
 
-export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
+export default function PostLayout({
+  content,
+  authorDetails,
+  next,
+  prev,
+  relatedReadNote,
+  children,
+}: LayoutProps) {
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
   
@@ -121,6 +129,14 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                       <dl className="whitespace-nowrap text-sm font-medium leading-5">
                         <dt className="sr-only">姓名</dt>
                         <dd className="text-gray-900 dark:text-gray-100">{author.name}</dd>
+                        {author.occupation && (
+                          <>
+                            <dt className="sr-only">身份</dt>
+                            <dd className="text-xs text-gray-500 dark:text-gray-400">
+                              {author.occupation}
+                            </dd>
+                          </>
+                        )}
                         <dt className="sr-only">Twitter</dt>
                         <dd>
                           {author.twitter && (
@@ -138,6 +154,19 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                     </li>
                   ))}
                 </ul>
+                {relatedReadNote && (
+                  <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      相关读书笔记
+                    </p>
+                    <Link
+                      href={`/${relatedReadNote.path}`}
+                      className="mt-2 block text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    >
+                      {relatedReadNote.title}
+                    </Link>
+                  </div>
+                )}
               </dd>
             </dl>
             <div className="divide-y divide-gray-200 dark:divide-gray-700 xl:col-span-3 xl:row-span-2 xl:pb-0">
@@ -196,9 +225,9 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 <Link
                   href={`/${basePath}`}
                   className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                  aria-label="返回博客"
+                  aria-label="返回文章列表"
                 >
-                  ← 返回博客
+                  ← 返回文章列表
                 </Link>
               </div>
               

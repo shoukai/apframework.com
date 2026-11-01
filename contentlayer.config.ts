@@ -133,6 +133,7 @@ export const Blog = defineDocumentType(() => ({
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
+    relatedReadNoteSlug: { type: 'string' },
   },
   computedFields: {
     ...computedFields,
@@ -163,6 +164,8 @@ export const ReadNote = defineDocumentType(() => ({
     summary: { type: 'string' },
     draft: { type: 'boolean' },
     bookId: { type: 'number' },
+    cover: { type: 'string' },
+    socialImage: { type: 'string' },
   },
   computedFields: {
     ...computedFields,
