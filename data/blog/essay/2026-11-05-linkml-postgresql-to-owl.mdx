@@ -1,15 +1,15 @@
 ---
 title: 'LinkML 与 OWL 实践：从 PostgreSQL 整理业务领域模型'
 date: '2026-11-05'
-tags: ['LinkML', 'OWL', '知识图谱', 'PostgreSQL']
+tags: ['LinkML', 'OWL', 'PostgreSQL', '本体建模', '知识图谱']
 images:
   - '/static/images/2026-11-05-linkml-postgresql-to-owl/linkml-owl-ai-hero.jpg'
 draft: false
-summary: '从七张 PostgreSQL 表出发，结合业务规则与 LLM 辅助整理 LinkML 模型，再生成并检查 OWL。通过完整 YAML、提示词、实例和生成结果，说明模型生成、数据验证与实例映射的职责及边界。'
+summary: '以七张 PostgreSQL 业务表为例，详解 LinkML 与 OWL 本体建模实践：结合 DDL、样本数据和业务规则，用 LLM 辅助整理 LinkML Schema，再通过 gen-owl 生成 OWL 本体。包含完整 YAML、提示词和验证命令，讲清模型生成、实例转换与数据校验的区别。'
 ---
 
 <figure className="flex flex-col items-center text-center">
-  <img src="/static/images/2026-11-05-linkml-postgresql-to-owl/linkml-owl-ai-hero.jpg" alt="关系表、领域模型与互联节点组成的 LinkML 到 OWL 主题插画" className="w-full rounded-lg" />
+  <img src="/static/images/2026-11-05-linkml-postgresql-to-owl/linkml-owl-ai-hero.jpg" alt="LinkML 与 OWL 本体建模实践：从 PostgreSQL 关系表整理领域模型并生成本体关系图的概念插画" className="w-full rounded-lg" />
   <figcaption>从关系表到领域模型与本体关系图</figcaption>
 </figure>
 
