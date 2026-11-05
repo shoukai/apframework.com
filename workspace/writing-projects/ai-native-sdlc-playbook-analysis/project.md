@@ -6,12 +6,12 @@ current_stage: drafting
 content_status: ready
 evidence_status: ready
 public_source_status: ready
-visual_status: ready
-render_status: passed
-editorial_status: passed
-public_readiness_status: public-ready
-rendered_article_sha256: 29288e08dfc92b31a5cb53ea0ac49018e0debe242a18db2ee47c3aaeadad67cc
-reviewed_article_sha256: 29288e08dfc92b31a5cb53ea0ac49018e0debe242a18db2ee47c3aaeadad67cc
+visual_status: in-progress
+render_status: not-run
+editorial_status: needs-revision
+public_readiness_status: public-source-ready
+rendered_article_sha256: 
+reviewed_article_sha256: 
 ---
 
 # AI-native SDLC Playbook 分析文章项目

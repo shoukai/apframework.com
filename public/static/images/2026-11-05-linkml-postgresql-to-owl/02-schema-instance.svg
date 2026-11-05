@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="670" viewBox="0 0 1000 670" role="img" aria-labelledby="title desc">
+  <title id="title">Schema 生成、实例验证与实例转换的三行处理管线</title>
+  <desc id="desc">第一行把 Person schema 分别生成 JSON Schema 和 OWL schema；第二行把实例和 schema 交给 linkml-validate 得到检查结果；第三行把实例和 schema 交给 linkml-convert 得到 Turtle 实例。验证与转换是两条独立路径。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+      <path d="M1 1L11 6L1 11Z" fill="#315b6b"/>
+    </marker>
+    <style>
+      .bg{fill:#ffffff}
+      .title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:30px;font-weight:700;fill:#142f3c}
+      .subtitle{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:19px;font-weight:400;fill:#5b6d77}
+      .section{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:17px;font-weight:700;letter-spacing:1.2px;fill:#2d6573}
+      .box-title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:21px;font-weight:700;fill:#17323e}
+      .schema-title{font-size:19px}
+      .box-text{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:19px;font-weight:400;fill:#4c626d}
+      .box-note{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:18px;font-weight:400;fill:#667a83}
+      .band{fill:#fbfcfc;stroke:#d6e1e4;stroke-width:1.5}
+      .card{stroke-width:1.7}
+      .schema{fill:#e8f2f5;stroke:#4d8c9c}
+      .tool-model{fill:#f7eee3;stroke:#c78a46}
+      .output-json{fill:#e8f2eb;stroke:#5c9a76}
+      .output-owl{fill:#eeeaf6;stroke:#7b6ba8}
+      .input{fill:#eaf2f4;stroke:#4d8c9c}
+      .tool-validate{fill:#fff3dc;stroke:#c78a46}
+      .result{fill:#e8f2eb;stroke:#5c9a76}
+      .tool-convert{fill:#eeeaf6;stroke:#7b6ba8}
+      .turtle{fill:#e8f2eb;stroke:#4d9a78}
+      .edge{fill:none;stroke:#315b6b;stroke-width:2.5;marker-end:url(#arrow)}
+      .rule{stroke:#e3eaec;stroke-width:1.2}
+      .pill{fill:#ffffff;stroke:#d9e4e7;stroke-width:1}
+      .pill-text{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:16px;font-weight:700;fill:#58717b}
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1000" height="670"/>
+  <text class="title" x="48" y="48">模型生成与实例处理：三条不串联的管线</text>
+  <text class="subtitle" x="48" y="78">模型定义产生 schema；实例处理分别回答“是否符合”和“如何表示”</text>
+
+  <rect class="band" x="38" y="102" width="924" height="188" rx="12"/>
+  <rect class="pill" x="58" y="116" width="176" height="30" rx="15"/>
+  <text class="pill-text" x="76" y="137">01  ·  模型生成</text>
+  <line class="rule" x1="58" y1="156" x2="942" y2="156"/>
+
+  <rect class="card schema" x="76" y="174" width="248" height="74" rx="9"/>
+  <text class="box-title schema-title" x="96" y="204">输入：Person schema</text>
+  <text class="box-note" x="96" y="230">schema.yaml · 类 / 属性</text>
+  <path class="edge" d="M324 211H381"/>
+  <rect class="card tool-model" x="389" y="174" width="224" height="74" rx="9"/>
+  <text class="box-title" x="409" y="204">gen-json-schema</text>
+  <text class="box-note" x="409" y="230">模型 → JSON Schema</text>
+  <path class="edge" d="M613 211H670"/>
+  <rect class="card output-json" x="678" y="174" width="238" height="74" rx="9"/>
+  <text class="box-title" x="698" y="204">输出：JSON Schema</text>
+  <text class="box-note" x="698" y="230">供结构化数据校验</text>
+
+  <path class="edge" d="M324 211H350V264H381"/>
+  <rect class="card tool-model" x="389" y="253" width="224" height="74" rx="9"/>
+  <text class="box-title" x="409" y="283">gen-owl</text>
+  <text class="box-note" x="409" y="309">模型 → OWL schema</text>
+  <path class="edge" d="M613 290H670"/>
+  <rect class="card output-owl" x="678" y="253" width="238" height="74" rx="9"/>
+  <text class="box-title" x="698" y="283">输出：OWL schema</text>
+  <text class="box-note" x="698" y="309">供本体 / 逻辑表达</text>
+
+  <rect class="band" x="38" y="329" width="924" height="122" rx="12"/>
+  <rect class="pill" x="58" y="343" width="184" height="30" rx="15"/>
+  <text class="pill-text" x="76" y="364">02  ·  实例验证</text>
+  <line class="rule" x1="58" y1="384" x2="942" y2="384"/>
+  <rect class="card input" x="76" y="389" width="278" height="54" rx="7"/>
+  <text class="box-text" x="94" y="412">实例：data.yaml</text>
+  <text class="box-text" x="94" y="434">模型：Person schema</text>
+  <path class="edge" d="M354 416H409"/>
+  <rect class="card tool-validate" x="417" y="398" width="226" height="36" rx="7"/>
+  <text class="box-text" x="437" y="423">linkml-validate</text>
+  <path class="edge" d="M643 416H698"/>
+  <rect class="card result" x="706" y="398" width="210" height="36" rx="7"/>
+  <text class="box-text" x="726" y="423">输出：检查结果</text>
+
+  <rect class="band" x="38" y="490" width="924" height="122" rx="12"/>
+  <rect class="pill" x="58" y="504" width="184" height="30" rx="15"/>
+  <text class="pill-text" x="76" y="525">03  ·  实例转换</text>
+  <line class="rule" x1="58" y1="545" x2="942" y2="545"/>
+  <rect class="card input" x="76" y="550" width="278" height="54" rx="7"/>
+  <text class="box-text" x="94" y="573">实例：data.yaml</text>
+  <text class="box-text" x="94" y="595">模型：Person schema</text>
+  <path class="edge" d="M354 577H409"/>
+  <rect class="card tool-convert" x="417" y="559" width="226" height="36" rx="7"/>
+  <text class="box-text" x="437" y="584">linkml-convert</text>
+  <path class="edge" d="M643 577H698"/>
+  <rect class="card turtle" x="706" y="559" width="210" height="36" rx="7"/>
+  <text class="box-text" x="726" y="584">输出：Turtle 实例</text>
+
+  <text class="subtitle" x="48" y="648">验证与转换从同一份实例和 schema 出发，但彼此独立，不是“validate → convert”串联。</text>
+</svg>

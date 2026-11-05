@@ -1,0 +1,986 @@
+---
+title: 'LinkML 与 OWL 实践：从 PostgreSQL 整理业务领域模型'
+date: '2026-11-05'
+tags: ['LinkML', 'OWL', '知识图谱', 'PostgreSQL']
+images:
+  - '/static/images/2026-11-05-linkml-postgresql-to-owl/linkml-owl-ai-hero.jpg'
+draft: false
+summary: '从七张 PostgreSQL 表出发，结合业务规则与 LLM 辅助整理 LinkML 模型，再生成并检查 OWL。通过完整 YAML、提示词、实例和生成结果，说明模型生成、数据验证与实例映射的职责及边界。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-11-05-linkml-postgresql-to-owl/linkml-owl-ai-hero.jpg" alt="关系表、领域模型与互联节点组成的 LinkML 到 OWL 主题插画" className="w-full rounded-lg" />
+  <figcaption>从关系表到领域模型与本体关系图</figcaption>
+</figure>
+
+数据库里已经有表、有外键、有数据，为什么还要整理一份领域模型？这次探索从一个很具体的问题开始：“远山制造的项目里有哪些员工？”
+
+项目表能关联员工，项目参与表也能关联员工，任务表还可以找到执行人。三条路径都成立，查出的却是三种关系。如果没有把“负责项目”“参与项目”“执行任务”分别定义，模型即使写出可以运行的 SQL，也可能回答了另一个问题。
+
+我们用七张 PostgreSQL 表走一遍建模过程：先认识 LinkML，再把表结构、样本和业务说明整理成 `domain.yaml`，最后用官方生成器得到 `domain.owl.ttl`。过程中会用到 LLM，但每一次命名、约束和关系选择都需要说明依据。最终还要打开生成文件，检查那些看起来已经完成的转换。
+
+## 1. 背景：为什么有了数据库，还需要领域模型
+
+### 1.1 一个业务问题，三条数据路径
+
+在项目101“设备知识平台”中，陈晨是项目负责人，林晓、王宁等人有参与记录，部分任务则分别交给其中的员工执行。任务2004“上线评审”尚未指派。
+
+假设把问题解释为“谁是负责人”，连接路径是：
+
+```sql
+SELECT p.name AS project, e.name AS owner
+FROM projects AS p
+JOIN customers AS c ON c.id = p.customer_id
+JOIN employees AS e ON e.id = p.owner_id
+WHERE c.name = '远山制造';
+```
+
+若解释为“谁有参与记录”，路径就变了：
+
+```sql
+SELECT p.name AS project, e.name AS participant,
+       m.role_code, m.allocation_pct, m.joined_on, m.left_on
+FROM projects AS p
+JOIN customers AS c ON c.id = p.customer_id
+JOIN project_memberships AS m ON m.project_id = p.id
+JOIN employees AS e ON e.id = m.employee_id
+WHERE c.name = '远山制造';
+```
+
+这两段 SQL 用于说明连接含义，第二段没有筛选有效时点。如果问的是“当前参与”，还需要确定一个日期，并检查 `joined_on <= 日期`，以及退出日期为空或不早于该日期。是否将退出当天算作有效参与，也必须有约定。
+
+因此，建模输入至少包含四组材料：表结构、具体事实、业务定义和待确认的问题。外键能告诉我们两个值怎样关联，业务定义进一步说明这种关联意味着什么。
+
+### 1.2 这次沿哪条路线工作
+
+![从数据库材料到LinkML模型、OWL以及实例数据的两条工作路线](/static/images/2026-11-05-linkml-postgresql-to-owl/01-workflow.svg)
+
+*图1：本案例工作流程示意。模型生成和实例映射分别进行，交汇处仍需核对标识、类和属性。*
+
+这里有两条相关但独立的路线。
+
+模型路线从 DDL、样本和规则开始。人工与 LLM 整理概念、关系和约束，形成 LinkML schema，再由 `gen-owl` 生成 OWL。实例路线从数据库读取具体记录，通过映射形成 JSON 或 RDF。只有两条路线在名称、URI、取值表示等方面对齐，实例才能按预期使用模型。
+
+本文重点检查五件事：
+
+| 问题 | 对应的检查材料 |
+|---|---|
+| 自动逆向能保留哪些结构？ | DDL、逆向草稿、差异表 |
+| LLM依据什么提出模型？ | 输入包、提示词、建模决策和疑问清单 |
+| 关系含义有没有写清楚？ | 三种员工关系、Participation及其属性 |
+| LinkML怎样生成OWL？ | YAML、完整命令、日志、TTL片段 |
+| 生成结果是否符合预期？ | 文件解析、结构核对、实例表示与约束偏差 |
+
+[《为 AI Agent 构建企业语义层：从可信查询到受控行动》](https://apframework.com/blog/essay/2026-08-23-semantic-layer-for-ai-agents)讨论了对象、关系、时间口径和合法查询路径。本篇先把其中的对象与关系落实到一份可读、可生成的模型，后续查询映射另行展开。
+
+## 2. 认识 LinkML 与相关工具
+
+### 2.1 LinkML：用一份模型表达共同的数据定义
+
+[LinkML](https://linkml.io/linkml/intro/overview.html)提供建模语言及配套工具链。模型通常写成 YAML，可以描述类、属性、数据类型、关系、枚举和约束，再生成不同技术框架中的表示。
+
+例如，“项目有一个负责人，负责人是员工”可以先写在模型里。需要 JSON 数据约束时生成 JSON Schema，需要本体表示时生成 OWL。不同目标语言的表达能力和执行方式不同，每一种输出还需单独检查，不能假定所有声明都被原样保留。
+
+使用 LinkML 不需要先启动关系数据库。我们可以先设计 schema，再按模型组织数据；也可以像本例一样，面对已经存在的表，整理一份更贴近业务的模型。关系数据库是这次的输入来源，而非 LinkML 的前提。
+
+### 2.2 LinkML schema：文件中的每一层在做什么
+
+schema 描述一类数据允许怎样组织，实例则是一条具体记录。“员工有姓名、邮箱和所属部门”属于 schema；“林晓属于平台组”属于实例。
+
+先看本例会反复使用的构件：
+
+| 构件 | 含义 | 本例写法 |
+|---|---|---|
+| `classes` | 定义类 | `Employee`、`Project` |
+| `slots` | 定义可复用的属性 | 多个类共用的`id`、`name` |
+| `attributes` | 在类内声明属性 | `Project.owner` |
+| `range` | 属性值的类型或目标类 | `decimal`、`Employee` |
+| `required` | 声明数据中该项必需 | 项目负责人必填 |
+| `multivalued` | 声明可有多个值 | 数据集中的员工集合 |
+| `identifier` | 声明标识属性 | `id` |
+| `enums` | 定义允许值 | 项目状态 |
+| `is_a` | 继承父类定义 | 员工继承`NamedEntity` |
+| `abstract` | 将类标记为抽象 | 共享父类 |
+
+`attributes`中的属性同样属于 LinkML 的 slot 建模机制。将公共字段放入顶层 `slots`，可以在多个类中复用；只在一个类附近定义的属性，可以直接写在该类的 `attributes` 下。
+
+模型文件开头还有一组元信息：
+
+```yaml
+id: https://example.org/work/schema
+name: work_domain
+prefixes:
+  linkml: https://w3id.org/linkml/
+  ex: https://example.org/work/
+imports:
+  - linkml:types
+default_prefix: ex
+default_range: string
+```
+
+`id`是schema本身的标识，`name`是模型名称。`prefixes`将短前缀关联到URI，`imports`引入标准类型定义。`default_range: string`意味着没有另行指定范围的属性默认按字符串处理。因此，日期、金额、整数和对象关系需要显式声明。
+
+`ex:employee/2`是使用前缀的紧凑标识，可以展开为`https://example.org/work/employee/2`。这里的URI用于稳定地标识对象，不要求访问这个地址时一定能打开网页。员工表中的整数2需要通过映射规则变成这个标识，不能指望生成器猜出业务对象的URI方案。
+
+### 2.3 从官网 Person 示例动手
+
+[官方第一篇教程](https://linkml.io/linkml/intro/tutorial01.html)用一个`Person`类说明最小工作流。以下先保留它的简单结构，建立工具直觉。
+
+在终端中新建目录和虚拟环境：
+
+```bash
+mkdir linkml-tutorial
+cd linkml-tutorial
+python3 -m venv venv
+source venv/bin/activate
+pip install linkml
+linkml-convert --help
+```
+
+后续文件放在这个目录。安装命令没有固定版本；若用于可复现实验，应另外记录实际安装版本。本文业务案例的固定版本列在第4.7节，不能与此处的一般安装步骤混用。
+
+创建`personinfo.yaml`：
+
+```yaml
+id: https://w3id.org/linkml/examples/personinfo
+name: personinfo
+prefixes:
+  linkml: https://w3id.org/linkml/
+  personinfo: https://w3id.org/linkml/examples/personinfo
+imports:
+  - linkml:types
+default_range: string
+default_prefix: personinfo
+
+classes:
+  Person:
+    attributes:
+      id:
+      full_name:
+      aliases:
+      phone:
+      age:
+```
+
+这里并没有给`age`指定整数范围，也没有将`aliases`声明为多值属性。名字本身不会自动改变字段定义，当前它们都按缺省字符串处理。这个最小schema也没有把`id`标为`identifier`，不要把这个入门例子误读成完整业务模板。
+
+再创建`data.yaml`：
+
+```yaml
+id: ORCID:1234
+full_name: Clark Kent
+age: "32"
+phone: 555-555-5555
+```
+
+这次看到了具体数据。`age`写成字符串，与当前schema一致。运行：
+
+```bash
+gen-json-schema personinfo.yaml
+linkml-validate -s personinfo.yaml data.yaml
+linkml-convert -s personinfo.yaml data.yaml -t ttl
+```
+
+第一个命令生成JSON Schema。官网输出中的属性片段如下，保留了`age`的字符串或空值类型：
+
+```json
+"age": {
+  "type": ["string", "null"]
+}
+```
+
+第二个命令校验实例，官网预期是没有验证问题。若在实例中额外加入：
+
+```yaml
+made_up_field: hello
+```
+
+官方教程说明，验证会报告这个字段不被允许。这样就能观察到schema如何约束输入。
+
+第三个命令将实例转成Turtle。官网输出使用匿名节点，片段如下：
+
+```turtle
+@prefix personinfo: <https://w3id.org/linkml/examples/personinfo> .
+
+_:c14n0 a personinfo:Person ;
+    personinfo:age "32" ;
+    personinfo:full_name "Clark Kent" ;
+    personinfo:id "ORCID:1234" ;
+    personinfo:phone "555-555-5555" .
+```
+
+`a`是`rdf:type`的简写，表示这个节点属于`Person`。匿名节点的具体标签不应被视作稳定业务标识。
+
+这几段输出来自官网，不是本文写作时的本机执行结果。它们已经能帮助我们分清工具任务：生成器接收模型，验证器读取模型与数据，转换器则把具体数据换一种表示。
+
+![模型生成、实例验证与实例转换的三条独立管线](/static/images/2026-11-05-linkml-postgresql-to-owl/02-schema-instance.svg)
+
+*图2：schema生成JSON Schema或OWL；数据实例和schema分别进入验证或转换流程。三者的输入输出不同。*
+
+### 2.4 OWL、RDF、Turtle：目标文件包含什么
+
+RDF用“主语—谓语—宾语”组织信息。例如，某个项目的负责人是员工1：
+
+```turtle
+@prefix ex: <https://example.org/work/> .
+
+<https://example.org/work/project/101>
+    ex:owner <https://example.org/work/employee/1> .
+```
+
+这是一条具体事实。`ex:owner`是谓语，两个完整URI分别标识项目和员工。
+
+OWL提供表达类、属性和逻辑公理的语言。下面声明一个类：
+
+```turtle
+@prefix ex: <https://example.org/work/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+ex:Project a owl:Class .
+```
+
+两段都能写成Turtle。Turtle只是文本语法，`.ttl`扩展名本身不能说明文件里放的是实例还是本体。`.owl.ttl`是常用命名习惯，便于提示文件主要包含OWL表示。
+
+在[《本体语言与应用：从描述逻辑到OWL》](https://apframework.com/blog/essay/2026-09-27-owl-from-description-logic-to-applications)中，类、对象属性、个体和公理被放在同一个车辆案例里解释。本文沿用“先看写下了什么，再看它能够保证什么”的阅读方式；形式语义以[W3C OWL 2 Primer](https://www.w3.org/TR/owl2-primer/)及规范为依据。
+
+### 2.5 gen-owl：把模型生成为什么样的本体
+
+`gen-owl`是LinkML工具链中的OWL生成器。最小调用是：
+
+```bash
+gen-owl my_schema.yaml
+```
+
+输入是schema，输出描述schema的OWL表示。它可以把类转换为OWL类，把关系转换为属性，把部分类型与数量声明表达为逻辑限制。本例后面会看到`Employee`、`Participation`、`employee`以及“值属于Employee、恰好一个值”等结构。
+
+如果数据库里有六名员工，运行上面的命令并不会自动连接数据库、读取六行，再生成六名员工的事实。抽取和实例转换需要另外完成。
+
+[OWL生成器文档](https://linkml.io/linkml/generators/owl.html)还提供元类、类型对象、原生URI及枚举表示等选项。不同调用方式和版本的默认值应分别核对；本例使用显式参数，并以实际输出作为判断依据。
+
+### 2.6 生态里还有哪些工具
+
+| 工具 | 具体用途 | 本例怎样使用 |
+|---|---|---|
+| LinkML Runtime / `SchemaView` | 在程序中读取和查看schema，例如类与属性定义 | 自编脚本据此读取模型 |
+| Schema Automator | 从已有数据或结构引导形成schema草稿，支持SQL等来源 | 用SQL Python API反射七张表 |
+| `gen-json-schema` | 将schema生成为JSON Schema | 官网Person入门示例 |
+| `linkml-validate` | 按给定schema校验实例 | 官网Person入门；未用于本例全量验证 |
+| `linkml-convert` | 在模型指导下转换实例表示 | 官网Person转Turtle示例 |
+| `gen-owl` | 将schema生成为OWL | 本例两份schema分别生成 |
+| OntoGPT | 按给定schema从自由文本抽取结构化内容，并支持本体对齐 | 介绍用途，本例未引入 |
+
+[Schema Automator](https://linkml.io/schema-automator/)的定位是辅助起步和增强schema。自动导入减少结构录入工作，业务关系仍需整理。
+
+[OntoGPT](https://monarch-initiative.github.io/ontogpt/)的典型输入是LinkML schema和自由文本：schema规定抽取目标，文本提供内容。它不构成本例“DDL自动变成本体”的必要步骤。这里直接在当前对话中借助LLM整理模型，没有再接一个模型API。
+
+另外，RDFLib用于读取和检查RDF；WebVOWL和Protégé用于阅读本体。它们是配套工具，不属于把业务含义写进schema的替代步骤。可视化阅读留在下一篇展开。
+
+## 3. 案例数据：先看表、记录和规则
+
+### 3.1 七张表如何连接
+
+案例数据库名为`linkml_demo`，保存一个小型项目管理场景。
+
+| 表 | 业务内容 | 行数 |
+|---|---|---:|
+| `departments` | 部门及直接上级 | 4 |
+| `employees` | 员工、部门、直属经理 | 6 |
+| `customers` | 客户组织 | 2 |
+| `project_statuses` | 项目状态代码与名称 | 3 |
+| `projects` | 项目、客户、负责人、预算与日期 | 4 |
+| `project_memberships` | 项目参与、角色、比例和有效期 | 9 |
+| `tasks` | 项目任务、执行人和截止日 | 8 |
+
+共36行。状态表的三行稍后建模为枚举，其他六类记录合计33个业务实体。这两个计数有不同口径。
+
+![七张表的完整字段分组及三种项目员工关系路径](/static/images/2026-11-05-linkml-postgresql-to-owl/03-seven-tables.svg)
+
+*图3：上部按业务分组列出七张表及完整字段；下部将负责人、参与员工和任务执行人拆成独立外键路径。下部重复出现的表名是路径引用，不是新增表。*
+
+### 3.2 三张核心表的真实结构
+
+项目表保存客户、负责人及生命周期：
+
+```sql
+CREATE TABLE projects (
+ id integer PRIMARY KEY,
+ name text NOT NULL,
+ customer_id integer NOT NULL REFERENCES customers(id),
+ owner_id integer NOT NULL REFERENCES employees(id),
+ status_code text NOT NULL REFERENCES project_statuses(code),
+ budget numeric(12,2) NOT NULL CHECK (budget >= 0),
+ start_date date NOT NULL,
+ end_date date,
+ CHECK (end_date IS NULL OR end_date >= start_date)
+);
+```
+
+`owner_id`非空，引用员工；`budget`以数值保存，不能为负；结束日期允许为空，但若填写就不能早于开始日期。DDL还没有解释“负责人是否必须同时拥有参与记录”。
+
+参与表把多对多关系保存成独立记录：
+
+```sql
+CREATE TABLE project_memberships (
+ id integer PRIMARY KEY,
+ project_id integer NOT NULL REFERENCES projects(id),
+ employee_id integer NOT NULL REFERENCES employees(id),
+ role_code text NOT NULL CHECK (role_code IN ('lead','engineer','analyst')),
+ allocation_pct integer NOT NULL CHECK (allocation_pct BETWEEN 1 AND 100),
+ joined_on date NOT NULL,
+ left_on date,
+ UNIQUE (project_id, employee_id, joined_on),
+ CHECK (left_on IS NULL OR left_on >= joined_on)
+);
+```
+
+这张表不只是两个外键。角色、投入、加入和退出日期都属于某次参与。唯一约束允许同一员工在不同开始日期有多次参与记录，不能简单压成员工与项目之间的一条无属性边。
+
+任务表中的执行人可以为空：
+
+```sql
+CREATE TABLE tasks (
+ id integer PRIMARY KEY,
+ project_id integer NOT NULL REFERENCES projects(id),
+ assignee_id integer REFERENCES employees(id),
+ title text NOT NULL,
+ status_code text NOT NULL CHECK (status_code IN ('todo','doing','done')),
+ estimated_hours numeric(6,2) NOT NULL CHECK (estimated_hours >= 0),
+ due_date date NOT NULL
+);
+```
+
+这里外键只保证执行人存在于员工表。执行人是否在任务截止日参与该项目，需要额外规则和代码检查。
+
+其余表的关键关系也会进入模型：员工的`department_id`指向部门，`manager_id`指向另一名员工；部门的`parent_id`指向直接上级部门。DDL禁止直接指向自身，但不能据此声称已经排除了所有多层循环。
+
+### 3.3 把样本放到眼前
+
+员工数据如下。经理列保留员工ID，便于与外键对应。
+
+| ID | 姓名 | 部门 | 经理ID | 入职日期 |
+|---:|---|---|---:|---|
+| 1 | 陈晨 | 研发部 | 空 | 2020-03-01 |
+| 2 | 林晓 | 平台组 | 1 | 2021-06-15 |
+| 3 | 王宁 | 平台组 | 1 | 2022-02-10 |
+| 4 | 赵敏 | 数据部 | 空 | 2020-08-01 |
+| 5 | 周宇 | 数据部 | 4 | 2023-07-01 |
+| 6 | 李悦 | 研发部 | 1 | 2024-01-15 |
+
+部门层级为“示例科技→研发部→平台组”，数据部直属示例科技。“研发部有哪些员工”若要包含平台组，就要明确层级展开规则；只连接员工的直接部门会得到另一种答案。
+
+四个项目如下：
+
+| ID | 项目 | 客户 | 负责人 | 状态 | 预算（元） | 起止日期 |
+|---:|---|---|---|---|---:|---|
+| 101 | 设备知识平台 | 远山制造 | 陈晨 | active | 800000 | 2026-01-01至2026-12-31 |
+| 102 | 客户数据治理 | 星海零售 | 赵敏 | active | 450000 | 2026-04-01至2026-11-30 |
+| 103 | 指标体系一期 | 星海零售 | 赵敏 | completed | 180000 | 2025-06-01至2025-12-31 |
+| 104 | 供应链语义集成 | 远山制造 | 陈晨 | planned | 650000 | 2027-01-01起，结束未定 |
+
+九条参与记录是理解本例最重要的数据：
+
+| 记录ID | 项目 | 员工 | 角色 | 投入比例 | 加入日期 | 退出日期 |
+|---:|---:|---|---|---:|---|---|
+| 1001 | 101 | 陈晨 | lead | 30% | 2026-01-01 | 空 |
+| 1002 | 101 | 林晓 | engineer | 60% | 2026-01-01 | 空 |
+| 1003 | 101 | 王宁 | engineer | 80% | 2026-02-01 | 空 |
+| 1004 | 101 | 周宇 | analyst | 20% | 2026-04-01 | 空 |
+| 1005 | 102 | 赵敏 | lead | 40% | 2026-04-01 | 空 |
+| 1006 | 102 | 周宇 | analyst | 70% | 2026-04-01 | 空 |
+| 1007 | 102 | 林晓 | engineer | 40% | 2026-05-01 | 空 |
+| 1008 | 103 | 赵敏 | lead | 30% | 2025-06-01 | 2025-12-31 |
+| 1009 | 103 | 周宇 | analyst | 60% | 2025-06-01 | 2025-12-31 |
+
+若以2026-11-05为教学示例的观察日期，林晓的两条记录都已开始且未退出，投入分别为60%和40%。这个日期用于解释有效期条件，不代表重跑了保存的查询。这只能说明样本中的情况。表注释明确没有约束跨项目投入合计，不能从恰好100%推导出一条全局规则。
+
+任务数据完整列出如下，待处理状态的代码定义见后文完整YAML：
+
+| ID | 项目 | 任务 | 执行人 | 状态 | 预估工时 | 截止日期 |
+|---:|---:|---|---|---|---:|---|
+| 2001 | 101 | 建立设备模型 | 林晓 | done | 32 | 2026-08-15 |
+| 2002 | 101 | 接入设备主数据 | 王宁 | doing | 48 | 2026-11-10 |
+| 2003 | 101 | 核对设备术语 | 周宇 | 待处理 | 16 | 2026-11-20 |
+| 2004 | 101 | 上线评审 | 空 | 待处理 | 8 | 2026-12-15 |
+| 2005 | 102 | 客户字段语义对齐 | 周宇 | doing | 24 | 2026-11-05 |
+| 2006 | 102 | 编写质量校验 | 林晓 | 待处理 | 20 | 2026-11-18 |
+| 2007 | 103 | 指标验收 | 赵敏 | done | 12 | 2025-12-20 |
+| 2008 | 104 | 确认供应链概念范围 | 空 | 待处理 | 16 | 2027-01-15 |
+
+项目状态、参与角色、任务状态使用不同代码集合。虽然都有类似“状态”的名字，也不能合并成一个含义模糊的字段。
+
+### 3.4 事实、规则和疑问分别保留
+
+整理输入时，建议建立这样一张表：
+
+| 内容 | 依据 | 当前处理 |
+|---|---|---|
+| 项目负责人必填 | `owner_id NOT NULL`及项目说明 | `Project.owner`必需 |
+| 任务可以暂不指派 | 可空外键及样本2004、2008 | `Task.assignee`可选 |
+| 投入范围1至100 | DDL的CHECK | 单条参与记录范围 |
+| 退出不早于加入 | DDL的CHECK | 跨字段日期规则，另行检查 |
+| 执行人应在截止日参与项目 | 案例验证代码中的规则 | 标为本例应用检查，并确认业务认可 |
+| owner必须等同于lead | 样本碰巧一致，未有约束 | 待确认，不能自动增加 |
+| 所有人跨项目投入合计≤100% | 没有依据，注释明确未约束 | 不加入模型 |
+
+把最后两项先留下来，比生成一份看起来毫无疑问的YAML更有用。后来发现口径变化时，也能知道需要改的是哪条决定。
+
+## 4. 从表和规则整理领域模型
+
+### 4.1 先准备给 LLM 的材料
+
+如果只贴七张表并说“生成本体”，LLM需要猜很多事情：类名沿用表名还是改成业务词，状态是词表对象还是枚举，投入比例是单项目还是全局约束，任务能否没有执行人。
+
+本例把材料分成四段交给模型：
+
+```text
+建模目标
+为项目管理数据整理一个可审阅的LinkML模型，随后生成OWL。
+模型要区分负责人、参与者和任务执行人。
+
+结构材料
+完整DDL、主外键、NOT NULL、CHECK、唯一约束及表列注释。
+
+事实材料
+员工、项目、参与和任务样本；包含未指派任务、结束参与记录。
+
+业务说明
+字段单位、关系含义、有效期约定、已确认规则及待确认问题。
+```
+
+输入包中还要写明：生成的是模型候选，不直接改数据库；每条新增关系或约束需要有来源；未知内容列为问题。这样才能判断LLM整理得好不好，而不只判断YAML是否漂亮。
+
+### 4.2 自动逆向先给出一份结构起点
+
+本例也使用Schema Automator的官方SQL Python API读取数据库。核心调用可以归纳为：
+
+```python
+from schema_automator.importers.sql_import_engine import SqlImportEngine
+from linkml_runtime.dumpers import yaml_dumper
+
+engine = SqlImportEngine()
+try:
+    schema = engine.convert(connection_url)
+finally:
+    if engine.engine is not None:
+        engine.engine.dispose()
+
+yaml_dumper.dump(schema, to_file="database-import.yaml")
+```
+
+`connection_url`由连接环境构造，避免将密码写进文章或结果文件。完整脚本使用SQLAlchemy的URL对象，反射`linkml_demo`。这个步骤需要数据库可访问；读取已有YAML生成OWL则不需要重新连接数据库。
+
+导入后，七张表形成七个类，列形成属性。与人工业务模型相比，本次保存的草稿有这些差异：
+
+| 数据库输入 | 此次导入观察 | 后续处理 |
+|---|---|---|
+| `project_memberships` | 保留表中心的名称和字段 | 解释为`Participation` |
+| `DATE` | 观察到范围为string | 人工明确为date |
+| `NUMERIC` | 观察到范围为string | 金额、工时明确为decimal |
+| 必填及CHECK等约束 | 没有完整表达业务模型所需信息 | 对照DDL逐项整理 |
+| 标准类型引用 | 原始草稿缺标准类型导入 | prepared副本补`linkml:types` |
+
+原始文件保留为`database-import.yaml`，补类型导入的副本为`database-import-prepared.yaml`。后者只是让类型引用更完整，没有自动修复业务含义或所有约束。
+
+这组结果限定于本例的Schema Automator 0.5.7及调用配置。命令行入口当时遇到EML单位换算相关依赖错误，因此改用官方Python API。API完成反射，不意味着CLI故障已解决。
+
+### 4.3 第一轮提示词：先要求依据，再输出 YAML
+
+下面是一份可以复用的教学提示词。它是依据本案例材料整理的教学输入，本轮没有调用LLM执行该提示词；现有`domain.yaml`来自此前建模过程，不能据此声称它是该提示词的模型输出。为了让该提示词本身可执行，使用时要在同一上下文中实际附上完整DDL、样本和业务说明，而不能只贴表结构。
+
+```text
+你协助我整理项目管理领域的LinkML模型。模型随后用于生成OWL，
+也会作为人工审阅业务概念与关系的材料。
+
+输入材料：
+1. 上文七张表的完整DDL与注释；
+2. 员工、项目、参与记录和任务样本；
+3. 下列业务说明及待确认问题。
+
+已确认说明：
+- Project.owner表示项目负责人。
+- Participation.employee表示某次参与的员工。
+- Task.assignee表示具体任务执行人，允许为空。
+- Participation需要保存角色、投入比例、加入与退出日期。
+- allocation_pct单位为%，范围1至100，仅约束单条参与记录。
+- budget_cny单位为人民币元；estimated_hours单位为小时。
+- 部门关系表示直接上级，不默认定义传递推理。
+- 允许缺省标量范围继承顶层name slot。Task.title可映射为Task.name，但不得同时保留两个独立字段。
+- ProjectStatus、ParticipationRole、TaskStatus的枚举建模是本案例候选方案，不代表DDL本身已证明它们在业务上不可扩展；请将此点列为建模选择。
+- NamedEntity与Dataset是模型组织选择，不是数据库表；请逐项检查继承后的属性是否适用于各子类。
+
+请分五部分输出：
+A. 业务类、关系与术语候选，每项注明DDL、注释或业务说明依据。
+B. 表和字段到模型元素的映射表，包括类型、必填性及重命名。
+C. 歧义和待确认问题；材料不足时明确写未知。
+D. 一份完整domain.yaml，包含前缀、linkml:types、枚举、类和slot。
+E. 可用schema表达的声明，以及需数据库或应用代码检查的规则。
+
+模型组织要求：
+- 将Department、Employee、Customer、Project、Participation、Task作为业务类候选；逐项说明为何将project_memberships抽象为Participation。
+- NamedEntity为可选的抽象复用方案。特别检查继承的name是否会错误要求Participation提供名称；如会，给出最小调整，不要为了沿用草稿而牺牲语义。
+- Dataset仅作为实例集合容器候选，六类业务记录分别为列表；说明它不是DDL中的表，也不是OWL业务概念。
+- 对象标识使用ex:employee/2等稳定CURIE，说明数据库ID到CURIE的映射方式。
+- 区分项目状态、参与角色、任务状态三个候选枚举，并指出使用枚举是本案例设计选择，是否适合需由业务维护方式确认。
+
+不要根据样本增加全局投入≤100%的规则。
+不要假定owner与lead角色必然相同。
+不要把外键都重命名为“负责”，不要删除关系上的有效期和比例。
+不要执行数据库操作。先输出候选，不声称已经验证或生成OWL。
+```
+
+这里仍有一部分预先约定的模型组织方式，但它不应变成必须服从的答案：提示词明确允许`NamedEntity`和`Dataset`作为候选，也要求检查继承影响。对照当前schema后，`Participation`没有继承`NamedEntity`，因此`name`不是它的必填属性；若照提示词的旧写法让Participation继承NamedEntity，`name`会随继承进入其诱导slot，且为必需，这与“Participation只有id，不强加name”冲突。小规模SchemaView对照确认了这一点。用于早期探索时，还可以要求两三种候选设计，并比较参与记录作为实体和直接关系各自会保留或丢失什么。
+
+### 4.4 第二轮提示词：专门找模型里的问题
+
+初稿生成后，可以再给一次不同任务：
+
+```text
+请审查上面的domain.yaml，不要直接重写全文。
+
+逐项对照DDL、样本和业务说明，输出：
+1. 遗漏的字段、错误类型、错误必填性及关系角色混淆；
+2. 没有依据却新增的规则；
+3. 标识、前缀、引用和枚举是否自洽；
+4. NamedEntity与Dataset是否被误认为业务表；
+5. 哪些约束无法仅靠当前YAML完成实例检查；
+6. 与已有RDF实例的class_uri/slot_uri及枚举表示可能出现的差异。
+
+每个问题给出位置、依据、影响与最小修改建议。
+无法由输入确定的内容列为待确认，不自行决定。
+不要把“可以解析”写成“业务正确”，不要声称运行了任何工具。
+```
+
+第二轮依然是辅助审查。把它用于已存在的`domain.yaml`时，模型可能会指出继承语义、字段遗漏、URI差异或生成器映射问题；这些是审查候选，不等于已证实缺陷。小规模实测中，现有YAML通过LinkML 1.12.1元模型校验；SchemaView显示`Participation`诱导slot包含必需的id、project、employee、role、allocation_pct、joined_on以及可选left_on，不含name。用参数化`gen-owl`生成到stdout时，能看到相应关系限制与枚举类，也出现`schema`前缀从HTTPS映射到HTTP的警告和共享`project`属性歧义警告。金额/工时范围中decimal与非负integer交集也再次出现。YAML能否被工具读取要实际解析；生成的OWL是否与预期一致要检查输出。元模型通过不等于业务正确，生成命令成功也不等于语义无损；模型自己写下的“已验证”不构成执行证据。
+
+### 4.5 人工审核：Participation 为什么要保留下来
+
+![林晓的两次项目参与以及独立的项目负责人关系](/static/images/2026-11-05-linkml-postgresql-to-owl/04-participation.svg)
+
+*图4：依据样本重绘的关系实体示意。角色、比例和日期属于某条参与记录，项目负责人另行定义。*
+
+林晓是一名员工，但参与1002和参与1007是两条不同记录。前者连到项目101，投入60%；后者连到项目102，投入40%。若只写“林晓参与项目101、102”，两个比例及对应日期就失去清晰的附着位置。
+
+因此把`project_memberships`整理为`Participation`，由它关联项目和员工，再保存关系上的属性。模型决策可以写成下面这样：
+
+| 输入 | 模型决定 | 理由 |
+|---|---|---|
+| `projects.owner_id` | `Project.owner → Employee` | 对应负责人 |
+| `project_memberships.employee_id` | `Participation.employee → Employee` | 对应某次参与的员工 |
+| `tasks.assignee_id` | `Task.assignee → Employee`，可选 | 对应任务执行人 |
+| 参与表上的角色、比例、日期 | 保留在Participation | 它们描述参与过程 |
+| 状态代码表三行 | ProjectStatus枚举 | 本例将其视为有限取值 |
+| `tasks.title` | `Task.name` | 在模型中统一可命名业务对象 |
+| 部门、员工等共有id/name | NamedEntity抽象父类 | 复用定义 |
+
+将状态表转为枚举是一项设计选择。如果状态本身有维护流程、多个版本、额外属性或可扩展词表，也可能更适合独立建模。这里的三个值足够简单，因此采用枚举。
+
+`NamedEntity`这个名字曾让人误解。它只是本例自定义的抽象父类，共享标识和名称，不是自然语言处理中命名实体识别的结果，也没有对应第八张业务表。`Dataset`同样用于组织数据交换，不代表额外业务对象。
+
+### 4.6 最终 domain.yaml
+
+下面完整列出案例保存的`domain.yaml`。它表达主要字段与选定的模型声明，数据库中的邮箱唯一、参与组合唯一和跨字段日期先后等规则没有全部编码到这里。保留外部词汇映射，后面再观察它们在不同实例映射与生成参数下的表现。
+
+```yaml
+id: https://example.org/work/schema
+name: work_domain
+prefixes:
+  linkml: https://w3id.org/linkml/
+  ex: https://example.org/work/
+  schema: https://schema.org/
+default_prefix: ex
+default_range: string
+imports:
+  - linkml:types
+
+enums:
+  ProjectStatus:
+    permissible_values:
+      planned: {description: 计划中}
+      active: {description: 进行中}
+      completed: {description: 已完成}
+  ParticipationRole:
+    permissible_values:
+      lead: {description: 项目负责人角色}
+      engineer: {description: 工程师}
+      analyst: {description: 分析师}
+  TaskStatus:
+    permissible_values:
+      todo: {description: 待处理}
+      doing: {description: 进行中}
+      done: {description: 已完成}
+
+slots:
+  id:
+    identifier: true
+    required: true
+    range: uriorcurie
+  name:
+    required: true
+    slot_uri: schema:name
+
+classes:
+  NamedEntity:
+    abstract: true
+    slots: [id, name]
+  Department:
+    is_a: NamedEntity
+    description: 内部组织单元；parent_department 表示直接上级，不预设传递推理。
+    attributes:
+      parent_department: {range: Department}
+  Employee:
+    is_a: NamedEntity
+    class_uri: schema:Person
+    attributes:
+      email: {required: true, pattern: '^.+@.+\..+$'}
+      department: {range: Department, required: true}
+      manager: {range: Employee}
+      hired_on: {range: date, required: true}
+  Customer:
+    is_a: NamedEntity
+    class_uri: schema:Organization
+    attributes:
+      industry: {required: true}
+  Project:
+    is_a: NamedEntity
+    attributes:
+      customer: {range: Customer, required: true}
+      owner: {range: Employee, required: true}
+      status: {range: ProjectStatus, required: true}
+      budget_cny: {range: decimal, minimum_value: 0, required: true}
+      start_date: {range: date, required: true}
+      end_date: {range: date}
+  Participation:
+    description: 带角色、投入比例及有效期的员工参与项目关系，须保留为独立实体。
+    slots: [id]
+    attributes:
+      project: {range: Project, required: true}
+      employee: {range: Employee, required: true}
+      role: {range: ParticipationRole, required: true}
+      allocation_pct: {range: integer, minimum_value: 1, maximum_value: 100, required: true}
+      joined_on: {range: date, required: true}
+      left_on: {range: date}
+  Task:
+    is_a: NamedEntity
+    attributes:
+      project: {range: Project, required: true}
+      assignee: {range: Employee}
+      task_status: {range: TaskStatus, required: true}
+      estimated_hours: {range: decimal, minimum_value: 0, required: true}
+      due_date: {range: date, required: true}
+  Dataset:
+    tree_root: true
+    attributes:
+      departments: {range: Department, multivalued: true, inlined_as_list: true}
+      employees: {range: Employee, multivalued: true, inlined_as_list: true}
+      customers: {range: Customer, multivalued: true, inlined_as_list: true}
+      projects: {range: Project, multivalued: true, inlined_as_list: true}
+      participations: {range: Participation, multivalued: true, inlined_as_list: true}
+      tasks: {range: Task, multivalued: true, inlined_as_list: true}
+```
+
+`budget_cny`把货币单位写入名称，`allocation_pct`把百分比范围写入模型。`end_date`与`left_on`允许缺失，但日期的先后关系没有仅凭这两个字段定义自动得到验证。
+
+`identifier: true`用于标识建模。它不保证生成器一定给出`owl:hasKey`，更不意味着任意数据库唯一约束都被翻译。本例的OWL没有生成这样的键公理。
+
+`Dataset`下的六个多值列表规定一种实例组织方式；SchemaView确认六个slot均为多值且采用列表内联。它不是从DDL推导出的实体，也不表示数据库里有一张Dataset表。林晓和参与1002在抽取的JSON中可写成：
+
+```json
+{
+  "employees": [
+    {
+      "id": "ex:employee/2",
+      "name": "林晓",
+      "email": "lin@example.test",
+      "department": "ex:department/4",
+      "manager": "ex:employee/1",
+      "hired_on": "2021-06-15"
+    }
+  ],
+  "participations": [
+    {
+      "id": "ex:participation/1002",
+      "project": "ex:project/101",
+      "employee": "ex:employee/2",
+      "role": "engineer",
+      "allocation_pct": 60,
+      "joined_on": "2026-01-01"
+    }
+  ]
+}
+```
+
+这是为说明结构而摘取的数据切片，不是自足的完整数据集：它引用的部门、经理和项目需要在完整实例集合中存在。对象标识由映射代码构造，例如员工整数2变为`ex:employee/2`，任务的`title`映射成模型里的`name`。
+
+### 4.7 读取实例并用反例检查
+
+早期实例抽取环境与后面的OWL生成环境不同，保存版本如下：
+
+| 用途 | 保存的环境 |
+|---|---|
+| 数据抽取、有限验证、原始RDF映射 | Python 3.12.13；LinkML Runtime 1.3.2；psycopg2-binary 2.9.13；RDFLib 7.6.0 |
+| SQL结构导入、OWL生成 | LinkML 1.12.1；LinkML Runtime 1.12.1；Schema Automator 0.5.7；SQLAlchemy 2.1.6；RDFLib 7.6.0 |
+
+`run.py`用`SchemaView`读取模型，再通过显式SQL抽取六类业务记录。数据库连接采用只读事务和`REPEATABLE READ`，随后由自编代码执行有限验证与RDF映射。读取schema本身不会自动检查所有记录。
+
+先从项目根目录进入`demos/postgres-ontology`。下面两套环境都在该案例目录建立，抽取依赖对应`requirements.txt`，生成工具对应`requirements-tools.txt`。抽取前需要已有`linkml_demo`及种子数据，并配置libpq使用的`PGHOST`、`PGPORT`、`PGUSER`；认证按本地PostgreSQL设置完成，密码不写入命令示例。
+
+```bash
+cd demos/postgres-ontology
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+# 连接既有linkml_demo，读取数据并写本地结果文件
+.venv/bin/python run.py
+```
+
+这会写实例与报告，不能把它称为“不产生文件的只读检查”。其数据库访问是只读的。保存结果为33个实体、192条RDF三元组，正常数据没有报出该验证器覆盖范围内的错误。
+
+反例通过深拷贝已抽取数据再独立修改构造，没有把坏数据写回数据库：
+
+| 反例修改 | 保存报告中的反馈 |
+|---|---|
+| 项目101预算改为`-1` | `budget_cny below minimum` |
+| 参与1001投入改为150 | `allocation_pct above maximum` |
+| 任务2001执行人改为不存在的员工999 | `dangling reference assignee=ex:employee/999` |
+| 删除员工1的名称 | `missing name` |
+| 项目状态改为unknown | `invalid enum status=unknown` |
+| 项目结束日改为2020-01-01 | `end_date before start_date` |
+| 任务2001改由存在但未参与项目的员工6执行 | `assignee not a member on due date` |
+
+第七项说明了普通外键以外的业务检查。员工6真实存在，因此“员工引用有效”仍不足够。验证代码还要用任务所属项目、截止日期和参与有效期判断资格。
+
+这里可以声称七组反例被自编验证器检出，但不能声称官方完整LinkML validator或OWL reasoner完成了验证。邮箱唯一、参与组合唯一等DDL约束，也没有在这段Python中逐项重新实现。
+
+### 4.8 运行 gen-owl
+
+本例工具环境通过配套`requirements-tools.txt`固定依赖；该文件还包含直接wheel依赖，不宜简化成只安装一个包。复现时在案例目录中建立独立环境：
+
+```bash
+python3 -m venv .venv-tools
+.venv-tools/bin/python -m pip install -r requirements-tools.txt
+.venv-tools/bin/gen-owl --help
+```
+
+如果只想从已有`domain.yaml`生成OWL，无须再次读取数据库。下面的命令依据保存的参数整理，输出到新文件，便于与已有产物比较：
+
+```bash
+.venv-tools/bin/gen-owl \
+  --no-metaclasses \
+  --no-type-objects \
+  --use-native-uris \
+  --default-permissible-value-type owl:Class \
+  --no-add-ols-annotations \
+  --skip-vacuous-local-range-axioms \
+  --skip-vacuous-min-zero-cardinality-axioms \
+  --consolidate-cardinality-axioms \
+  --skip-abstract-class-as-unionof-subclasses \
+  -f ttl domain.yaml \
+  > domain.generated.owl.ttl 2> domain.generated.owl.log
+```
+
+这些是案例实参，不是对所有安装版本默认值的描述。关键选项可以分组理解：
+
+| 选项组 | 本例目的 |
+|---|---|
+| `--no-metaclasses`、`--no-type-objects` | 不额外启用元模型实例及类型对象表示 |
+| `--use-native-uris` | 使用本地模型URI；实际输出需核对外部映射 |
+| `--default-permissible-value-type owl:Class` | 将枚举取值表示为类 |
+| 三个skip及consolidate相关选项 | 控制冗余限制、基数合并和抽象类表达 |
+| `-f ttl` | 输出Turtle |
+
+保存的包装脚本`generate-ontology.py`执行两路生成：逆向草稿到`database-import.owl.ttl`，人工领域模型到`domain.owl.ttl`。脚本还重新反射数据库，所以完整运行它需要数据库连接。
+
+本例记录中`-o`没有产生预期文件，Turtle实际出现在stdout，脚本因此显式保存stdout并另存stderr。这是该版本和运行的观察，不能概括为所有版本的`-o`都不可用。
+
+生成日志也不是空的：共享`project`属性产生了歧义警告，外部schema命名空间出现重映射警告。应保留日志，并回到输出确认URI和属性结构，而不是只看退出码。
+
+### 4.9 打开结果：类、继承和属性
+
+先看一个简单的类与继承片段。以下由当前TTL摘取并整理顺序，省略其他公理：
+
+```turtle
+@prefix ex: <https://example.org/work/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:Employee a owl:Class ;
+    rdfs:subClassOf ex:NamedEntity .
+```
+
+这表示Employee是OWL类，也是NamedEntity的子类。对项目参与员工，实际输出包含两个独立限制：
+
+```turtle
+ex:Participation a owl:Class ;
+    rdfs:subClassOf
+        [ a owl:Restriction ;
+          owl:allValuesFrom ex:Employee ;
+          owl:onProperty ex:employee ],
+        [ a owl:Restriction ;
+          owl:cardinality 1 ;
+          owl:onProperty ex:employee ] .
+```
+
+第一项是全称限制：一个Participation的所有employee值都属于Employee。它只规定值的类型，本身不要求至少有一个值。第二项的`cardinality 1`另外表达恰好一个值。
+
+![LinkML必填员工关系生成的两个OWL限制及其解释](/static/images/2026-11-05-linkml-postgresql-to-owl/05-model-owl.svg)
+
+*图5：依据生成文件重绘的限制对照。两个限制分别负责类型和数量，缺少显式数据时不能直接按数据库必填错误处理。*
+
+这也不是一条全局`rdfs:range`声明；它是Participation类上的局部限制，读TTL时要跟着`subClassOf`与`onProperty`看作用位置。
+
+OWL采用开放世界假设。某条记录没有显式写出员工边，可以解释为尚不知道具体员工，而不自动产生“缺字段”报错。两个不同IRI也不天然保证表示不同个体。因此，不能将这段公理当成数据库`NOT NULL`、外键和唯一性约束的直接替身。
+
+### 4.10 枚举输出为什么与字符串实例不一样
+
+本次参数将枚举取值表示为类，项目状态的实际结构整理如下：
+
+```turtle
+ex:ProjectStatus a owl:Class ;
+    owl:unionOf (
+        <https://example.org/work/ProjectStatus#planned>
+        <https://example.org/work/ProjectStatus#active>
+        <https://example.org/work/ProjectStatus#completed>
+    ) .
+
+<https://example.org/work/ProjectStatus#active> a owl:Class ;
+    rdfs:subClassOf ex:ProjectStatus .
+```
+
+原始实例把状态写成`ex:status "active"`，但新本体里对应的是对象属性。这两种表示需要对齐。本例后来的实例文件创建值节点：
+
+```turtle
+<https://example.org/work/project/101>
+    ex:status <https://example.org/work/project/101/value/status> .
+
+<https://example.org/work/project/101/value/status>
+    a <https://example.org/work/ProjectStatus#active> .
+```
+
+项目先连到一个状态值节点，该节点再声明为active类的实例。只把字符串换成类IRI作为宾语，并不能自动得到相同含义。
+
+当前取值类没有声明彼此互斥，也没有使用`owl:oneOf`列出个体。类并集结构不能直接当作封闭的字符串白名单校验。若希望使用另一种枚举表示，应先选择目标语义，再调整生成配置及实例映射。
+
+### 4.11 中文标签、计数和实际检查
+
+中文阅读主要依靠`rdfs:label`。例如：
+
+```turtle
+ex:Participation rdfs:label "项目参与记录"@zh,
+                            "Participation"@en .
+```
+
+这种处理不要求把URI改成中文。标签后处理为51个目标各补充中英文两条标签，合计102条，代码断言所有非标签三元组保持不变。
+
+已有文件的计数如下：
+
+| 文件或内容 | 保存及核读结果 | 计数说明 |
+|---|---:|---|
+| 逆向草稿OWL | 382条三元组 | 7个命名类，72个restriction |
+| 业务领域OWL | 521条三元组 | 含标签、限制、RDF列表等结构 |
+| 业务OWL命名类 | 20个 | 8个类（含抽象父类和容器）＋3个枚举父类＋9个取值类 |
+| 业务OWL限制节点 | 55个 | 29个全称限制、21个恰好基数、5个最大基数 |
+| 原始实例 | 192条三元组 | 33个业务主体 |
+| 已有对齐实例 | 246条三元组 | 增加21个枚举值节点类型与33条显式id |
+
+历史标签前曾记录469条。数量变化用于追溯文件，不用于评判模型质量。同一条业务记录可以贡献多条事实，而OWL中的匿名限制和RDF列表也会展开成多条三元组。Turtle换行或缩进本身不会增加三元组。
+
+不连接数据库也能独立检查当前文件。以下脚本只解析文件并打印计数，不写结果：
+
+```python
+from pathlib import Path
+from rdflib import Graph
+from rdflib.namespace import RDF, OWL
+
+root = Path(".")  # 在案例目录运行
+for filename in (
+    "database-import.owl.ttl",
+    "domain.owl.ttl",
+    "instances.ttl",
+    "instances-aligned.ttl",
+):
+    graph = Graph().parse(root / filename, format="turtle")
+    restrictions = set(graph.subjects(RDF.type, OWL.Restriction))
+    print(filename, len(graph), len(restrictions))
+```
+
+结构检查能证明指定模式在图中存在。例如Employee的父类关系和Participation的员工限制能找到。但完整OWL-DL profile合规、逻辑一致性和推理结果，需要专门工具与任务；本例没有执行这些检查。
+
+### 4.12 生成后仍然发现了两个具体问题
+
+第一个问题出在金额与工时。YAML写的是`decimal`且最小值为0，实际生成的数据范围却包含下面的结构：
+
+```turtle
+owl:allValuesFrom [
+    a rdfs:Datatype ;
+    owl:intersectionOf (
+        xsd:decimal
+        [ a rdfs:Datatype ;
+          owl:onDatatype xsd:integer ;
+          owl:withRestrictions ( [ xsd:minInclusive 0 ] ) ]
+    )
+] .
+```
+
+这里摘取的是预算对应限制的内部片段，需要沿外层`owl:onProperty ex:budget_cny`定位。工时也有相同形式。
+
+交集的一侧是decimal，另一侧却是非负integer。按数据范围解释，本次版本、参数与输出文件中的这项限制会排除0.50这样的非整数值，比目标“非负decimal”更窄。当前样本金额与工时都恰好是整数数值，没有暴露这个区别。若只看样本能否读入，或者只检查最小值0是否存在，就容易漏掉问题。
+
+因此，目前不能声称金额约束被无损转译。下一步应增加0.50等边界输入，定位具体版本的生成行为，选择修复生成映射或其他合适表达，再重新验证。本文保留原始证据，没有悄悄改写OWL来制造通过结果。
+
+第二个问题出在实例对齐。旧RDF将员工类型写成`https://schema.org/Person`，名称写成`https://schema.org/name`。本次原生URI配置生成了本地`ex:Employee`和`ex:name`。
+
+已有对齐脚本处理了员工与客户类型、枚举值节点和显式id，但24个名称仍使用外部属性，`ex:name`的数量为0。也就是说，文件名虽然叫`instances-aligned.ttl`，名称仍没有完成对齐。由于开放世界假设，这不直接等同于已经证明逻辑不一致；但它确实没有按本地属性提供显式名称事实。修复时应在生成配置、模型URI映射与实例谓词之间选择一致方案，而非不加判断地把所有外部属性改成本地属性。
+
+本体的外部类型注释还涉及`http://schema.org/`，旧实例则用`https://schema.org/`。这两个IRI不能当成同一个字符串；`skos:exactMatch`也不能直接当成`owl:equivalentClass`。检查时需要逐条看实际URI及映射公理，不能仅凭页面名称相似就合并。
+
+这两项发现让产物边界更清楚：当前有可解析的模型和一组结构证据，但生成映射与实例对齐仍有明确待修项。
+
+## 5. 案例总结：模型已经写清楚了什么
+
+### 5.1 回到最初的问题
+
+“远山制造的项目里有哪些员工”现在可以拆开确认：要找负责人，就使用Project.owner；要找参与者，就使用Participation.employee；要找任务执行人，就沿Task.assignee。若还加上“当前”，需要给出观察日期和参与有效期口径。
+
+这种区分来自表、注释、样本和业务讨论。LLM帮助整理候选类、关系和YAML，人工确认含义；LinkML负责将已经写下的模型交给工具处理。数据库仍保存原始事实，实例抽取与映射则有自己的规则。
+
+### 5.2 哪些步骤有证据，哪些还没有完成
+
+![解析、结构检查、实例验证和OWL推理的验证范围对照](/static/images/2026-11-05-linkml-postgresql-to-owl/06-verification.svg)
+
+*图6：本案例检查范围示意。各项回答不同问题，不是一条“前一项通过就保证后一项”的流水线。*
+
+| 层面 | 当前证据 | 能得出的结论 |
+|---|---|---|
+| SQL结构与样本 | DDL、种子数据、保存的抽取结果 | 输入范围和关系来源可追溯 |
+| 业务模型 | 8类、3枚举及具体建模决定 | 三种员工关系已分别表达 |
+| 模型可读性 | SchemaView读取及保存生成链路 | 文件可被相应环境处理 |
+| 自编实例验证 | 正常数据及七组反例报告 | 仅覆盖代码实现的规则 |
+| OWL解析与结构 | TTL解析、类与限制核对 | 指定结构存在 |
+| 生成语义保真 | 发现decimal数据范围偏差 | 仍需修复和补充边界测试 |
+| 实例与本体对齐 | 已调整类型、枚举和id；名称尚有遗漏 | 尚不能称完整对齐 |
+| 官方全量实例验证 | 未执行 | 无完整validator结论 |
+| OWL-DL检查及reasoner | 未执行 | 无profile合规或推理通过结论 |
+
+### 5.3 把这套过程带到自己的数据库
+
+真正需要随案例保留的是一组相互对应的材料：输入DDL和业务说明、模型决策与疑问、完整YAML、生成命令和日志、OWL文件、实例映射以及检查报告。以后模型变更时，才能追溯某条限制从哪里来，以及它在哪个阶段发生了变化。
+
+如果换成自己的业务，先选一个关系容易混淆的小场景。把几个相关表、代表记录和已知例外放在一起，要求LLM给出带依据的模型候选，再逐项审核。schema生成之后，至少抽几组类型、基数、枚举和边界数值，沿输出文件看一遍。涉及时间或跨记录计算的规则，要明确由哪个系统执行。
+
+本例最终交付了`domain.yaml`、`domain.owl.ttl`、两路生成记录及结构检查材料，同时留下金额范围和名称对齐两个待处理问题。下一篇从这份OWL出发，用WebVOWL阅读类和关系，再回到Turtle查看图形界面未完整显示的限制。
+
+## 参考资料
+
+1. [LinkML概览](https://linkml.io/linkml/intro/overview.html)
+2. [LinkML Tutorial 01：创建第一个schema](https://linkml.io/linkml/intro/tutorial01.html)
+3. [JSON Schema生成器](https://linkml.io/linkml/generators/json-schema.html)
+4. [LinkML数据转换](https://linkml.io/linkml/data/conversion.html)
+5. [LinkML OWL生成器](https://linkml.io/linkml/generators/owl.html)
+6. [Schema Automator](https://linkml.io/schema-automator/)
+7. [OntoGPT文档](https://monarch-initiative.github.io/ontogpt/)
+8. [OWL 2 Primer](https://www.w3.org/TR/owl2-primer/)
+9. [OWL 2 Direct Semantics](https://www.w3.org/TR/owl2-direct-semantics/)
+10. [OWL 2 Structural Specification](https://www.w3.org/TR/owl2-syntax/)
+11. [本体语言与应用：从描述逻辑到OWL](https://apframework.com/blog/essay/2026-09-27-owl-from-description-logic-to-applications)
+12. [为AI Agent构建企业语义层：从可信查询到受控行动](https://apframework.com/blog/essay/2026-08-23-semantic-layer-for-ai-agents)
+
+案例依据为随文整理的合成DDL、种子数据、领域模型、抽取与生成脚本及其保存报告。官网Person示例与本地案例结果分别注明；概念图均据这些材料重绘，不是运行截图。

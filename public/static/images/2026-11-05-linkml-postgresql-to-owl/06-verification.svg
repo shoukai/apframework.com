@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="510" viewBox="0 0 1200 510" role="img" aria-labelledby="title desc">
+<title id="title">模型验证层级与本案例执行状态</title><desc id="desc">语法解析、结构断言和自编实例子集有保存证据；完整 validator 和 OWL-DL 与 reasoner 未执行。各验证项目是并列检查，不画成必经依赖链。</desc>
+<defs><style>
+.bg{fill:#fff}.title{font:700 26px sans-serif;fill:#172b3a}.sub{font:15px sans-serif;fill:#506575}.box{rx:10;stroke-width:1.5}.done{fill:#edf7f1;stroke:#70a78b}.todo{fill:#fff5e7;stroke:#d8a24d}.txt{font:600 18px sans-serif;fill:#1d3343;text-anchor:middle}.small{font:14px sans-serif;fill:#415767;text-anchor:middle}.badge{font:600 13px sans-serif;text-anchor:middle}.divider{stroke:#d9e2e7;stroke-width:1.2}
+</style></defs><rect class="bg" width="1200" height="510"/>
+<text class="title" x="48" y="50">验证分层：证据有边界，检查不必串成流水线</text><text class="sub" x="48" y="78">前三项有保存证据；完整 validator 和 OWL-DL / reasoner 检查未执行</text>
+<rect class="box done" x="55" y="132" width="330" height="124"/><text class="txt" x="220" y="170">语法解析</text><text class="small" x="220" y="199">SchemaView 解析模型</text><text class="small" x="220" y="226">证据：保存的运行记录</text><text class="badge" x="220" y="247" fill="#327254">已执行</text>
+<rect class="box done" x="435" y="132" width="330" height="124"/><text class="txt" x="600" y="170">结构断言</text><text class="small" x="600" y="199">类、属性、range、cardinality</text><text class="small" x="600" y="226">证据：结构检查结果</text><text class="badge" x="600" y="247" fill="#327254">已执行</text>
+<rect class="box done" x="815" y="132" width="330" height="124"/><text class="txt" x="980" y="170">自编实例子集</text><text class="small" x="980" y="199">有限规则与反例检查</text><text class="small" x="980" y="226">证据：保存的脚本运行结果</text><text class="badge" x="980" y="247" fill="#327254">已执行</text>
+<rect class="box todo" x="245" y="310" width="330" height="124"/><text class="txt" x="410" y="348">完整 LinkML validator</text><text class="small" x="410" y="378">本案例未运行官方完整校验器</text><text class="small" x="410" y="405">子集脚本不可替代</text><text class="badge" x="410" y="425" fill="#a66d1b">未执行</text>
+<rect class="box todo" x="625" y="310" width="330" height="124"/><text class="txt" x="790" y="348">OWL-DL 与 reasoner</text><text class="small" x="790" y="378">profile、逻辑一致性与推理</text><text class="small" x="790" y="405">本案例未运行</text><text class="badge" x="790" y="425" fill="#a66d1b">未执行</text>
+<line class="divider" x1="220" y1="279" x2="980" y2="279"/><text class="small" x="600" y="291">彼此独立的检查方向；选择取决于需要回答的问题</text>
+<text class="small" x="600" y="476">结构/概念示意，非运行截图；“已执行”只代表对应范围内有保存证据</text></svg>

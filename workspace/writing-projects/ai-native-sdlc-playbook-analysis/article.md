@@ -1,5 +1,10 @@
 # AI-native SDLC：当代码不再是唯一瓶颈
 
+<figure className="flex flex-col items-center text-center">
+  <img src="assets/joao-emanuel-IaaHmVg8_ok-unsplash.jpg" alt="现代深棕色砖墙建筑的入口与庭院" className="w-full rounded-lg" />
+  <figcaption>Photo by <a href="https://unsplash.com/@jjemanuel?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">João Emanuel</a> on <a href="https://unsplash.com/photos/modern-dark-brown-building-with-brick-IaaHmVg8_ok?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></figcaption>
+</figure>
+
 Anthropic 的《The AI-native SDLC playbook》关注的不是如何让 Agent 多写一些代码，而是另一个更具体的问题：当代码实现被 AI 加速后，从需求到生产的流程是否还要按原来的方式组织？
 
 这篇文章提出的做法，是在传统 SDLC 的六个阶段中引入 AI，并用一组可提交、可读取、可审查的文件和记录来组织交接。Plan、Design、Build、Test、Deploy、Maintain 仍然存在；变化主要在于，部分原本依赖人工转述和手工触发的工作，可以由版本化 artifact 连接起来，同时保留必要的人工判断和审批。

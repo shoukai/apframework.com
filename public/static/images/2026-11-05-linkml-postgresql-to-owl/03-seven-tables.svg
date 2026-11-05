@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1120" viewBox="0 0 1080 1120" role="img" aria-labelledby="title desc">
+  <title id="title">七张业务表完整字段与三条项目员工关系路径</title>
+  <desc id="desc">上部按组织、项目、参与与任务分组列出七张唯一表及其全部字段。下部用三条互不交叉的行式路径分别展示项目负责人、项目参与和任务执行人关系。部门上级与员工经理的自引用关系注明在字段旁。关系清单中的重复表名是局部引用，不代表新增表。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+      <path d="M1 1L11 6L1 11Z" fill="#28596a"/>
+    </marker>
+    <style>
+      .bg{fill:#fff}
+      .title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:30px;font-weight:700;fill:#17323d}
+      .subtitle{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:19px;font-weight:400;fill:#5d7078}
+      .group-title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;fill:#286675}
+      .table-title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:21px;font-weight:700;fill:#183844}
+      .field{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:17px;font-weight:400;fill:#435d68}
+      .note{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:16px;font-weight:400;fill:#667981}
+      .section-title{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:23px;font-weight:700;fill:#17323d}
+      .path-text{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:19px;font-weight:600;fill:#243f49}
+      .group{fill:#fbfcfc;stroke:#d8e2e5;stroke-width:1.4}
+      .table{stroke-width:1.5}
+      .org{fill:#eaf2f4;stroke:#5c8e9b}
+      .people{fill:#edf4ed;stroke:#6e9a76}
+      .project{fill:#f7efe4;stroke:#c28d50}
+      .work{fill:#f0edf6;stroke:#897aa8}
+      .path-panel{fill:#fbfcfc;stroke:#d8e2e5;stroke-width:1.4}
+      .source{fill:#eaf2f4;stroke:#5c8e9b;stroke-width:1.4}
+      .target{fill:#edf4ed;stroke:#6e9a76;stroke-width:1.4}
+      .divider{stroke:#e1e8ea;stroke-width:1.2}
+      .edge{fill:none;stroke:#28596a;stroke-width:2.3;marker-end:url(#arrow)}
+      .badge{fill:#fff;stroke:#d8e2e5;stroke-width:1}
+      .badge-text{font-family:Arial,"Noto Sans SC","PingFang SC",sans-serif;font-size:16px;font-weight:700;fill:#60747d}
+    </style>
+  </defs>
+
+  <rect class="bg" width="1080" height="1120"/>
+  <text class="title" x="48" y="50">七张表的完整字段与项目—员工关系路径</text>
+  <text class="subtitle" x="48" y="81">字段依据 DDL 逐项列出｜上部七张唯一表，下部三种独立业务关系</text>
+
+  <rect class="group" x="40" y="108" width="310" height="515" rx="12"/>
+  <text class="group-title" x="62" y="140">01  组织与人员</text>
+  <text class="note" x="62" y="166">组织层级 · 部门归属 · 经理关系</text>
+  <rect class="table org" x="60" y="187" width="270" height="164" rx="9"/>
+  <text class="table-title" x="80" y="219">departments</text>
+  <line class="divider" x1="80" y1="232" x2="310" y2="232"/>
+  <text class="field" x="80" y="260">id · name</text>
+  <text class="field" x="80" y="286">parent_id → departments.id</text>
+  <text class="note" x="80" y="321">上级部门自引用，可为空</text>
+  <rect class="table people" x="60" y="369" width="270" height="232" rx="9"/>
+  <text class="table-title" x="80" y="401">employees</text>
+  <line class="divider" x1="80" y1="414" x2="310" y2="414"/>
+  <text class="field" x="80" y="442">id · name · email</text>
+  <text class="field" x="80" y="468">department_id → departments.id</text>
+  <text class="field" x="80" y="494">manager_id → employees.id</text>
+  <text class="field" x="80" y="520">hired_on</text>
+  <text class="note" x="80" y="562">直属经理自引用，可为空</text>
+
+  <rect class="group" x="366" y="108" width="330" height="515" rx="12"/>
+  <text class="group-title" x="388" y="140">02  客户与项目</text>
+  <text class="note" x="388" y="166">客户归属 · 负责人 · 状态</text>
+  <rect class="table project" x="386" y="187" width="290" height="113" rx="9"/>
+  <text class="table-title" x="406" y="219">customers</text>
+  <line class="divider" x1="406" y1="232" x2="656" y2="232"/>
+  <text class="field" x="406" y="260">id · name · industry</text>
+  <rect class="table work" x="386" y="315" width="290" height="113" rx="9"/>
+  <text class="table-title" x="406" y="347">project_statuses</text>
+  <line class="divider" x1="406" y1="360" x2="656" y2="360"/>
+  <text class="field" x="406" y="388">code · label</text>
+  <rect class="table project" x="386" y="443" width="290" height="158" rx="9"/>
+  <text class="table-title" x="406" y="475">projects</text>
+  <line class="divider" x1="406" y1="488" x2="656" y2="488"/>
+  <text class="field" x="406" y="516">id · name · customer_id</text>
+  <text class="field" x="406" y="540">owner_id · status_code</text>
+  <text class="field" x="406" y="564">budget · start_date · end_date</text>
+
+  <rect class="group" x="712" y="108" width="328" height="515" rx="12"/>
+  <text class="group-title" x="734" y="140">03  参与记录与任务</text>
+  <text class="note" x="734" y="166">参与属性 · 任务与执行人</text>
+  <rect class="table work" x="732" y="187" width="288" height="202" rx="9"/>
+  <text class="table-title" x="752" y="219">project_memberships</text>
+  <line class="divider" x1="752" y1="232" x2="1000" y2="232"/>
+  <text class="field" x="752" y="260">id · project_id · employee_id</text>
+  <text class="field" x="752" y="286">role_code · allocation_pct</text>
+  <text class="field" x="752" y="312">joined_on · left_on</text>
+  <rect class="table project" x="732" y="406" width="288" height="195" rx="9"/>
+  <text class="table-title" x="752" y="438">tasks</text>
+  <line class="divider" x1="752" y1="451" x2="1000" y2="451"/>
+  <text class="field" x="752" y="479">id · project_id · assignee_id</text>
+  <text class="field" x="752" y="505">title · status_code</text>
+  <text class="field" x="752" y="531">estimated_hours · due_date</text>
+  <text class="note" x="752" y="571">assignee_id 可为空</text>
+
+  <text class="section-title" x="48" y="678">把外键读成业务路径</text>
+  <text class="subtitle" x="48" y="706">每行都是独立路径；重复的表名只是本行的局部引用，不代表新增表。</text>
+
+  <rect class="path-panel" x="40" y="729" width="1000" height="88" rx="10"/>
+  <rect class="badge" x="58" y="752" width="178" height="42" rx="21"/>
+  <text class="badge-text" x="78" y="779">项目负责人</text>
+  <rect class="source" x="270" y="746" width="330" height="54" rx="8"/>
+  <text class="path-text" x="288" y="780">projects.owner_id</text>
+  <path class="edge" d="M600 773H646"/>
+  <rect class="target" x="654" y="746" width="345" height="54" rx="8"/>
+  <text class="path-text" x="672" y="780">employees.id</text>
+
+  <rect class="path-panel" x="40" y="830" width="1000" height="112" rx="10"/>
+  <rect class="badge" x="58" y="865" width="178" height="42" rx="21"/>
+  <text class="badge-text" x="78" y="892">项目参与</text>
+  <rect class="source" x="270" y="844" width="330" height="40" rx="7"/>
+  <text class="path-text" x="288" y="871" textLength="290" lengthAdjust="spacingAndGlyphs">project_memberships.project_id</text>
+  <path class="edge" d="M600 864H646"/>
+  <rect class="target" x="654" y="844" width="345" height="40" rx="7"/>
+  <text class="path-text" x="672" y="871">projects.id</text>
+  <rect class="source" x="270" y="896" width="330" height="34" rx="7"/>
+  <text class="path-text" x="288" y="920" textLength="290" lengthAdjust="spacingAndGlyphs">project_memberships.employee_id</text>
+  <path class="edge" d="M600 913H646"/>
+  <rect class="target" x="654" y="896" width="345" height="34" rx="7"/>
+  <text class="path-text" x="672" y="920">employees.id</text>
+
+  <rect class="path-panel" x="40" y="955" width="1000" height="112" rx="10"/>
+  <rect class="badge" x="58" y="990" width="178" height="42" rx="21"/>
+  <text class="badge-text" x="78" y="1017">任务执行人</text>
+  <rect class="source" x="270" y="969" width="330" height="40" rx="7"/>
+  <text class="path-text" x="288" y="996">tasks.project_id</text>
+  <path class="edge" d="M600 989H646"/>
+  <rect class="target" x="654" y="969" width="345" height="40" rx="7"/>
+  <text class="path-text" x="672" y="996">projects.id</text>
+  <rect class="source" x="270" y="1021" width="330" height="34" rx="7"/>
+  <text class="path-text" x="288" y="1045">tasks.assignee_id</text>
+  <path class="edge" d="M600 1038H646"/>
+  <rect class="target" x="654" y="1021" width="345" height="34" rx="7"/>
+  <text class="path-text" x="672" y="1045">employees.id  ·  可为空</text>
+</svg>

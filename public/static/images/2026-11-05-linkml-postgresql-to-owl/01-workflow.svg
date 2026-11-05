@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+<title id="title">从数据库结构到 OWL 与 RDF 的两条路径</title><desc id="desc">DDL、样本和业务说明经人工与 LLM 整理审核后形成 domain.yaml，再由 gen-owl 生成 OWL。另一路数据经实例映射生成 RDF，两路不会自动对齐。</desc>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#54748b"/></marker><style>
+.bg{fill:#fff}.title{font:700 26px sans-serif;fill:#172b3a}.sub{font:15px sans-serif;fill:#506575}.box{rx:10;stroke-width:1.5}.blue{fill:#edf5fb;stroke:#6e9fc2}.green{fill:#edf7f1;stroke:#70a78b}.amber{fill:#fff5e7;stroke:#d8a24d}.violet{fill:#f3f0fa;stroke:#9786bd}.txt{font:600 18px sans-serif;fill:#1d3343;text-anchor:middle}.small{font:14px sans-serif;fill:#415767;text-anchor:middle}.edge{fill:none;stroke:#54748b;stroke-width:2.2;marker-end:url(#a)}.dash{fill:none;stroke:#d89132;stroke-width:2;stroke-dasharray:7 6}
+</style></defs>
+<rect class="bg" width="1200" height="430"/>
+<text class="title" x="48" y="52">结构草稿与数据映射是两条路径</text><text class="sub" x="48" y="79">模型生成负责表达 schema；实例转 RDF 需要另外定义并审核映射</text>
+<rect class="box blue" x="40" y="145" width="200" height="104"/><text class="txt" x="140" y="184">DDL + 样本</text><text class="small" x="140" y="214">+ 业务说明</text>
+<path class="edge" d="M240 197H290"/>
+<rect class="box amber" x="300" y="135" width="238" height="124"/><text class="txt" x="419" y="177">人工 + LLM</text><text class="small" x="419" y="205">整理、核对与审核</text><text class="small" x="419" y="229">业务含义由人确认</text>
+<path class="edge" d="M538 197H588"/>
+<rect class="box green" x="598" y="145" width="188" height="104"/><text class="txt" x="692" y="188">domain.yaml</text><text class="small" x="692" y="216">已审查的 LinkML schema</text>
+<path class="edge" d="M786 197H836"/>
+<rect class="box blue" x="846" y="145" width="132" height="104"/><text class="txt" x="912" y="190">gen-owl</text><text class="small" x="912" y="217">模型生成</text>
+<path class="edge" d="M978 197H1028"/>
+<rect class="box violet" x="1038" y="145" width="122" height="104"/><text class="txt" x="1099" y="201">OWL</text><text class="small" x="1099" y="224">本体表达</text>
+<rect class="box amber" x="300" y="306" width="238" height="72"/><text class="txt" x="419" y="337">另行：实例映射</text><text class="small" x="419" y="360">字段、标识符、枚举逐项定义</text>
+<path class="edge" d="M140 249V342H290"/><path class="edge" d="M538 342H650"/>
+<rect class="box green" x="660" y="306" width="205" height="72"/><text class="txt" x="762" y="349">RDF 实例</text>
+<path class="dash" d="M762 302V276H692V253"/>
+<rect x="855" y="283" width="300" height="87" rx="8" fill="#fff9ed" stroke="#edc47e"/><text class="small" x="1005" y="318">OWL 与 RDF 不会自动对齐</text><text class="small" x="1005" y="343">需单独核对类 URI、属性与枚举值</text>
+<text class="small" x="600" y="411">结构/概念示意，非运行截图</text>
+</svg>

@@ -1,0 +1,82 @@
+---
+title: '从 Chain 到 Graph，再到 Code：Agent Harness 的三种工程抽象'
+date: '2026-11-02'
+tags: ['AI Agent', '软件架构', 'Agent Harness', 'LangGraph']
+images:
+  - '/static/images/2026-11-02-agent-harness-chain-graph-code/agent-harness-ai-hero.jpg'
+draft: false
+summary: '比较 Chain、Graph 与 Code 三种 Agent 执行抽象，分析它们在控制流、状态恢复与验证反馈上的差异，并讨论按失败模式选择和组合架构的方法。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-11-02-agent-harness-chain-graph-code/agent-harness-ai-hero.jpg" alt="蓝色线性链、青色分支网络与紫色执行回环组成的 Agent 架构主题插画" className="w-full rounded-lg" />
+  <figcaption>Chain、Graph 与 Code（AI 生成插画）</figcaption>
+</figure>
+
+一个 Agent 能回答问题，离稳定运行还有多远？看它答对一次，往往看不出来。检索条件写错后能不能及时发现，工具调用失败后从哪一步重试，生成的 SQL 到底查对了数据没有——这些问题才会暴露执行流程的薄弱处。
+
+围绕模型搭建的工具、状态管理和执行控制，通常被称为 Agent Harness。Karthik Ramgopal 在 InfoQ 的文章《The Evolution of Agentic Harnesses: From Chains to Graph to Code》中，用 Chain、Graph 和 Code 讨论了三种组织执行流程的方式：按顺序传递结果、用图管理控制流，以及通过代码执行和验证反复修正结果。
+
+它们各自解决什么问题，又会带来哪些维护成本？可以从最简单的顺序调用看起。
+
+## Chain：先把顺序流程做好
+
+Chain 把调用按顺序连接起来，前一步的输出成为后一步的输入。InfoQ 文中举了一个三步 RAG（检索增强生成）流程：先判断问题范围并路由，再检索资料，最后根据资料生成回答。
+
+对于输入相对稳定的摘要、分类或结构化提取任务，这样的流程通常容易实现，也容易排查。沿着调用顺序查看输入和输出，就能定位许多错误。只要步骤已经足够完成任务，就没有必要额外维护一套分支和状态转换。
+
+但顺序执行也容易把错误一路传下去。第一步分错了问题类型，第二步可能检索到不相关的资料，最后却仍然生成一段流畅的回答。每一步都返回成功，整条链的结果却可能不可用。
+
+因此，Chain 也需要检查点：分类结果是否在允许范围内，检索结果是否满足要求，输出是否符合 schema（结构约束）或业务规则。检查失败之后怎么处理，同样要在流程中写清楚。
+
+## Graph：把分支和恢复路径写出来
+
+当流程出现“资料不够就重新检索”“多个工具并行调用”“高风险操作等待人工确认”时，一条顺序链就不太够用了。Graph 用节点表示模型调用、工具操作或校验任务，用边表示下一步走向。哪些条件触发重试，哪些结果需要人工介入，都可以直接写进图中。
+
+LangGraph 的官方文档将其定位为低层级的编排框架与运行时，支持在同一张图中组合确定性代码和大语言模型（LLM）调用。持久化状态、长任务恢复和人工介入等能力，让流程可以在中断后接着运行。原先藏在提示词里的“接下来应该做什么”，由程序里的状态和条件来约束。
+
+维护工作也随之增加。某个节点重试后，会不会重复写数据？两个并行分支同时更新状态，按什么规则合并？从检查点恢复时，外部工具的操作是否已经生效？分支越多，需要覆盖的执行路径就越多。把流程画成图，并不会自动解决这些问题。
+
+多智能体流程还要处理任务依赖、消息传递和超时。A2A 协议提供了 Agent 之间发现彼此、交换任务信息的约定，任务授权、状态一致性和结果验收仍要由应用实现。本文核对时，ACP 项目页面已说明其纳入 Linux Foundation 下的 A2A；采用相关协议时，需要核对所用规范的版本与项目状态。
+
+## Code：执行一次，再根据结果修正
+
+代码执行型 Harness 让模型生成查询或程序，在受控环境中运行，再把测试、断言和约束检查的结果反馈给模型。InfoQ 将其拆成执行沙箱、插桩与日志、验证框架、迭代优化循环四部分。
+
+SQL 查询和数据计算很适合用来理解这个过程。查询能否执行、返回字段是否齐全、数值是否满足业务约束，都可以通过程序检查。执行报错或校验失败后，模型拿到具体诊断，再修改候选代码。这样一来，下一轮修正就有了可检查的依据。
+
+检查本身也可能不够。SQL 成功执行，可能只是查出了一组口径错误的数据；测试全部通过，也可能是测试没有覆盖真正的业务要求。同一段代码重复得到相同结果，不能证明结果正确。
+
+沙箱限制执行范围，日志留下过程记录，测试检查已定义的条件。系统还得说明：代码能读哪些数据、能调用哪些工具，以及最终由什么标准验收结果。
+
+InfoQ 文中介绍了 LinkedIn 内部分析工具的做法：把自然语言问题转成 SQL 与 Python，在样本数据上执行，并检查隐私和治理约束。它提供了一个组合模型生成与程序检查的案例。相关实现与效果来自作者披露，本文未对 LinkedIn 内部系统做独立验证。
+
+## 执行方式和产品分层是两回事
+
+Chain、Graph 和 Code 描述执行流程如何组织。Framework、Runtime 和 Harness 则用于区分开发接口、运行保障和预置能力，回答的是另一组问题。
+
+以 LangChain 的产品文档为例：LangChain 被归为 Agent Framework，LangGraph 被归为 Runtime，Deep Agents SDK 则被归为 Harness，提供规划、文件系统和子 Agent 等预置能力。这是该产品栈采用的分类，不宜直接当作所有框架的统一标准。
+
+两组分类可以交叉使用。Framework 可以搭建图式流程，Runtime 可以负责保存图的状态，图里的某个节点又可以包含代码执行和验证循环。理解这些术语时，最好继续追问它具体负责哪一部分工作。
+
+![Chain、Graph 与 Code harness 的结构比较示意](/static/images/2026-11-02-agent-harness-chain-graph-code/harness-abstractions.svg)
+
+## 从最常见的故障开始选
+
+选型时，可以先列出任务已经遇到的故障。流程只是顺序调用，关键结果也容易检查，Chain 就是可用的起点。若重试、并行、审批和恢复已经占了不少业务逻辑，用 Graph 能更清楚地表达这些关系。若输出能运行、模拟或测试，则可以把 Code 执行环放进流程里。
+
+这些方式也可以组合。下图中，Graph 管理流程，确定性节点先检查权限和上下文，模型提出候选步骤，工具或代码在受限环境中执行。结果校验通过后返回，失败则带着诊断信息回到规划节点。
+
+![组合式 Agent Harness：Graph 编排模型与受限代码执行，并通过验证形成反馈回路](/static/images/2026-11-02-agent-harness-chain-graph-code/harness-composition.svg)
+
+这里仍有几个需要落实的细节：重试次数怎么限制，失败后保留哪些状态，何时转交人工，以及哪些检查足以支持返回结果。把这些问题说明白，才能判断新增的节点和运行时是否值得维护。
+
+Chain、Graph 和 Code 可以各用一部分，也可以只用其中一种。没有必要为了升级架构而逐个替换；先找到错误产生和漏检的位置，再决定在哪里增加校验、控制流或执行反馈。
+
+## 参考资料
+
+- Karthik Ramgopal, [The Evolution of Agentic Harnesses: From Chains to Graph to Code](https://www.infoq.com/articles/agentic-ai-architecture-harness-evolution), InfoQ, 2026-10-26.
+- LangChain, [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview).
+- LangChain, [Runtimes, frameworks, and harnesses](https://docs.langchain.com/oss/python/concepts/products).
+- Google, [Announcing the Agent2Agent Protocol (A2A)](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/), 2025-04-09.
+- Agent Communication Protocol, [Welcome](https://agentcommunicationprotocol.dev/introduction/welcome).
