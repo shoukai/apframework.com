@@ -1,7 +1,7 @@
 # AI-native SDLC：当代码不再是唯一瓶颈
 
 <figure className="flex flex-col items-center text-center">
-  <img src="assets/joao-emanuel-IaaHmVg8_ok-unsplash.jpg" alt="现代深棕色砖墙建筑的入口与庭院" className="w-full rounded-lg" />
+  <img src="../../../public/static/images/2026-10-30-ai-native-sdlc-playbook/joao-emanuel-IaaHmVg8_ok-unsplash.jpg" alt="现代深棕色砖墙建筑的入口与庭院" className="w-full rounded-lg" />
   <figcaption>Photo by <a href="https://unsplash.com/@jjemanuel?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">João Emanuel</a> on <a href="https://unsplash.com/photos/modern-dark-brown-building-with-brick-IaaHmVg8_ok?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></figcaption>
 </figure>
 
@@ -50,7 +50,7 @@ incident record
 新的 intent.md
 ```
 
-![AI-native SDLC artifact 驱动的交付闭环](assets/ai-native-sdlc-artifact-loop.png)
+![AI-native SDLC artifact 驱动的交付闭环](../../../public/static/images/2026-10-30-ai-native-sdlc-playbook/ai-native-sdlc-artifact-loop.png)
 
 *图：AI-native SDLC 的六阶段 artifact loop。Maintain 阶段的生产信号可以重新生成 `intent.md`，进入下一轮 Plan。*
 

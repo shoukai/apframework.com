@@ -2,14 +2,14 @@
 article_mode: analysis
 output_intent: reviewable_article
 edit_scope: local
-current_stage: drafting
+current_stage: published
 content_status: ready
 evidence_status: ready
 public_source_status: ready
-visual_status: in-progress
-render_status: not-run
-editorial_status: needs-revision
-public_readiness_status: public-source-ready
+visual_status: ready
+render_status: passed
+editorial_status: passed
+public_readiness_status: published
 rendered_article_sha256: 
 reviewed_article_sha256: 
 ---
@@ -18,8 +18,8 @@ reviewed_article_sha256:
 
 - topic: The AI-native SDLC playbook
 - article_mode: analysis
-- vault: `/Users/shoukai/githome/vault/vault-agent`
-- writing_project: `/Users/shoukai/githome/github/apframework.com/workspace/writing-projects/ai-native-sdlc-playbook-analysis`
+- writing_project: `docs/editorial/ai-native-sdlc-playbook-analysis`
+- published_article: `data/blog/essay/2026-10-30-ai-native-sdlc-playbook.mdx`
 - audience: 关注 AI 编程、软件工程流程和 Agent 治理的技术读者
 - stage: complete
 - outline_confirmation: 用户明确要求直接编写技术文章，跳过单独大纲确认，2026-10-27
