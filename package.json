@@ -1,11 +1,11 @@
 {
-  "name": "tailwind-nextjs-starter-blog",
-  "version": "2.3.0",
+  "name": "apframework-site",
   "private": true,
   "scripts": {
     "start": "next dev",
     "dev": "cross-env INIT_CWD=$PWD next dev",
     "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "test": "node --test tests/*.test.mjs",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
@@ -16,7 +16,6 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@headlessui/react": "2.2.0",
     "@next/bundle-analyzer": "15.0.2",
-    "@next/swc-darwin-x64": "^15.2.4",
     "@nextui-org/react": "latest",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/typography": "^0.5.15",

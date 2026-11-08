@@ -74,7 +74,7 @@ test('BlogPosting identifies the public article, author, and an absolute image',
   assert.equal(article.url, `${siteUrl}${route}`)
   assert.equal(
     article.image,
-    `${siteUrl}/static/images/2026-10-25-agent-architecture-evolution/diogo-ferrer-9pqqV6YqTK0-unsplash.jpg`
+    `${siteUrl}/static/images/2026-10-25-agent-architecture-evolution/social-card.png`
   )
   assert.equal(article.author?.[0]?.url, `${siteUrl}/about`)
 })
