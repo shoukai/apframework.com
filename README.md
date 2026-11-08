@@ -19,9 +19,13 @@ ApFramework 是 Shoukai Huang 的个人站点。我在这里拆解 AI Agent 的�
 - [Open Context Clipper](https://apframework.com/projects/open-context-clipper) 是一个本地优先的 Chrome 扩展：把网页文章预览、保存和整理到自己的知识库，再按需导出 Markdown。更多工具和 Agent Skills 见[项目页](https://apframework.com/projects)。
 - [《启示录：打造用户喜爱的产品》读书笔记](https://apframework.com/read/notes/2026-11-01-apocalypse-product-notes) 从用户问题、产品探索和设计验证出发，也记录了对 AI 参与产品工作的思考。更多书和笔记见[阅读页](https://apframework.com/read)。
 
-| 深入一篇文章 | 看看正在做的项目 |
+| [文章](https://apframework.com/blog/essay/2026-11-07-ontology-to-trustworthy-query) | [项目](https://apframework.com/projects) |
 | :---: | :---: |
 | [![本体与可信数据查询文章页面](docs/images/readme/article.png)](https://apframework.com/blog/essay/2026-11-07-ontology-to-trustworthy-query) | [![项目页面中的 Open Context Clipper](docs/images/readme/projects.png)](https://apframework.com/projects) |
+
+| [阅读](https://apframework.com/read) | [阅读列表](https://apframework.com/read/list) |
+| :---: | :---: |
+| [![阅读页面中的书单与读书笔记](docs/images/readme/read.png)](https://apframework.com/read) | [![按年份浏览的阅读列表](docs/images/readme/reading-list.png)](https://apframework.com/read/list) |
 
 ## 在本地运行
 
