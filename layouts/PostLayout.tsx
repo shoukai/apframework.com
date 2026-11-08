@@ -111,12 +111,12 @@ export default function PostLayout({
             </div>
           </header>
           <div className="grid-rows-[auto_1fr] divide-y divide-gray-200 pb-8 dark:divide-gray-700 xl:grid xl:grid-cols-4 xl:gap-x-6 xl:divide-y-0">
-            <dl className="pb-10 pt-6 xl:border-b xl:border-gray-200 xl:pt-11 xl:dark:border-gray-700">
+            <dl className="pb-10 pt-8 xl:border-b xl:border-gray-200 xl:pt-11 xl:dark:border-gray-700">
               <dt className="sr-only">作者</dt>
               <dd>
                 <ul className="flex flex-wrap justify-center gap-4 sm:space-x-12 xl:block xl:space-x-0 xl:space-y-8">
                   {authorDetails.map((author) => (
-                    <li className="flex items-center space-x-2" key={author.name}>
+                    <li className="flex items-center space-x-3" key={author.name}>
                       {author.avatar && (
                         <Image
                           src={author.avatar}
@@ -126,13 +126,13 @@ export default function PostLayout({
                           className="h-10 w-10 rounded-full"
                         />
                       )}
-                      <dl className="whitespace-nowrap text-sm font-medium leading-5">
+                      <dl className="min-w-0 text-sm font-medium leading-5">
                         <dt className="sr-only">姓名</dt>
                         <dd className="text-gray-900 dark:text-gray-100">{author.name}</dd>
                         {author.occupation && (
                           <>
                             <dt className="sr-only">身份</dt>
-                            <dd className="text-xs text-gray-500 dark:text-gray-400">
+                            <dd className="mt-1 whitespace-normal text-xs leading-4 text-gray-500 dark:text-gray-400">
                               {author.occupation}
                             </dd>
                           </>

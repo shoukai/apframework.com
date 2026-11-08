@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+  <title id="title">设计反馈进入后续任务的闭环</title>
+  <desc id="desc">反馈当轮记录并关联任务证据，之后任务读取和评价。被证明有用的经验由每周后台 Agent 整理进技能和 Wiki；明确可判定的规则由团队实现为代码门禁。概念图，不代表意见自动晋升或效果已实测。</desc>
+  <defs>
+    <style>
+      text{font-family:Arial,"Noto Sans SC",sans-serif;fill:#20323b}
+      .title{font-size:30px;font-weight:700;fill:#173b43}
+      .small{font-size:16px;fill:#60737a}
+      .label{font-size:20px;font-weight:700}
+      .box{fill:#fff;stroke:#9aabba;stroke-width:2}
+      .line{fill:none;stroke:#52666d;stroke-width:3;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#52666d"/></marker>
+  </defs>
+  <rect width="1280" height="820" fill="#f7faf9"/>
+  <text x="60" y="58" class="title">一次修改，怎样帮助后续任务？</text>
+  <text x="60" y="90" class="small">反馈闭环的概念整理｜经验需关联证据、经过后续检验，不是意见自动变规则</text>
+
+  <rect x="70" y="150" width="270" height="108" rx="10" class="box"/>
+  <text x="205" y="192" text-anchor="middle" class="label">创作与人工反馈</text>
+  <text x="205" y="224" text-anchor="middle" class="small">改哪里？为什么这样改？</text>
+  <path d="M340 204H418" class="line"/>
+
+  <rect x="430" y="142" width="340" height="124" rx="10" fill="#e8f2f5" stroke="#38839a" stroke-width="2"/>
+  <text x="600" y="184" text-anchor="middle" class="label">当轮记录与任务证据</text>
+  <text x="600" y="217" text-anchor="middle" class="small">明确偏好可进入记忆</text>
+  <text x="600" y="242" text-anchor="middle" class="small">任务经验关联来源与理由</text>
+
+  <path d="M600 266V336" class="line"/>
+  <rect x="430" y="350" width="340" height="112" rx="10" fill="#fff5e8" stroke="#c78527" stroke-width="2"/>
+  <text x="600" y="393" text-anchor="middle" class="label">后续任务读取并评价</text>
+  <text x="600" y="427" text-anchor="middle" class="small">是否有帮助？证据是否充分？</text>
+
+  <path d="M430 405H354" class="line"/>
+  <rect x="70" y="350" width="270" height="112" rx="10" fill="#f1edf7" stroke="#8068a5" stroke-width="2"/>
+  <text x="205" y="393" text-anchor="middle" class="label">Memory｜记忆</text>
+  <text x="205" y="427" text-anchor="middle" class="small">近期偏好与待验证经验</text>
+  <path d="M205 350V305H205V258" class="line"/>
+  <rect x="80" y="285" width="250" height="32" rx="6" fill="#f7faf9"/>
+  <text x="205" y="307" text-anchor="middle" class="small">下一次创作读取相关记忆</text>
+
+  <path d="M770 405H842" class="line"/>
+  <rect x="855" y="340" width="355" height="132" rx="10" fill="#edf5ed" stroke="#4a8261" stroke-width="2"/>
+  <text x="1032" y="382" text-anchor="middle" class="label">每周后台 Agent 整理</text>
+  <text x="1032" y="416" text-anchor="middle" class="small">纳入证明有用的经验</text>
+  <text x="1032" y="442" text-anchor="middle" class="small">不是每条意见都会晋升</text>
+
+  <path d="M960 472V530H866" class="line"/>
+  <rect x="650" y="542" width="220" height="100" rx="10" class="box"/>
+  <text x="760" y="582" text-anchor="middle" class="label">Skills｜技能</text>
+  <text x="760" y="613" text-anchor="middle" class="small">补充做法与理由</text>
+  <path d="M650 592H604" class="line"/>
+  <rect x="374" y="542" width="220" height="100" rx="10" class="box"/>
+  <text x="484" y="582" text-anchor="middle" class="label">Wiki｜背景资料</text>
+  <text x="484" y="613" text-anchor="middle" class="small">补充品牌与项目知识</text>
+  <path d="M374 592H310V462" class="line"/>
+
+  <path d="M600 462V500H1032V528" class="line"/>
+  <rect x="890" y="542" width="320" height="100" rx="10" fill="#e8f2f5" stroke="#38839a" stroke-width="2"/>
+  <text x="1050" y="582" text-anchor="middle" class="label">明确、可判定的规则</text>
+  <text x="1050" y="613" text-anchor="middle" class="small">由团队实现为代码门禁</text>
+
+  <path d="M760 642V718H205V462" class="line"/>
+  <rect x="372" y="680" width="440" height="34" rx="6" fill="#f7faf9"/>
+  <text x="592" y="704" text-anchor="middle" class="small">整理后的知识供后续任务参考；使用效果仍需继续观察</text>
+  <text x="60" y="774" class="small">门禁需由团队把规则写成程序；图示非自动学习效果的实测，也非系统拓扑。</text>
+</svg>

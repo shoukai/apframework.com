@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="820" viewBox="0 0 1240 820" role="img" aria-labelledby="title desc">
+  <title id="title">复杂短片任务的分阶段流程示意</title>
+  <desc id="desc">解释性概念流程：简单修改走短路径；复杂短片可先做分镜、再做动态粗剪和正式制作。人工批准以菱形标记，代码门禁以方形标记，阶段只是案例示意。</desc>
+  <defs>
+    <style>
+      text{font-family:Arial,"Noto Sans SC",sans-serif;fill:#20323b}
+      .title{font-size:30px;font-weight:700;fill:#173b43}
+      .small{font-size:16px;fill:#60737a}
+      .label{font-size:19px;font-weight:700}
+      .box{fill:#fff;stroke:#9aabba;stroke-width:2}
+      .line{fill:none;stroke:#52666d;stroke-width:3;marker-end:url(#arrow)}
+      .human{fill:#d84c3f}
+      .gate{fill:#226d8b}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#52666d"/></marker>
+  </defs>
+  <rect width="1240" height="820" fill="#f7faf9"/>
+  <text x="60" y="58" class="title">复杂短片：从方向确认到交付</text>
+  <text x="60" y="90" class="small">解释性概念整理｜按 LangChain 对复杂影片流程的描述｜非实测流程图</text>
+
+  <rect x="75" y="145" width="260" height="100" rx="10" class="box"/>
+  <text x="205" y="184" text-anchor="middle" class="label">Slack 需求与素材</text>
+  <text x="205" y="215" text-anchor="middle" class="small">路由技能判断任务类型</text>
+  <path d="M335 195H415" class="line"/>
+
+  <rect x="415" y="145" width="280" height="100" rx="12" fill="#fff5e8" stroke="#c78527" stroke-width="2"/>
+  <text x="555" y="187" text-anchor="middle" class="label">是否需要</text>
+  <text x="555" y="212" text-anchor="middle" class="label">完整制作流程？</text>
+  <path d="M695 195H815" class="line"/>
+  <rect x="830" y="153" width="300" height="84" rx="10" fill="#edf2f5" stroke="#9aabba" stroke-width="2"/>
+  <text x="980" y="188" text-anchor="middle" class="label">简单修改：按需完成并检查</text>
+  <text x="980" y="216" text-anchor="middle" class="small">不必先做分镜</text>
+  <rect x="710" y="145" width="105" height="32" rx="6" fill="#f7faf9"/>
+  <text x="762" y="167" text-anchor="middle" class="small">否：短路径</text>
+
+  <path d="M555 245V306" class="line"/>
+  <rect x="574" y="263" width="116" height="32" rx="6" fill="#f7faf9"/>
+  <text x="632" y="285" text-anchor="middle" class="small">是：复杂影片</text>
+
+  <rect x="350" y="318" width="280" height="100" rx="10" fill="#e8f2f5" stroke="#38839a" stroke-width="2"/>
+  <text x="490" y="359" text-anchor="middle" class="label">Storyboard｜分镜稿</text>
+  <text x="490" y="389" text-anchor="middle" class="small">用静态画面确定方向、文案、镜头</text>
+  <path d="M630 368H700" class="line"/>
+  <polygon points="730,340 758,368 730,396 702,368" class="human"/>
+  <text x="792" y="360" class="label" fill="#a43129">人工批准</text>
+  <text x="792" y="389" class="small">选择创意方向并提出修改</text>
+
+  <path d="M730 396V456H630" class="line"/>
+  <rect x="350" y="456" width="280" height="100" rx="10" fill="#e8f2f5" stroke="#38839a" stroke-width="2"/>
+  <text x="490" y="497" text-anchor="middle" class="label">Animatic｜动态粗剪</text>
+  <text x="490" y="527" text-anchor="middle" class="small">结合音频与时间检查节奏</text>
+  <path d="M350 506H276" class="line"/>
+  <polygon points="246,478 274,506 246,534 218,506" class="human"/>
+  <text x="72" y="492" class="label">人工审阅</text>
+  <text x="72" y="521" class="small">提出节奏和方向反馈</text>
+  <path d="M246 534V622H350" class="line"/>
+
+  <rect x="350" y="610" width="280" height="100" rx="10" fill="#eef5ef" stroke="#4a8261" stroke-width="2"/>
+  <text x="490" y="651" text-anchor="middle" class="label">Production｜正式制作</text>
+  <text x="490" y="681" text-anchor="middle" class="small">子代理制作、检查并渲染镜头</text>
+  <path d="M630 660H700" class="line"/>
+  <rect x="712" y="644" width="32" height="32" rx="4" class="gate"/>
+  <text x="765" y="651" class="label" fill="#15546d">程序门禁</text>
+  <rect x="640" y="580" width="176" height="32" rx="6" fill="#f7faf9"/>
+  <text x="728" y="602" text-anchor="middle" class="small">通过检查后再组装</text>
+  <path d="M744 678V754H998V718" class="line"/>
+  <rect x="850" y="610" width="300" height="100" rx="10" fill="#fff" stroke="#4a8261" stroke-width="2"/>
+  <text x="1000" y="651" text-anchor="middle" class="label">组装与交付</text>
+  <text x="1000" y="681" text-anchor="middle" class="small">发布前由获批人员批准</text>
+
+  <polygon points="80,759 98,777 80,795 62,777" class="human"/>
+  <text x="112" y="783" class="small">人工判断／批准</text>
+  <rect x="304" y="762" width="30" height="30" rx="4" class="gate"/>
+  <text x="347" y="783" class="small">程序校验／阶段门禁</text>
+  <text x="710" y="783" class="small">阶段选择依任务而定；本图是概念整理，不是实测记录。</text>
+</svg>

@@ -50,3 +50,5 @@ yarn-error.log*
 
 # Local DevTools Config
 public/.well-known/appspecific/com.chrome.devtools.json
+
+workspace/

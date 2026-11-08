@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Content Studio 的职责层次</title>
+  <desc id="desc">依据 LangChain 公开文章整理设计原则、技能、知识库、程序门禁、记忆、隔离工作区和团队协作的职责关系。这是概念图，不是实测截图或完整部署拓扑。</desc>
+  <defs>
+    <style>
+      text{font-family:Arial,"Noto Sans SC",sans-serif;fill:#20323b}
+      .title{font-size:30px;font-weight:700;fill:#173b43}
+      .subtitle{font-size:16px;fill:#60737a}
+      .section{font-size:18px;font-weight:700}
+      .label{font-size:17px;font-weight:700}
+      .note{font-size:14px;fill:#60737a}
+      .card{fill:#fff;stroke-width:2}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#64777d"/></marker>
+  </defs>
+  <rect width="1200" height="760" fill="#f7faf9"/>
+  <text x="60" y="58" class="title">Content Studio：设计判断如何进入工作流</text>
+  <text x="60" y="88" class="subtitle">职责概念示意｜依据 LangChain 公开文章整理｜非实测截图、非完整部署拓扑</text>
+
+  <rect x="60" y="122" width="1080" height="128" rx="12" fill="#e8f4f1" stroke="#188478" stroke-width="2"/>
+  <text x="88" y="157" class="section" fill="#14665d">输入：设计判断与任务背景</text>
+  <g class="card" stroke="#9bcfc6">
+    <rect x="88" y="177" width="230" height="48" rx="8"/>
+    <rect x="342" y="177" width="230" height="48" rx="8"/>
+    <rect x="596" y="177" width="230" height="48" rx="8"/>
+    <rect x="850" y="177" width="230" height="48" rx="8"/>
+  </g>
+  <g text-anchor="middle" class="label">
+    <text x="203" y="207">设计原则与品牌规范</text>
+    <text x="457" y="207">反馈及其理由</text>
+    <text x="711" y="207">品牌与项目上下文</text>
+    <text x="965" y="207">历史经验与记忆</text>
+  </g>
+
+  <path d="M600 250V282" stroke="#64777d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="60" y="294" width="1080" height="158" rx="12" fill="#eef3f5" stroke="#718894" stroke-width="2"/>
+  <text x="88" y="329" class="section" fill="#3e5a66">解释与检查：每类资料回答不同问题</text>
+  <g class="card" stroke="#c2d0d5">
+    <rect x="88" y="350" width="230" height="76" rx="8"/>
+    <rect x="342" y="350" width="230" height="76" rx="8"/>
+    <rect x="596" y="350" width="230" height="76" rx="8"/>
+    <rect x="850" y="350" width="230" height="76" rx="8"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="203" y="382" class="label">Skills｜技能</text><text x="203" y="408" class="note">识别任务，说明做法</text>
+    <text x="457" y="382" class="label">Wiki｜知识库</text><text x="457" y="408" class="note">提供背景和参考</text>
+    <text x="711" y="382" class="label">Gates｜程序门禁</text><text x="711" y="408" class="note">检查可明确判定的规则</text>
+    <text x="965" y="382" class="label">Memory｜记忆</text><text x="965" y="408" class="note">保留经筛选的经验</text>
+  </g>
+
+  <path d="M600 452V484" stroke="#64777d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="60" y="496" width="1080" height="116" rx="12" fill="#fff4e5" stroke="#c9862d" stroke-width="2"/>
+  <text x="88" y="531" class="section" fill="#8c520d">执行环境：每个 Slack thread 的项目工作区</text>
+  <g class="card" stroke="#e4bd8c">
+    <rect x="88" y="551" width="300" height="40" rx="8"/>
+    <rect x="414" y="551" width="300" height="40" rx="8"/>
+    <rect x="740" y="551" width="340" height="40" rx="8"/>
+  </g>
+  <g text-anchor="middle" class="label">
+    <text x="238" y="577">sandbox｜文件与命令行</text>
+    <text x="564" y="577">媒体工具与可编辑作品</text>
+    <text x="910" y="577">brief · 计划 · 代码 · 渲染结果</text>
+  </g>
+
+  <path d="M600 612V644" stroke="#64777d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="60" y="656" width="1080" height="72" rx="12" fill="#f9eeea" stroke="#bd6b5e" stroke-width="2"/>
+  <text x="88" y="687" class="section" fill="#8c3a32">团队协作</text>
+  <text x="238" y="687" class="label">异步任务分工</text>
+  <text x="448" y="687" class="label">Slack 计划、进度与反馈</text>
+  <text x="776" y="687" class="label">共享画布与人工审阅</text>
+  <text x="88" y="713" class="note">箭头表示解释关系，不表示所有数据按单一路径流动；工具权限与发布批准仍需单独授权。</text>
+</svg>

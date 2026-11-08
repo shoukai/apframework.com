@@ -1,0 +1,705 @@
+---
+title: "用 WebVOWL 阅读本体：从中文关系图到人工审查记录"
+date: "2026-11-06"
+tags: ["WebVOWL", "OWL", "LinkML", "本体建模", "知识图谱"]
+images:
+  - "/static/images/2026-11-06-webvowl-ontology-review/webvowl-ontology-hero.jpg"
+draft: false
+summary: "结合 LinkML 生成的项目管理 OWL 本体，演示如何用 WebVOWL 阅读中文类与关系、核对 Participation 参与记录，并回查 Turtle 中的基数、数值范围和映射公理，形成可追踪的人工审查记录。"
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-06-webvowl-ontology-review/webvowl-ontology-hero.jpg"
+    alt="以节点和关系连线呈现本体结构的 WebVOWL 主题插画"
+    className="w-full rounded-lg"
+  />
+  <figcaption>从关系图开始，阅读并审查 OWL 本体</figcaption>
+</figure>
+
+第一篇把 PostgreSQL 的表结构、业务说明和样本整理成 LinkML，再生成带中文标签的 OWL。文件能够解析，类和属性也都有了名字。接下来，一个没有参与建模的同事打开它，能否看出模型表达了什么？
+
+<Image
+  src="/static/images/2026-11-06-webvowl-ontology-review/01-webvowl-original.svg"
+  alt="项目管理本体的 WebVOWL 中文关系图"
+  width={1348}
+  height={923}
+/>
+
+_图1：项目管理本体的中文关系图。先定位类与关系，再沿具体业务问题展开阅读。_
+
+图里既有“员工”“项目”“项目参与记录”，也有“命名实体”、Thing、Literal 和 external。两个节点都叫“进行中”，两条关系都标着“关联项目”。中文降低了辨认术语的门槛，但这些名称之间的区别，还需要沿着关系读下去。
+
+本篇从这张图出发，先认识工具和基本符号，再找业务对象、读关系，对照林晓的两条参与记录，最后回到 Turtle 核对限制，形成可以继续处理的审查条目。案例使用合成数据，重点是怎样从“看见一张图”走到“说明模型表达了什么”。
+
+## 1. 阅读目标：从关系图走到可核对的问题
+
+本文会依次回答三件事：WebVOWL 图上的对象和关系怎样读；林晓这样的具体业务事实应到哪里查；图表无法展示的数量与类型限制，如何回到 Turtle 核对并记录成审查事项。
+
+### 1.1 文件生成成功之后，还需要一次共同阅读
+
+第一篇的业务问题是“项目里有哪些员工”。项目负责人、项目参与员工、任务执行人，都可能被简称为“项目的人”，但它们对应不同路径。生成模型之后，首先要看这三条路径是否仍然分开，是否能让业务和技术同事读出同样的含义。
+
+业务同事说“项目负责人”，技术同事看到的是 `ex:owner`。要确认两者指向同一件事，需要把中文名称、精确 URI、连接对象和业务定义放在一起。例如，owner 的起点是项目，终点是员工；它回答谁对项目负责，而不是谁在项目中登记了投入。
+
+可视化适合建立这张共同阅读的地图：先找到“项目”，看看它与“员工”怎样相连，再追问每条线回答什么问题。遇到数量、金额或名称映射时，则沿着图中的对象回查源文件。
+
+### 1.2 从五个问题开始
+
+第一次阅读，可以带着下面五个问题进入：
+
+| 图上的疑问                                    | 要核对的内容                                   | 只看图不足之处             |
+| --------------------------------------------- | ---------------------------------------------- | -------------------------- |
+| “命名实体”是不是新增业务表？                  | 共享父类的来源和继承关系                       | 模型类不与数据库表一一对应 |
+| 三种员工关系分别连接谁？                      | `owner`、`employee`、`assignee` 的方向与所属类 | 都连接员工，不代表含义相同 |
+| 为什么找不到林晓和60%？                       | 结构文件与实例文件的分工                       | 结构图不是员工事实查询结果 |
+| 为什么有两个“进行中”？                        | 完整 URI、所属枚举、原始代码                   | 同名中文标签不能确定身份   |
+| Thing、Literal、external 是否意味着模型有错？ | 工具表示与实际公理                             | 显示标记不是业务错误判决   |
+
+按对象、关系、事实、公理的顺序阅读，比一开始就逐个辨认全图节点更容易推进。一个模糊的疑问，也会逐渐变成具体问题：哪个 URI 的哪项声明，与哪条预期不一致？
+
+### 1.3 将结构确认、业务确认和数据验证分开
+
+读完这个案例，应当能指出一个类、一条属性及其 URI，说明哪部分是模型结构、哪部分是具体事实，并写出四类记录：已确认、需修改、需业务澄清、尚未验证。
+
+“已确认”需要有明确对象。确认文件写了某项限制，是结构核对；确认限制符合公司的规则，是业务判断；确认数据满足约束，则需要相应的验证。三者可以在同一次审查中衔接，却不宜用一个“通过”合并。
+
+例如，Participation 上有恰好一个 employee 的声明，只回答模型怎样表达参与员工。它是否符合借调、联合岗位等实际业务，以及每条数据是否都正确填写员工，是后面的两个问题。
+
+## 2. WebVOWL 能帮你看什么，不能替你验证什么
+
+可以先记住三个分工：WebVOWL 把关系画出来，帮助定位；OWL/Turtle 文件用于确认模型实际写了哪些声明；实例文件用于确认具体员工、项目和日期。图上看到一条线，不足以证明样本里已经有对应事实。
+
+### 2.1 先区分 VOWL、WebVOWL 与 OWL2VOWL
+
+OWL 是保存类、属性和公理的本体语言，Turtle 是本例使用的文本表示。VOWL 是图形表示的记法；WebVOWL 是交互浏览这些图形的工具；OWL2VOWL 负责把本体转换成可供可视化使用的数据。官方转换器文档支持本地本体文件输入，转换结果默认写为 JSON。[1][2]
+
+这条路线可以读成：
+
+```text
+OWL 文件（本例为 Turtle）
+    → 转换器
+    → VOWL JSON
+    → WebVOWL 中的交互图
+    → 某次阅读视图的 SVG 导出
+```
+
+其中，OWL 用于回查公理，JSON 承载转换后的可视化数据，SVG 保存一个便于分享的阅读视图。保留 SVG 很有用，但它不是本体的完整备份，也不会自动包含全部导入参数、过滤状态和转换日志。
+
+### 2.2 选择入口，留意服务与版本差异
+
+WebVOWL 官方仓库 README 给出的服务入口是 `https://service.tib.eu/webvowl/`，并警告旧域名已不属于项目。使用旧教程时，先回到官方仓库核对入口。[1]
+
+图1的导出注释标记 WebVOWL 1.1.7。阅读其他版本时，菜单位置、详情展示和导入方式可能不同；前端版本与 OWL2VOWL 转换器版本也应分别记录。
+
+官方 README 还区分完整服务与纯前端部署：纯前端不提供转换接口 `convert`。[1] 因此，在自己的环境中打开 WebVOWL 页面后，要先确认它能否转换 OWL，还是只负责加载已有 JSON 并显示图形。两种部署都可能用于阅读，但准备输入的方式不同。
+
+### 2.3 按阅读目标操作，而不是记住菜单位置
+
+加载模型后，可以按下面的顺序浏览；具体控件名称以所用版本为准。
+
+1. **定位对象。** 搜索或在图中找到 `Employee`、`Participation`、`NamedEntity`，确认预期类已经进入阅读范围。
+2. **看清一条关系。** 缩放和移动画面，让起点、属性标签和终点同时可见。先读局部，再回到全图理解位置。
+3. **核对身份。** 查看对象详情中的 IRI、标签、类型和说明。如果详情未展示完整信息，回到 TTL 搜索对应 URI。
+4. **减少干扰。** 记录语言与过滤选项，再暂时隐藏不相关内容。过滤改变的是当前视图，不会删除本体声明。
+5. **保存阅读结果。** 导出图，并与输入文件、工具版本和审查记录一起保存，方便其他人复核。
+
+阅读一个局部时，最好同时记下“从哪个类出发、沿哪个谓语、到哪个目标”。只截取属性标签，很容易丢掉决定含义的上下文。
+
+### 2.4 让不同工具回答不同问题
+
+| 材料或工具             | 适合回答的问题                               | 需要另行处理的工作             |
+| ---------------------- | -------------------------------------------- | ------------------------------ |
+| WebVOWL 图             | 有哪些类、关系怎样连接、术语是否便于讨论     | 逐条公理核对与业务规则确认     |
+| Turtle 文本与 RDFLib   | 文件明确写了什么、限制附在哪个类上           | 判断业务定义是否正确           |
+| 本体编辑器，如 Protégé | 检查和管理公理                               | 按业务口径验收实例完整性       |
+| reasoner（推理器）     | 在选定语义与工具支持范围内检查逻辑或推导事实 | 定义业务规则与数据库式缺失检查 |
+| 实例校验器及业务查询   | 按选定约束检查具体数据和业务口径             | 确认约束覆盖了哪些业务要求     |
+
+遇到问题时，先判断它属于术语、结构、逻辑还是数据，再选择工具。例如，“名称读不出来”可能是谓语不一致；“一个员工是否超配”则涉及时间与汇总口径。两者都不是调整图形布局能解决的。
+
+## 3. 先掌握四个概念：类、事实、URI 和关系
+
+### 3.1 类不是实例，结构图不是事实结果
+
+`Employee` 表示员工这一类对象，林晓是案例中的一个员工；`Participation` 表示参与记录这一类对象，1002是其中一条记录。OWL 区分类、属性、个体和数据值，读图时先确定看到的是哪一层。[3]
+
+图1中的“员工”不是六名员工的查询结果，“项目参与记录”也不是1002的图形化卡片。“员工可以通过参与记录关联项目”描述结构；“林晓通过1002参与项目101，投入60%”描述具体事实。
+
+本例把模型与实例分别保存在不同文件中。因此，结构图没有出现林晓，并不意味着员工数据丢失。查看某个员工的项目、比例和日期，需要进入实例材料，沿相同的谓语读取事实。
+
+### 3.2 URI 确定身份，中文标签帮助阅读
+
+本例使用下面的前缀：
+
+```turtle
+@prefix ex: <https://example.org/work/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+ex:Employee a owl:Class ;
+    rdfs:label "Employee"@en, "员工"@zh .
+```
+
+`ex:Employee` 展开为 `https://example.org/work/Employee`，确定这里讨论的模型对象；“员工”是它的中文显示标签。本文沿用常见的 URI 说法，工具详情中也可能写作 IRI。前缀只是缩写，身份由展开后的标识确定。
+
+`@zh` 与 `@en` 是标签的语言标记。修改中文名称不会自动修改类的 URI；将两个类都标为“进行中”，也不会让它们合并。阅读时可以按所用版本选择显示语言，记录对象时则保留完整 URI。
+
+下面四个状态尤其适合并排看：
+
+| 中文标签 | URI 在共同前缀之后的部分  | 所属枚举 |
+| -------- | ------------------------- | -------- |
+| 进行中   | `ProjectStatus#active`    | 项目状态 |
+| 进行中   | `TaskStatus#doing`        | 任务状态 |
+| 已完成   | `ProjectStatus#completed` | 项目状态 |
+| 已完成   | `TaskStatus#done`         | 任务状态 |
+
+它们共用 `https://example.org/work/` 前缀，但枚举名和选项代码不同。审查时写“检查 ProjectStatus#active 的标签”，比写“检查进行中节点”更容易定位，也不会误改任务状态。
+
+### 3.3 用一条参与记录认识 Turtle
+
+Turtle 是一种便于人阅读和编写 RDF 图的文本语法。它不改变事实本身，只让“谁通过什么关系连接到谁”更容易查看。下面从 `instances-aligned.ttl` 摘出参与记录1002的部分事实：
+
+```turtle
+@prefix ex: <https://example.org/work/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/work/participation/1002>
+    a ex:Participation ;
+    ex:employee <https://example.org/work/employee/2> ;
+    ex:project <https://example.org/work/project/101> ;
+    ex:allocation_pct 60 ;
+    ex:joined_on "2026-01-01"^^xsd:date .
+```
+
+每个事实都能拆成主语、谓语、宾语。例如，员工关系读作“参与记录1002——参与员工——员工2”。`ex:employee` 是谓语，员工2的 URI 是宾语。要知道员工2叫林晓，还要再读取它的名称事实。
+
+Turtle 的几个符号足够支持后续阅读：[4]
+
+- `a` 是 `rdf:type` 的缩写，这里说明1002属于参与记录类。
+- 分号表示后面的谓语仍沿用同一个主语；句点结束这组写法。
+- 逗号表示同一主语、同一谓语有多个宾语，例如一个类的中英文标签。
+- `60` 是整数形式的字面量；日期用 `^^xsd:date` 显式标出类型。
+- 方括号 `[ ... ]` 可以书写匿名节点，后面会用来表达类限制；圆括号 `( ... )` 用于 RDF 列表。
+
+这段节选省略了 id 和 role，完整记录中还有这些事实。left_on 则不同：实例文件没有写这条记录的退出日期，种子 SQL 中对应列为 `NULL`。SQL 空值与 RDF 中没有某条三元组是不同的表示，后续判断有效期时要分别处理。
+
+### 3.4 对象属性、数据属性与继承
+
+对象属性连接资源，例如参与记录经 `ex:employee` 连接员工。数据属性连接数据值，例如经 `ex:allocation_pct` 连接整数60。本例 OWL 将它们分别声明为 `owl:ObjectProperty` 与 `owl:DatatypeProperty`。
+
+继承则回答“是什么的一种”。`Employee rdfs:subClassOf NamedEntity` 读作“员工是命名实体的一种”；`employee/2 ex:department department/4` 读作“员工2属于部门4”。后者是业务关系，不表示员工是部门的子类。
+
+为便于讨论，后文用 `Participation.employee` 表示“参与记录类上的 employee 属性”。这是一种阅读简写，真实谓语仍是 `https://example.org/work/employee`，文件中没有另一个带点号的 URI。
+
+### 3.5 怎样读图上的符号
+
+图1以圆形呈现类，以属性标签和连接线呈现关系，并有表示数据类型的矩形节点。继承边带有 `Subclass of` 文字，部分边带数量标记。颜色和位置有助于定位，具体含义仍要结合对象类型与公理。
+
+尤其要将类上的限制与实例事实分开。本例大量关系结构来自 `allValuesFrom` 等限制；图上某类连向员工，不代表已经查到了某个具体员工。
+
+Thing、Literal 和 external 可以这样理解：
+
+| 标记     | 阅读含义                           | 容易产生的误解                                     |
+| -------- | ---------------------------------- | -------------------------------------------------- |
+| Thing    | 对应 OWL 中最一般的类概念          | 把它当作新增业务表，或据此认为某字段对所有对象必填 |
+| Literal  | 与字面量及数据值范围有关的通用表示 | 认为模型允许任意类型和任意数值                     |
+| external | 工具可视化数据中的外部分类提示     | 将其解释为外部数据库、外包人员或网络读取失败       |
+
+WebVOWL 的 `attributeParser.js` 将类的 `external` 属性加入显示提示列表。[5] 若要进一步解释某个节点为什么被这样标记，应检查对应 VOWL JSON、转换器版本和本体标识。这个显示提示本身不决定员工类是否在 OWL 中声明。
+
+## 4. 确认输入：这张图对应哪份模型
+
+### 4.1 给每份材料一个明确职责
+
+沿着图回查时，先区分建模目标、生成结果和样本事实：
+
+| 文件                    | 阅读用途                           | 建议对照的内容                 |
+| ----------------------- | ---------------------------------- | ------------------------------ |
+| `domain.yaml`           | 查看建模意图、继承、枚举和数值要求 | OWL 是否保留了预期表达         |
+| `domain.owl.ttl`        | 查看生成后的显式类、属性与公理     | 限制实际附在哪个类、哪个属性上 |
+| `01-schema.sql`         | 查看字段类型、外键和检查约束       | 数据库规则与模型规则怎样对应   |
+| `02-seed.sql`           | 查看合成业务样本                   | 人物、项目、比例、日期与负责人 |
+| `instances.ttl`         | 查看原有实例表示                   | 类型、名称和枚举值使用的 URI   |
+| `instances-aligned.ttl` | 查看调整类和枚举后的实例           | 哪些映射已改变，哪些仍有差异   |
+| `generate-ontology.py`  | 查看生成参数与标签来源             | 生成步骤与中文标签后处理的分工 |
+| SVG 导出图              | 定位对象，保存阅读视图             | 标签、关系及阅读时的显示范围   |
+
+使用 RDFLib 7.6.0 解析案例 OWL，可得到521条三元组、20个显式声明的具名 `owl:Class`、17个对象属性、13个数据属性，以及55个 `owl:Restriction` 节点。20个具名类包括8个模型类、3个枚举类和9个枚举选项类。匿名限制属于类表达式的一部分，不应再算成另一批业务对象。
+
+图1的 SVG 包含34个未标记为 `hidden-in-export` 的节点分组，另有4个隐藏辅助分组。显示节点数、具名类数、数据库表数和三元组数分别统计不同对象，不能据此计算“转换丢失率”。图中还可能有重复的数据类型表示和转换器生成的展示节点。
+
+### 4.2 加载时记录身份，不靠文件名认版本
+
+同一个文件名可能对应不同内容。正式审查时，可以随输入保留一张简短的信息卡：
+
+| 字段     | 建议记录                                                 |
+| -------- | -------------------------------------------------------- |
+| 源文件   | 文件名、保存时间、版本或 SHA-256                         |
+| 生成来源 | YAML 版本、命令参数、标签处理方式                        |
+| 工具环境 | WebVOWL 与转换器版本；无法取得的字段注明未知             |
+| 转换产物 | VOWL JSON、日志及对应的输入                              |
+| 阅读视图 | 语言、过滤条件、导出时间和 SVG                           |
+| 核对锚点 | 命名空间，以及 Employee、Participation、NamedEntity 等类 |
+
+这些记录的用途是让下一位审查者能找到同一份材料，而不是仅凭“最新版”继续讨论。文件 SHA-256 比较的是字节内容；即使 RDF 图等价，序列化顺序变化也可能改变哈希。需要比较模型结构时，第8章的图同构方法更合适。
+
+### 4.3 先用全图定位，再用局部材料解释
+
+图1适合观察整体对象、中文标签、同名状态与继承关系。阅读 Participation 时，则可以先放大它周围的 employee、project、role 和比例属性，再回到全图看它与其他类的联系。
+
+后面的图2整理阅读顺序，图3把 Participation 的类结构与两条样本事实分区展示。两张图都是教学示意：它们省去了与当前问题无关的线条，便于解释，但查公理仍以 OWL 为准，查人物和日期则以实例材料为准。
+
+这个案例的核对范围是文件解析、显式声明和指定事实对照，以及标签副本的图差异比较；它不是完整的 OWL 2 DL、推理器或全量实例验收。数值范围的判断依据文件表达式与规范语义，工具对边界值的处理还需要单独测试。
+
+## 5. 按业务问题读图：对象、关系，再看样本
+
+![从中文对象到 URI、Turtle 与事实材料的人工阅读路线](/static/images/2026-11-06-webvowl-ontology-review/02-reading-route.svg)
+
+_图2：人工阅读路线示意。先找对象、核对 URI，再读关系、对照事实，最后回查公理并记录结论。_
+
+### 5.1 先看类与继承：建立业务对象骨架
+
+第一次读图，不必从每个数据类型开始。先找 `NamedEntity` 及它附近的部门、员工、客户、项目、任务，再单独定位参与记录和数据集，可以整理出下面这张表：
+
+| 类              | 中文标签     | 显式具名父类   | 本例用途                     |
+| --------------- | ------------ | -------------- | ---------------------------- |
+| `NamedEntity`   | 命名实体     | 未声明具名父类 | 复用 id、name 的共同父类     |
+| `Department`    | 部门         | `NamedEntity`  | 组织单元及直接上级部门       |
+| `Employee`      | 员工         | `NamedEntity`  | 员工、所属部门及直属经理     |
+| `Customer`      | 客户         | `NamedEntity`  | 客户组织                     |
+| `Project`       | 项目         | `NamedEntity`  | 客户项目及负责人             |
+| `Task`          | 任务         | `NamedEntity`  | 项目中的任务及可选执行人     |
+| `Participation` | 项目参与记录 | 未声明具名父类 | 带角色、比例和日期的参与关系 |
+| `Dataset`       | 数据集       | 未声明具名父类 | 列表式组织各类实例的容器     |
+
+“未声明具名父类”与“没有 `rdfs:subClassOf` 声明”不同。Participation 有附在 `rdfs:subClassOf` 上的匿名限制，只是没有继承 `ex:NamedEntity`。这个区别影响它是否获得父类的名称要求。
+
+回到 YAML，`NamedEntity` 写有 `abstract: true` 和 `slots: [id, name]`，五个业务类通过 `is_a` 继承它。它是模型中的复用层，不是数据库里新增的一张表。OWL 将它的 id、name 分别表达为恰好一个值的限制，子类也受这些限制约束。
+
+Participation 则只有公共 `slots: [id]`，其余字段在类上定义，不继承 NamedEntity。它不会因为其他业务类有名字，就自动获得必需 name 的限制。是否应调整继承，取决于“一条参与记录是否有独立业务名称”，而不是图形是否整齐。
+
+YAML 的 abstract 也与编程语言的“禁止构造”不同。本例生成参数包含 `--skip-abstract-class-as-unionof-subclasses`；判断输出的语义时，应查看实际类公理，而不能把源模型标志直接当作数据库式的禁止实例化检查。
+
+Dataset 同样不是业务对象表。它用 departments、employees、projects 等列表属性组织实例，因此图上还会出现“员工列表”“项目列表”。这些容器属性回答“数据集收集了哪些对象”，与“谁是项目负责人”处在不同层次。
+
+这一节可以形成一个结构结论：模型保留了五类 NamedEntity 子类；Participation 独立建模，不继承 name 要求。接下来再看这种结构怎样承载业务事实。
+
+### 5.2 沿 Participation 阅读：把两端与附属属性一起看
+
+找到“项目参与记录”后，先沿“参与员工”走到员工，再沿“关联项目”走到项目。角色、投入比例、加入与退出日期，都描述这一次参与，而不是员工永久不变的属性。
+
+| 从哪个类读      | 属性 URI                      | 目标或数据值        | 这条关系回答什么       |
+| --------------- | ----------------------------- | ------------------- | ---------------------- |
+| `Participation` | `ex:employee`                 | `Employee`          | 谁参与                 |
+| `Participation` | `ex:project`                  | `Project`           | 参与哪个项目           |
+| `Participation` | `ex:role`                     | `ParticipationRole` | 在这次参与中是什么角色 |
+| `Participation` | `ex:allocation_pct`           | 1—100的整数范围     | 登记的投入百分比是多少 |
+| `Participation` | `ex:joined_on` / `ex:left_on` | 日期                | 这次参与的起止记录     |
+| `Project`       | `ex:owner`                    | `Employee`          | 谁对项目负责           |
+| `Task`          | `ex:assignee`                 | `Employee`          | 任务交给谁执行         |
+
+如果只保留“员工—参与—项目”一条直接关系，角色、比例和有效期就难以归属到一条可标识的记录。Participation 将这些信息放在一起，使同一员工参与不同项目、在不同时间采用不同投入比例时，仍有清楚的记录边界。
+
+图中的两个“关联项目”也值得分别回查。本例只有一个 `ex:project` 属性 URI，Task 与 Participation 都有基于它的局部限制。相同谓语可以在多个类上复用；不过，保存的生成日志有两次 `Ambiguous attribute: project` 警告，需要与实际输出一起分析。
+
+两类当前各有指向 Project 的范围与数量声明。后续是继续共享 URI，还是拆成“任务所属项目”和“参与所属项目”，要结合生成器行为、查询契约和扩展需求决定。共享是否合适，与生成警告是否已解释，是两个需要分别回答的问题。
+
+### 5.3 用林晓的两条记录对照结构与事实
+
+![Participation 结构与林晓两条参与事实分区示意](/static/images/2026-11-06-webvowl-ontology-review/03-participation.svg)
+
+_图3：Participation 的结构与样本事实。林晓通过两条参与记录连接两个项目；人物、比例和日期来自案例 SQL 与实例 TTL。_
+
+将 `02-seed.sql` 与 `instances-aligned.ttl` 对照，可以整理出：
+
+| 字段                | 记录1002                   | 记录1007                   |
+| ------------------- | -------------------------- | -------------------------- |
+| 参与记录 URI 的末段 | `participation/1002`       | `participation/1007`       |
+| 员工                | 员工2，林晓                | 员工2，林晓                |
+| 项目                | 101，设备知识平台          | 102，客户数据治理          |
+| 角色代码            | `engineer`，工程师         | `engineer`，工程师         |
+| 投入比例            | 60%                        | 40%                        |
+| 加入日期            | 2026-01-01                 | 2026-05-01                 |
+| SQL 退出日期        | `NULL`                     | `NULL`                     |
+| RDF 退出日期        | 没有显式 `ex:left_on` 事实 | 没有显式 `ex:left_on` 事实 |
+| 项目负责人          | 员工1，陈晨                | 员工4，赵敏                |
+
+先读第一条：1002的员工端是林晓，项目端是设备知识平台，60%属于这条参与记录。再读第二条：同一员工通过1007参与客户数据治理，登记40%，加入时间晚于第一条。
+
+两条参与关系都不会把林晓变成项目负责人。项目101的 `owner` 指向陈晨，项目102的 `owner` 指向赵敏。若要查林晓执行了哪些任务，还需要沿 Task 的 assignee 读取另一组事实。
+
+角色的 RDF 表示也要结合实例文件。在调整后的文件中，1002的 `ex:role` 不是字符串 `engineer`，而是一个角色值节点：
+
+```turtle
+<https://example.org/work/participation/1002>
+    ex:role <https://example.org/work/participation/1002/value/role> .
+
+<https://example.org/work/participation/1002/value/role>
+    a <https://example.org/work/ParticipationRole#engineer> .
+```
+
+它表达“这次参与的角色值属于工程师选项类”。SQL 角色代码、枚举选项类和角色值节点各有职责；这里没有将林晓本人声明为该选项类的实例。
+
+60加40等于100，但“这两条登记比例之和为100%”与“林晓当前总投入为100%”不是同一个结论。后者需要确定有效日期、退出日是否计入、是否包含已完成或暂停项目，以及登记比例是否代表实际工时，还要检查其他相关记录。
+
+例如，若以“加入日包含在有效期内”为口径，2026年4月15日就不应计入5月1日才加入的1007。时间条件会改变参与集合，参与集合又会改变汇总结果。先定义集合，再计算比例，才能让数字回答原来的业务问题。
+
+### 5.4 状态与角色：同名不合并，枚举不当事实
+
+本例生成参数将枚举选项输出为 `owl:Class`。因此，图中的“工程师”“进行中”可以是选项类，而不是某位员工或某个具体项目。
+
+以项目状态为例，TTL 同时包含下面的声明：
+
+```turtle
+<https://example.org/work/ProjectStatus#active>
+    a owl:Class ;
+    rdfs:label "进行中"@zh ;
+    rdfs:subClassOf ex:ProjectStatus .
+
+ex:ProjectStatus
+    owl:unionOf (
+        <https://example.org/work/ProjectStatus#planned>
+        <https://example.org/work/ProjectStatus#active>
+        <https://example.org/work/ProjectStatus#completed>
+    ) .
+```
+
+这段省略了其他标签和注解。TaskStatus 有自己的选项 URI 与 union 列表。两个枚举使用相同中文标签，是不同业务对象采用相近状态词汇，并不构成合并它们的理由。
+
+ParticipationRole 中的 `lead` 标签是“项目负责人角色”，Project 的 `owner` 标签是“项目负责人”。前者是参与记录上的角色取值，后者是项目指向员工的属性。二者是否必须对应同一员工、能否有多名 lead、负责人暂缺时怎样处理，还需要明确业务联动规则。
+
+读到这里，模型中的关系路径已经清楚，同时留下了两个具体问题：共享 project 属性的生成警告如何解释，lead 与 owner 是否需要一致。它们分别指向生成与查询契约、业务定义，而不再只是“图上的线有点乱”。
+
+## 6. 图上看不全时，回到 Turtle 核对限制
+
+### 6.1 从中文标签定位到属性与类限制
+
+以“参与员工”为例，先在 TTL 搜索中文标签，定位到 `ex:employee`，再找哪些类的匿名限制使用这个属性，最后对照 YAML 中的 `Participation.attributes.employee`。按这个顺序回查，可以避免只凭同名标签或相邻线条判断身份。
+
+将相关声明按阅读顺序整理、略去注解后，可得到：
+
+```turtle
+ex:employee a owl:ObjectProperty ;
+    rdfs:label "参与员工"@zh .
+
+ex:Participation rdfs:subClassOf
+    [ a owl:Restriction ;
+      owl:onProperty ex:employee ;
+      owl:allValuesFrom ex:Employee ],
+    [ a owl:Restriction ;
+      owl:onProperty ex:employee ;
+      owl:cardinality 1 ] .
+```
+
+第一段声明属性并给出标签，后两段把限制附在 Participation 上。可以将它读成：“参与记录的 employee 取值限于员工类，并声明恰好一个取值。”
+
+本例文件没有全局 `rdfs:domain` 声明，许多关系的阅读起点来自类上的局部限制。因此，只找到属性声明还不够；还要找出哪个类通过 `owl:onProperty` 使用它。前面 Task 和 Participation 共享 project 的情形，也应按这个方法分别核对。
+
+### 6.2 三种限制分别回答什么
+
+读懂本节只需先区分三个声明：`allValuesFrom`规定属性值的类型，但单独不要求属性一定有值；`cardinality 1`表示恰好一个值；`maxCardinality 1`表示最多一个值，可以没有。[3][6][7]
+
+Participation 的 employee、project 分别有范围限制与恰好一个值的声明。可选退出日期采用另一种组合：
+
+```turtle
+ex:Participation rdfs:subClassOf
+    [ a owl:Restriction ;
+      owl:onProperty ex:left_on ;
+      owl:allValuesFrom xsd:date ],
+    [ a owl:Restriction ;
+      owl:onProperty ex:left_on ;
+      owl:maxCardinality 1 ] .
+```
+
+它可以读作：“退出日期若存在，应属于日期范围，且至多一个。”这不要求每条记录填写退出日。林晓的两条记录在 SQL 中是 `NULL`，RDF 中没有该谓语，表示样本尚未记录退出日期；是否据此判定“当前有效参与”，需要业务规则决定。
+
+OWL 采用开放世界语义。文件未写某项事实，通常不等于已经证明它不存在。即使类上声明恰好一个员工，实例缺少显式 employee 三元组，也不能直接类比为数据库 `NOT NULL` 插入失败。[3][7]
+
+同样，对象属性出现两个 URI，也不必然表示有两个逻辑上不同的对象：OWL 不默认采用“不同名字一定指向不同对象”的假设。读取显式值、判断对象身份和执行业务完整性校验，需要采用各自明确的规则。
+
+本例基数数字使用裸整数 `1`，解析为 `xsd:integer`。虽然规范正向映射使用 `xsd:nonNegativeInteger`，反向映射接受值为非负整数的字面量，因此裸 `1` 本身不是基数映射错误的证据。日期类型及整个生成图能否被目标 OWL 工具接受，仍需分别检查。[3][6][7]
+
+### 6.3 投入比例：单条范围和人员总量不是一回事
+
+模型规定每条参与记录的 allocation_pct 是必填整数，范围1到100。TTL 用数据范围交集表达类型和上下界，另用一项限制表示恰好一个值：
+
+```turtle
+ex:Participation rdfs:subClassOf
+    [ a owl:Restriction ;
+      owl:onProperty ex:allocation_pct ;
+      owl:allValuesFrom [
+        a rdfs:Datatype ;
+        owl:intersectionOf (
+          xsd:integer
+          [ a rdfs:Datatype ;
+            owl:onDatatype xsd:integer ;
+            owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ]
+          [ a rdfs:Datatype ;
+            owl:onDatatype xsd:integer ;
+            owl:withRestrictions ( [ xsd:maxInclusive 100 ] ) ]
+        )
+      ] ],
+    [ a owl:Restriction ;
+      owl:onProperty ex:allocation_pct ;
+      owl:cardinality 1 ] .
+```
+
+逐层读时，先看 `onProperty` 确认属性，再看 `allValuesFrom` 后的范围，最后展开 `intersectionOf` 列表。交集要求同时满足各个组成范围：这里既要是整数，也要满足下界1和上界100。[6][7]
+
+这条限制作用于每个 Participation 的投入比例。它不表达“同一员工所有参与记录的比例之和不得超过100”。后一个问题涉及记录集合、有效期和聚合规则，仍需按业务口径单独校验。
+
+例如，一名员工的两条记录各登记80%，每条都在1—100范围内，但同一有效期内合计160%。发现这类问题需要按员工和时间筛选并汇总记录，不能只检查单个字段的最大值。
+
+### 6.4 预算与工时：decimal 与非负 integer 交集的影响
+
+预算和工时暴露了另一个差异。YAML 分别要求 decimal 且最小0；DDL 中对应 `numeric(12,2)` 和 `numeric(6,2)`，均有非负检查。输入目标允许小数金额和小数工时。
+
+但 OWL 的预算范围是：
+
+```turtle
+ex:Project rdfs:subClassOf
+    [ a owl:Restriction ;
+      owl:onProperty ex:budget_cny ;
+      owl:allValuesFrom [
+        a rdfs:Datatype ;
+        owl:intersectionOf (
+          xsd:decimal
+          [ a rdfs:Datatype ;
+            owl:onDatatype xsd:integer ;
+            owl:withRestrictions ( [ xsd:minInclusive 0 ] ) ]
+        )
+      ] ] .
+```
+
+Task.estimated_hours 采用同样的形状：`xsd:decimal` 与“基于 `xsd:integer`、下界0的范围”相交。按值空间解释，交集只留下同时满足非负整数范围的值，而不是所有非负 decimal。[6][7]
+
+这会影响半小时、五角钱等边界：`0.50` 表示的半单位值不属于整数值空间。相反，`32.00` 虽然有小数点，表示的仍是整数值32，不能仅凭写法判断它被排除。只检查恰好为整值的预算和工时样本，可能发现不了这个偏差。
+
+因此，这项应记录为“需修改”：生成范围与源模型的非负 decimal 目标不一致。具体修复应回到生成器与类型约束，并补充小数边界测试；现有分析定位了表达差异，尚不能据此认定所有预算实例无效。
+
+图中预算、工时或比例可能处于连接 Thing、Literal 的数据属性区域。判断它们属于哪个类、有哪些范围，仍应看类上的局部限制。布局没有展开复杂范围，不表示文件没有限制，也不表示限制符合原来的业务目标。
+
+### 6.5 外部映射：exactMatch 不是 equivalentClass
+
+YAML 对 Employee 写了 `class_uri: schema:Person`，对 Customer 写了 `class_uri: schema:Organization`。生成后的实际映射是：
+
+```turtle
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+ex:Employee skos:exactMatch <http://schema.org/Person> .
+ex:Customer skos:exactMatch <http://schema.org/Organization> .
+```
+
+本例文件没有 `owl:equivalentClass` 声明。`skos:exactMatch` 是 SKOS 的映射关系，与 OWL 类等价不是同一种公理；不能据此推导本地 Employee 与外部 Person 的双向类等价。[8]
+
+这也意味着，原实例文件中的 `https://schema.org/Person` 类型，不会仅凭这条映射就自动成为本地 Employee 类型。还要留意 HTTP 与 HTTPS：它们是不同的标识，审查时应逐字核对。生成日志也保存了 schema 命名空间由 HTTPS 改写为 HTTP 的警告。
+
+外部词汇复用最终要落实到实际输出和读取契约。源配置写了哪个词汇、生成结果采用什么谓语、实例使用什么 URI，三者需要连起来看。
+
+### 6.6 名称谓词：aligned 不表示所有映射已对齐
+
+YAML 的公共 name slot 指定 `slot_uri: schema:name`，OWL 却声明 `ex:name`，NamedEntity 的恰好一个 name 限制也指向 `ex:name`。两份实例文件的名称则使用 `https://schema.org/name`：
+
+```turtle
+@prefix schema: <https://schema.org/> .
+
+<https://example.org/work/employee/2>
+    a ex:Employee ;
+    schema:name "林晓" .
+```
+
+这段来自 `instances-aligned.ttl`。对两份实例文件统计，可得到：
+
+| 文件                    | 三元组数 | `schema:name` 事实数 | `ex:name` 事实数 | 员工2显式类型               |
+| ----------------------- | -------: | -------------------: | ---------------: | --------------------------- |
+| `instances.ttl`         |      192 |                   24 |                0 | `https://schema.org/Person` |
+| `instances-aligned.ttl` |      246 |                   24 |                0 | `ex:Employee`               |
+
+调整后的文件改变了类和枚举表示，但名称谓词仍未统一。模型也没有声明支持将两种名称谓语互换的属性等价关系。
+
+这个差异会直接影响读取：按 `ex:name` 查找显式三元组，取不到保存在 `schema:name` 下的名称。另一方面，开放世界下缺少显式 `ex:name`，并不自动证明整个本体逻辑不一致。问题应定位为生成、实例写入与查询契约之间的偏差。
+
+修复时，可以统一生成配置与实例映射，或明确两种属性之间的契约。只修改图中“名称”的中文标签，无法改变实例实际使用的谓语。
+
+### 6.7 对图没有覆盖的业务规则另立条目
+
+日期先后、参与区间重叠、业务唯一性、负责人角色联动、权限和当前有效性，都需要分别找依据。DDL 有 `left_on >= joined_on` 和参与记录组合唯一约束；OWL 中的日期范围与基数，并不等于已经完整表达这些规则。
+
+例如，两个日期都属于 `xsd:date`，并不能保证退出日晚于加入日。类似地，单条记录的员工与项目各有一个值，也不能独自表达数据库的组合唯一性。
+
+审查时可将结论分成三种表述：
+
+- **图上没有显示。** 描述当前视图，可能与转换和过滤有关。
+- **文件中没有声明。** 回查相关谓语或公理后的文件结论。
+- **尚未验证。** 对规则已有目标，但还缺工具运行、样本覆盖或业务确认。
+
+区分这三种情况，能帮助后续处理者判断：应该调整视图、补模型规则，还是补验证。它们对应的工作不同。
+
+## 7. 把发现写成可分工的审查记录
+
+### 7.1 把图上的疑问写成可复核条目
+
+“参与关系看起来有点乱”不容易分工。改成“Participation 是否应继承 NamedEntity，从而获得 name 限制”，就有了对象、预期和核查路径。
+
+每条记录可以包含：编号、模型版本、对象 URI、业务问题、规则来源、预期、图中观察、TTL 实际表达、状态、责任角色、下一步和复核依据。较宽的表格只保留索引，细节在条目中展开，尤其要保留“预期”与“实际”的区别。
+
+角色也应分开：技术审查者核对文件与实验，建模维护者处理生成和映射，业务负责人确认业务定义。正式确认时，再记录姓名、日期、意见与适用范围，便于区分技术结构结论和业务决策。
+
+### 7.2 用四类状态整理本例问题
+
+| 编号 | 对象与问题                           | 文件依据与结论                                                              | 分类与下一步                                   |
+| ---- | ------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------- |
+| R01  | Participation 是否继承 name          | YAML 公共 slot 为 id；TTL 无 NamedEntity 具名父类                           | 已确认结构；如需调整，先确认参与记录的名称需求 |
+| R02  | 三类员工关系是否可区分               | owner、employee、assignee 为不同 URI，分别用于 Project、Participation、Task | 已确认结构；查询时按问题选择路径               |
+| R03  | 林晓的参与是否等于负责项目           | 1002为101/60%，1007为102/40%；负责人分别为陈晨、赵敏                        | 已确认样本事实；参与者与负责人分开读取         |
+| R04  | 预算与工时是否保留非负 decimal       | 实际范围为 decimal 与非负 integer 交集                                      | 需修改；修复后测小数边界并回归                 |
+| R05  | 名称谓词是否统一                     | 模型为 ex:name；两份实例各有24条 schema:name、0条 ex:name                   | 需修改；统一生成、写入与读取契约               |
+| R06  | lead 是否必须等于 owner              | 两种结构独立存在，联动规则未定                                              | 需业务澄清；明确一致性要求及有效时间           |
+| R07  | 当前参与和跨项目比例怎样计算         | 有起止日和比例，汇总口径未定                                                | 需业务澄清；确定日期边界、项目状态和记录范围   |
+| R08  | 模型变更后怎样确认图已更新           | 应将新输入、转换 JSON 与导出视图关联                                        | 尚未验证；变更后重新转换、加载并核对锚点       |
+| R09  | 逻辑与实例是否满足验收目标           | 文件解析和局部对照不能覆盖完整验收                                          | 尚未验证；分别安排 DL 检查、推理与实例校验     |
+| R10  | project 警告与 external 提示如何解释 | 生成日志与可视化材料提供不同线索                                            | 尚未验证；分别核查生成器输出和转换数据         |
+
+“已确认”条目对应的是具体结构或样本，不会自动关闭业务问题。例如，确认 Participation 不继承 name，并不意味着任何业务都应采用同样设计；它只是为讨论是否需要名称提供了准确起点。
+
+### 7.3 展开一条“需修改”记录
+
+以 R05 为例，可以写成：
+
+```text
+问题：按模型名称属性读取员工名称，是否能取得林晓？
+对象：ex:name；https://schema.org/name；员工实例 employee/2。
+预期：模型约束、实例写入和读取采用一致或明确可转换的谓语。
+图中观察：名称属性可见，需继续核对实例使用的谓语。
+TTL 实际：NamedEntity 限制使用 ex:name；实例名称使用 schema:name。
+结论：需修改，当前名称映射未完全对齐。
+责任角色：建模与实例映射维护者。
+复核：统计两种谓语，读取代表性对象名称，再回归相关查询。
+```
+
+这条记录将目标限定为“名称契约对齐”，没有预先指定必须全部改成 ex:name。最终采用哪个 URI，应与外部词汇复用方式和系统读取契约一致。
+
+R04 则应并列保存源模型的非负 decimal 目标、当前交集范围和边界测试计划。值空间分析用于解释为什么选0.50等样本；只有执行测试后，才填写验证器是否接受以及具体报错。
+
+### 7.4 保存一个足够复核的审查包
+
+输入版本、导出视图、相关 TTL 片段、样本事实、实验命令与输出，加上四类审查记录，就能组成一个最小审查包。业务口径决策和后续复核结果继续追加，保留它们对应的模型版本。
+
+审查的有效产物未必是“全部通过”。确认 Participation 保留了角色、比例与日期，发现名称和数值范围偏差，再将业务口径列为明确的待决事项，已经为下一步修改和查询提供了可执行的依据。
+
+## 8. 先用副本验证一次小改动，再进入正式变更
+
+### 8.1 选择一个只涉及显示名称的改动
+
+将“项目参与记录”改成“员工项目参与记录”，可以作为候选术语实验。它更直接地指出参与双方，适合检查一个有限目标：只改显示标签，不改类 URI、继承、属性和限制。是否采用该术语，再交由业务讨论决定。
+
+预算范围则涉及生成器和数据契约，修复后还要做数值测试与实例回归。将标签实验与数值修复分开，更容易判断每项改动影响了什么。
+
+本例中文标签来自 `generate-ontology.py` 的 `add_chinese_labels()` 字典后处理，而不是仅由 YAML 名称自动生成。因此，实验要修改标签来源，再写回 OWL；直接编辑 SVG 文字，只会改变一张图片。
+
+### 8.2 在独立目录复现标签后处理
+
+准备一个实验目录，按下面的步骤操作：
+
+1. 复制现有 OWL，分别保存为 `baseline.owl.ttl` 和 `domain.owl.ttl`；前者作为比较基线，后者作为处理目标。
+2. 将生成脚本复制为 `generate-ontology-label-copy.py`，与两份 OWL 放在同一目录。
+3. 在脚本副本的标签字典中，将 Participation 对应值由“项目参与记录”改成“员工项目参与记录”，保留英文标签和 URI。
+4. 在该目录使用已安装依赖的 Python 环境执行：
+
+```bash
+python generate-ontology-label-copy.py --labels-only
+```
+
+脚本按自身所在目录寻找 `domain.owl.ttl`，所以副本与目标文件的位置很重要。`--labels-only` 分支完成标签处理后退出，不进入数据库导入和 `gen-owl` 部分；不要直接调用正式脚本路径，以免写回正式 OWL。
+
+该分支会重设51组中英文标签并序列化为 Turtle。要检查修改是否符合目标，应重新解析前后文件，比较完整图差异，再去掉标签比较其他三元组。RDFLib 的同构比较能够处理匿名节点标识变化。[9]
+
+下面的代码同时覆盖这两项检查：
+
+```python
+from rdflib import Graph, Literal, URIRef
+from rdflib.namespace import RDFS
+from rdflib.compare import graph_diff, isomorphic, to_isomorphic
+
+before = Graph().parse('baseline.owl.ttl', format='turtle')
+after = Graph().parse('domain.owl.ttl', format='turtle')
+
+subject = URIRef('https://example.org/work/Participation')
+_, removed, added = graph_diff(to_isomorphic(before), to_isomorphic(after))
+assert set(removed) == {
+    (subject, RDFS.label, Literal('项目参与记录', lang='zh'))
+}
+assert set(added) == {
+    (subject, RDFS.label, Literal('员工项目参与记录', lang='zh'))
+}
+
+def without_labels(graph):
+    result = Graph()
+    for triple in graph:
+        if triple[1] != RDFS.label:
+            result.add(triple)
+    return result
+
+assert isomorphic(without_labels(before), without_labels(after))
+```
+
+只比较去标签后的图，会忽略所有标签变化，无法发现其他类被误改名。完整图差异确认改动只有目标中文标签；非标签图同构确认其余 RDF 结构保持一致，两项结合才能覆盖实验目标。
+
+### 8.3 标签副本的比较结果
+
+在 RDFLib 7.6.0 环境中，该实验得到：
+
+| 检查项                  | 结果                                          |
+| ----------------------- | --------------------------------------------- |
+| 标签命令退出码          | 0                                             |
+| 修改前后图大小          | 均521条三元组                                 |
+| 完整图差异              | 删除旧中文 label 一条，增加新中文 label 一条  |
+| 修改前后非 label 图大小 | 均419条三元组                                 |
+| 非 label 图同构         | `True`                                        |
+| Participation URI       | 保持 `https://example.org/work/Participation` |
+| 英文标签                | 保持 `Participation`                          |
+
+结果表明，这次副本后处理只改变了一项中文显示名称，其他 RDF 结构不变。比较结构时应看图差异，而不是文本行差异，因为序列化可能重新排列三元组或改变匿名节点的书写方式。
+
+实验止于 OWL 标签后处理和图比较。图1仍展示“项目参与记录”；要在 WebVOWL 中看到候选新标签，下一步需要转换并加载修改后的文件。
+
+### 8.4 从副本实验走向正式变更
+
+若决定采用新术语，应先修改正式标签来源，使用固定版本与参数重新生成或执行约定后处理，保存新文件与日志，再转换为 JSON、加载到 WebVOWL 并导出视图。
+
+复核至少回答三个问题：加载的是不是新文件；Participation 的新标签是否出现且 URI 未变；除预期标签外是否存在其他公理差异。对应检查完成后，再关闭显示修改条目。
+
+范围、基数和谓语 URI 的改动，还需要增加实例影响与查询回归。例如，名称统一后，应按最终谓语读出员工、项目和任务名称；金额与工时范围修复后，应测试0、半单位、普通正小数、负值以及上游精度边界，并记录工具版本和实际结果。
+
+这些变更可以分阶段管理：术语确认、OWL 处理、转换加载、实例回归各自有关闭条件。这样既能保留已完成的工作，也能看清仍缺哪一步。
+
+## 9. 阅读图、核对事实、记录结论
+
+开篇的几个疑问，现在有了各自的落点。NamedEntity 是复用 id 和 name 的模型父类，不是新增业务表；Participation 不继承它，而是独立保存一次员工参与中的角色、比例和日期；Dataset 则负责组织实例列表。
+
+负责人、参与员工和任务执行人，分别沿 owner、employee、assignee 阅读。林晓通过1002以工程师角色参与项目101，登记60%；通过1007参与项目102，登记40%。项目负责人另有其人，当前总投入也还取决于时间口径与记录范围。
+
+同名状态靠 URI 和枚举来源区分。Thing、Literal、external 则先按语义概念与工具提示理解，再回查公理和转换数据。图帮助定位问题，文件与实例帮助解释问题。
+
+这次阅读还找到了两个具体偏差：预算和工时的范围交集没有保留源模型的非负 decimal 目标，名称谓词在模型与实例之间尚未统一。它们会影响小数值的允许范围和名称读取，应进入修改与回归清单。lead 与 owner 的联动、有效日期和跨项目投入口径，则需要业务定义补齐。
+
+从确定输入、阅读结构，到对照事实、回查公理、记录问题，再做受控修改，这套顺序把“模型看起来差不多”拆成了可复核的具体事项。标签副本实验也提供了一个起点：明确改动目标，用图比较检查影响，再进入正式生成和加载流程。
+
+下一篇讨论如何让经审查的语义定义帮助查询。进入查询之前，先确定名称谓语、员工关系路径和有效时间口径。查询可以语法正确、运行成功，但混用负责人和参与者，或把未来加入的记录计入当前参与，回答的仍会是另一个问题。
+
+## 参考来源与案例说明
+
+工具入口和部署方式参照 WebVOWL、OWL2VOWL 官方仓库；OWL 与 Turtle 的解释依据下列规范。动态仓库内容以2026年11月的来源记录为准，使用其他版本时应核对相应文档。
+
+1. VisualDataWeb，WebVOWL 官方 README：`https://raw.githubusercontent.com/VisualDataWeb/WebVOWL/master/README.md`。服务入口、纯前端与转换服务的分工。
+2. VisualDataWeb，OWL2VOWL 官方 README：`https://raw.githubusercontent.com/VisualDataWeb/OWL2VOWL/master/README.md`。本地文件输入与 JSON 输出。
+3. W3C，OWL 2 Web Ontology Language Primer，Second Edition，2012-12-11：`https://www.w3.org/TR/owl2-primer/`。类、属性、个体、开放世界与基数。
+4. W3C，RDF 1.1 Turtle，2014-02-25：`https://www.w3.org/TR/turtle/`，第2节。三元组、分号、逗号、字面量、匿名节点与集合语法。
+5. VisualDataWeb，WebVOWL `attributeParser.js`：`https://raw.githubusercontent.com/VisualDataWeb/WebVOWL/master/src/webvowl/js/parsing/attributeParser.js`，`parseClassAttributes` 与 `parseClassIndications`。external 等显示提示的处理。
+6. W3C，OWL 2 Structural Specification and Functional-Style Syntax，Second Edition，2012-12-11：`https://www.w3.org/TR/owl2-syntax/`。数据范围、限制、基数与类公理。
+7. W3C，OWL 2 Direct Semantics，Second Edition，2012-12-11：`https://www.w3.org/TR/owl2-direct-semantics/`，第2节。范围交集、全称限制与基数的语义。
+8. W3C，SKOS Reference，2009-08-18：`https://www.w3.org/TR/skos-reference/`，第10节。映射属性及 exactMatch。
+9. RDFLib，`rdflib.compare` 官方 API 文档：`https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.compare/`。RDF 图同构与差异比较；案例实验使用 RDFLib 7.6.0。
+
+案例材料包括 LinkML 模型、OWL、DDL、种子 SQL、两份实例 TTL 和标签处理脚本。图1为 WebVOWL SVG 导出；图2、图3为基于案例材料整理的教学示意。人物与业务记录均为合成样本。
