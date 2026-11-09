@@ -1,0 +1,152 @@
+---
+title: 'WebVOWL 技术拆解：从 VOWL JSON 到交互式本体图'
+date: '2026-11-09'
+tags: ['WebVOWL', 'OWL', 'Ontology', '知识图谱', '软件架构', '开源项目']
+draft: false
+summary: '本文从 OWL、VOWL 与 OWL2VOWL 的职责边界出发，结合 WebVOWL 1.1.7 源码、Docker 搭建和真实浏览器实践，拆解 VOWL JSON 如何变成可交互的本体图，并说明过滤、导出、部署和语义验证之间的边界。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/webvowl-ontology-visualization-cover.png"
+    alt="WebVOWL 本体可视化与源码结构主题图"
+  />
+  <figcaption>WebVOWL 本体可视化与源码结构主题图。</figcaption>
+</figure>
+
+打开一个 OWL 本体，WebVOWL 会把类和属性组织成一张可以搜索、筛选和拖动的关系图。图让结构更容易被人看懂，但它并不呈现本体的全部语义，也不会替你判断本体是否正确。要弄清它能做什么，先要分清 OWL、VOWL、转换器和 WebVOWL 各自负责哪一段。
+
+下面从一份本体如何变成屏幕上的图说起，再看过滤、搜索和导出分别改变了什么。文中代码以 WebVOWL 1.1.7 为例，运行数据来自一次本地 Docker 和浏览器实践。
+
+## 1. WebVOWL 位于本体工具链的哪一层
+
+OWL 2 用来描述领域里的概念、关系和规则。比如，一个本体可以定义“人”和“文档”两个类，再定义“撰写”关系。OWL 不只是数据格式：它还规定这些定义意味着什么，因此推理工具可以据此判断类之间的关系、检查一致性或查询实例。W3C 规范也区分了 OWL 的不同交换语法与语义解释。
+
+VOWL 解决的是“怎样把本体结构画出来”。WebVOWL 则是浏览器里的可视化应用，读取 VOWL JSON 并把它变成交互式图。通常，OWL/RDF 文件先由 OWL2VOWL 之类的转换器处理，再交给 WebVOWL 展示。换句话说，转换器负责把输入整理成可视化应用能读的数据，WebVOWL 负责呈现和交互；两者不是同一个功能。
+
+因此，几个经常同时出现的名词并不处在同一层：
+
+| 层次 | 代表对象 | 主要职责 | 不能据此推断 |
+| --- | --- | --- | --- |
+| 本体语言与语义 | OWL 2 | 表达类、属性、公理及形式含义 | 图形是否易读、业务定义是否正确 |
+| 输入转换 | OWL2VOWL 等 | 将 OWL/RDF 输入转换成 VOWL JSON | 转换结果已完成推理或业务校验 |
+| 可视化表示 | VOWL | 规定 OWL 构件的图形表达方式 | 任意 OWL 构造都能完整、无歧义地画出 |
+| 浏览器应用 | WebVOWL | 解析 VOWL JSON、布局、交互与导出 | 图上可见关系就是全部语义后果 |
+
+VOWL 论文把它定义为 OWL 本体的视觉语言，同时也讨论了表达范围和大图可读性限制。因此，图上没有画出的内容不一定不存在；某些 OWL 构造也未必能在图中完整表达。WebVOWL 更适合用来探索结构，而不是证明本体的全部语义。
+
+## 2. 从用户工作流观察能力边界
+
+用户通常从载入开始。应用支持预置数据、JSON 地址、IRI 和文件等入口。JSON 输入可直接交给前端解析；OWL/RDF 输入则需要转换服务。当前仓库的 Docker 全栈配置把前端静态资源和转换服务放在同一个 Tomcat ROOT 下；也提供不包含转换接口的前端部署路径。因而“WebVOWL 能打开本体”并不等于每种部署都内置 OWL 转换器。
+
+载入之后，可以搜索标签、定位类或属性、缩放图形，并用过滤器减少画面中的关系。详情面板和编辑模式用于查看或修改图模型，导出功能则可以保存图形或模型数据。一次实际浏览器操作中，FOAF 本体加载后显示为包含 54 个节点和 66 条边的图；打开对象属性过滤器后，画面变为 49 个节点和 36 条边。这个变化说明过滤器调整的是当前展示内容。
+
+导出时也要留意格式的用途。JSON 导出会根据 WebVOWL 当前保存的模型重新组织类、属性和附加信息，并包含图上的位置等界面状态；它不是把最初上传的 OWL 文件原样下载回来。SVG 导出则保存图形本身，适合插入文档或分享。源码把 Turtle 导出标为 `experimental alpha`，不宜把它当作完整、无损的本体转换工具。
+
+## 3. VOWL JSON 如何成为语义对象
+
+WebVOWL 的 parser 不只是把 JSON 字符串解析成普通对象。`parser.parse` 会把 JSON 中的类、数据类型、属性记录与相应 attributes 组合起来，再依照类型映射创建内部实例。`nodeMap` 和 `propertyMap` 负责把输入类型映射到不同原型；基础节点、基础属性提供公共数据和行为，具体类型则承载不同的表示或交互细节。
+
+解析器还要把 JSON 中以 ID 表示的关系恢复成对象引用。例如，类的等价关系、属性的 inverse、domain/range，以及 subproperty/superproperty 结构，需要从标识符重新连到对应实例。这样后续图构建阶段处理的不是孤立的字符串 ID，而是可以遍历的对象关系。union、intersection 等构造也会被整理为内部可供展示使用的表达。
+
+这条路径可以概括为：
+
+```text
+VOWL JSON records
+    -> combine classes / datatypes / properties with attributes
+    -> select typed prototypes through nodeMap / propertyMap
+    -> resolve IDs into object references
+    -> pass the object model to graph construction
+```
+
+这一步的重点，是把分散的 JSON 记录变成后续模块能直接处理的对象关系。之后的图构造和交互都建立在这个对象模型之上。
+
+## 4. 图构造、过滤、力布局与 SVG
+
+应用装配层把 graph 与加载、筛选、搜索、选择详情、缩放、编辑和导出等模块连接起来。graph 保存未过滤的输入数据；更新时，filter modules 依序改变当前用于展示的节点和属性集合。之后 `linkCreator` 根据属性对象建立图上的 links，处理 inverse、不同关系类型、自环及多重关系，再把节点和 links 交给布局与绘制流程。
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/webvowl-architecture.svg"
+    alt="WebVOWL 从输入到交互图的实现结构示意"
+  />
+  <figcaption>图 1：从 OWL/RDF 输入、VOWL JSON 到浏览器交互图的完整处理链路。虚线部分表示可选的转换服务。</figcaption>
+</figure>
+
+布局使用 D3 v3 的 force layout。节点和关系被绘制为 SVG 元素，布局 tick 会持续更新图元的位置；交互模块则根据用户输入触发选择、缩放、过滤、搜索定位或重绘。于是“语义对象模型”和“屏幕上正在显示的图”并不完全相同：前者描述解析后的数据结构，后者还受到过滤状态、布局位置和界面设置影响。
+
+这一点也解释了过滤器的边界。过滤器改变可见集合，可能让节点和边从当前画面中消失，但它不修改 OWL 公理的形式语义，也不判断被隐藏的关系是否错误。OWL 推理需要基于形式语义的推理工具；约束验证需要相应的约束语言或验证器；图形过滤只是浏览决策。
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/04-foaf-browser-render.png"
+    alt="FOAF 本体在 WebVOWL 中完成加载后的页面"
+  />
+  <figcaption>图 2：FOAF 本体加载完成后的页面，右侧为 Friend of a Friend 词汇说明面板。</figcaption>
+</figure>
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/05-filter-menu.png"
+    alt="WebVOWL Filter 菜单"
+  />
+  <figcaption>图 3：Filter 菜单提供对象属性、数据类型属性、孤立子类等筛选选项。</figcaption>
+</figure>
+
+在 FOAF 示例中，关闭对象属性过滤时，图上有 54 个节点和 66 条边；打开后，节点变为 49 个、边变为 36 条。画面确实更简洁了，但本体里的公理没有因此改变，WebVOWL 也没有重新推理。过滤就像在地图上暂时隐藏某类标记，不是删除数据，更不是判断关系对错。
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/06-object-property-filtered.png"
+    alt="启用 Object properties 过滤后的 WebVOWL 页面"
+  />
+  <figcaption>图 4：Object properties 选项已开启，图中只保留筛选后的对象属性关系。</figcaption>
+</figure>
+
+## 5. 从 OWL 文件到浏览器里的图
+
+当前仓库的全栈 Docker 构建分阶段组合 OWL2VOWL WAR、Node 前端构建产物和 Tomcat 运行环境。前端资源与转换端点同源，浏览器可访问页面，应用也可向转换端点提交本体。仓库还保留 frontend-only compose 配置，适合只测试已有 VOWL JSON 的界面，不提供转换端点。
+
+全栈 Docker 配置把前端和 OWL2VOWL 转换服务放进同一套部署中。容器启动后，首页可访问，健康检查通过。用一个很小的 RDF/XML 示例试了一遍：其中定义了 `Person`、`Document` 两个类和 `writes` 关系，转换服务返回的 VOWL JSON 中包含这两个类和一个属性。这样一来，浏览器便能接着把转换结果画成图。
+
+这只是一个最小示例，说明转换服务能够处理这种输入；复杂限制、外部 imports 或其他 OWL profile 仍需按实际数据验证。转换本身也不等于推理：它把模型整理成可视化数据，并不判断模型是否符合业务规则。
+
+浏览器打开预置的 FOAF 数据后，图形完整显示，侧栏也出现 Friend of a Friend 词汇说明。切换对象属性过滤后，图随之更新；触发 SVG 导出，页面仍保持可用，过滤状态也没有丢失。生成的导出内容以 SVG 根元素开始并正常闭合，可以作为图形文件处理。
+
+<figure className="flex flex-col items-center text-center">
+  <img
+    src="/static/images/2026-11-09-webvowl-source-architecture/07-post-export-state.png"
+    alt="SVG 导出后的 WebVOWL 页面"
+  />
+  <figcaption>图 5：完成 SVG 导出后，页面仍保留当前图形和筛选状态。</figcaption>
+</figure>
+
+## 6. 架构取舍、适用场景与限制
+
+从代码结构看，按语义类型分配原型、把数据解析与图构建分开、将菜单行为拆成模块，有利于表达不同节点和属性的显示行为，也让同一图模型承接筛选、搜索、编辑和导出等交互。转换器与可视化前端分离，也允许只提供 VOWL JSON 的部署方式。
+
+代价是，图、选项和菜单之间需要共享状态并协调更新时机；拆成多个模块并不会自动消除模块间的联系。项目仍使用 D3 v3、Grunt 等较早期工具，维护或重建开发环境时，需要留意旧依赖与当前运行环境的兼容性。
+
+VOWL 论文指出，图可视化在规模增加时会逐渐失去概览能力；VOWL 的过滤交互可以减少画面元素，但不能消除所有大图布局问题。表达能力也有边界：VOWL 关注 OWL 的大量构造，但论文记录过未覆盖或难以区分的表达形式。实际使用时，读者应检查转换器对目标构造的处理方式，并把图作为探索入口，而不是完整语义检查报告。
+
+因此，WebVOWL 更适合本体结构浏览、关系探索、教学演示和轻量编辑。若任务要求判断一致性、分类蕴涵、实例检索或业务约束，应另行接入推理与验证工具；若需要把 OWL 转成前端格式，则还需要明确的转换器。工具组合由问题决定，不能由一张可视化图替代整个本体工程链路。
+
+## 7. GitHub 维护状态：带日期的快照
+
+截至 2026 年 11 月 6 日，WebVOWL 仓库仍未归档，约有 1,025 stars、281 forks、60 个未关闭 issues 和 6 个未关闭 PRs。v1.1.7 于 2026 年 6 月发布，而前一版 v1.1.6 发布于 2019 年 10 月。近期仍能看到提交和 PR 合并，但版本发布间隔较长。
+
+这些数字只能作为某一时点的仓库快照。开放事项不等于严重缺陷，stars 和 forks 也不代表维护承诺。若要在生产环境采用，最好再查看最新发布记录，并确认转换服务、依赖版本和安全更新是否符合自己的要求。
+
+## 结语：图形表达不是语义责任的替代品
+
+WebVOWL 的实现主线可以概括为：转换器准备 VOWL JSON，parser 构造带类型和引用关系的对象模型，graph 与 linkCreator 生成可视关系，filters 决定当前展示集合，D3 force layout 和 SVG 将其呈现为可交互界面。这个解释同时说明了工具擅长的部分与它没有承担的部分。
+
+把本体画出来，能让结构和关系更容易被人浏览；但图形展示不等于 OWL 推理，过滤不等于约束验证，格式转换也不等于模型正确。把 WebVOWL 放在可视化这一层，再根据任务补上转换、推理或验证机制，才能准确理解它在本体工具链中的位置。
+
+## 参考资料
+
+1. Lohmann, S., Link, V., Marbach, E., & Negru, S. (2014). “WebVOWL: Web-based Visualization of Ontologies.” *Knowledge Engineering and Knowledge Management: EKAW 2014 Satellite Events*, pp. 154–158. [https://doi.org/10.1007/978-3-319-17966-7_21](https://doi.org/10.1007/978-3-319-17966-7_21)。[ACM 页面](https://dl.acm.org/doi/10.1007/978-3-319-17966-7_21)列出论文作者、会议和摘要。
+2. Lohmann, S., Negru, S., Haag, F., & Ertl, T. (2016). “Visualizing Ontologies with VOWL.” *Semantic Web*, 7(4), 399–419. [https://www.semantic-web-journal.net/content/visualizing-ontologies-vowl-0](https://www.semantic-web-journal.net/content/visualizing-ontologies-vowl-0)。页面提供摘要、评审状态和 PDF 入口。
+3. W3C OWL Working Group. “OWL 2 Web Ontology Language Document Overview (Second Edition).” [https://www.w3.org/TR/owl2-overview/](https://www.w3.org/TR/owl2-overview/)
+4. [VisualDataWeb/WebVOWL 仓库](https://github.com/VisualDataWeb/WebVOWL)，源码定位固定至提交 [`28e7dd9`](https://github.com/VisualDataWeb/WebVOWL/tree/28e7dd9540622e8cb723dc000824b5eef5ae775f)。例如：[parser.js](https://github.com/VisualDataWeb/WebVOWL/blob/28e7dd9540622e8cb723dc000824b5eef5ae775f/src/webvowl/js/parser.js)、[graph.js](https://github.com/VisualDataWeb/WebVOWL/blob/28e7dd9540622e8cb723dc000824b5eef5ae775f/src/webvowl/js/graph.js)、[linkCreator.js](https://github.com/VisualDataWeb/WebVOWL/blob/28e7dd9540622e8cb723dc000824b5eef5ae775f/src/webvowl/js/parsing/linkCreator.js)、[exportTTLModule.js](https://github.com/VisualDataWeb/WebVOWL/blob/28e7dd9540622e8cb723dc000824b5eef5ae775f/src/app/js/menu/exportTTLModule.js)。
+5. 首手运行示例：2026-11-06，在本地 Docker Compose 环境中将最小 RDF/XML 样例转换为 VOWL JSON，并在 Chrome 中打开 FOAF 示例，观察图形加载、对象属性过滤和 SVG 导出。

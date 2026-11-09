@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 690" role="img" aria-labelledby="title desc">
+  <title id="title">WebVOWL 从输入到交互图的实现结构示意</title>
+  <desc id="desc">OWL/RDF 可选经 OWL2VOWL 转为 VOWL JSON，再由 WebVOWL parser、类型原型、图构造过滤、D3 布局和 SVG 渲染形成交互图，交互模块支持搜索、筛选、选择、编辑和导出。过滤不是推理或验证。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10 6 L1 11 Z" fill="#40545c" />
+    </marker>
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#20343b}
+      .title{font-size:23px;font-weight:700}.subtitle{font-size:13px;fill:#52666d}
+      .layer{fill:#f4f7f6;stroke:#8da3a5;stroke-width:1.5;stroke-dasharray:6 4}
+      .layer-label{font-size:13px;font-weight:700;fill:#52666d}
+      .node{fill:#fff;stroke:#4f7880;stroke-width:1.5}
+      .input{fill:#f4fbfc;stroke:#3b8290;stroke-width:1.5}
+      .convert{fill:#fff9e9;stroke:#a87923;stroke-width:1.5}
+      .runtime{fill:#f5f8ff;stroke:#596f9a;stroke-width:1.5}
+      .view{fill:#f3faf4;stroke:#5b8767;stroke-width:1.5}
+      .warn{fill:#fff5f0;stroke:#ad6750;stroke-width:1.3}
+      .label{font-size:15px;font-weight:650;text-anchor:middle}
+      .small{font-size:12px;text-anchor:middle;fill:#42585f}
+      .tiny{font-size:11px;text-anchor:middle;fill:#52666d}
+      .arrow{fill:none;stroke:#40545c;stroke-width:1.7;marker-end:url(#arrow)}
+      .dashed{stroke-dasharray:5 4}
+    </style>
+  </defs>
+  <rect width="1040" height="690" fill="#ffffff" />
+  <text class="title" x="36" y="42">WebVOWL：从输入数据到交互式本体图</text>
+  <text class="subtitle" x="36" y="66">实现结构示意，依据 VisualDataWeb/WebVOWL 1.1.7 源码归纳；非运行时截图</text>
+
+  <rect class="layer" x="28" y="88" width="984" height="104" rx="5" />
+  <text class="layer-label" x="44" y="108">输入与转换</text>
+  <rect class="input" x="74" y="124" width="220" height="48" rx="4" />
+  <text class="label" x="184" y="145">OWL / RDF 文档</text>
+  <text class="tiny" x="184" y="163">原始本体语法</text>
+  <path class="arrow dashed" d="M294 148 H382" />
+  <rect class="convert" x="392" y="119" width="252" height="58" rx="4" />
+  <text class="label" x="518" y="143">OWL2VOWL 转换器</text>
+  <text class="tiny" x="518" y="162">可选组件：转换为 VOWL JSON</text>
+  <path class="arrow" d="M644 148 H736" />
+  <rect class="input" x="746" y="124" width="220" height="48" rx="4" />
+  <text class="label" x="856" y="145">VOWL JSON</text>
+  <text class="tiny" x="856" y="163">前端输入数据</text>
+  <path class="arrow" d="M856 172 V219" />
+
+  <rect class="layer" x="28" y="218" width="984" height="173" rx="5" />
+  <text class="layer-label" x="44" y="239">WebVOWL 前端：对象化与图构建</text>
+  <rect class="runtime" x="62" y="257" width="212" height="66" rx="4" />
+  <text class="label" x="168" y="281">parser</text>
+  <text class="small" x="168" y="303">组合 records / attributes</text>
+  <path class="arrow" d="M274 290 H322" />
+  <rect class="runtime" x="332" y="257" width="212" height="66" rx="4" />
+  <text class="label" x="438" y="281">nodeMap / propertyMap</text>
+  <text class="small" x="438" y="303">按类型创建对象原型</text>
+  <path class="arrow" d="M544 290 H592" />
+  <rect class="runtime" x="602" y="257" width="174" height="66" rx="4" />
+  <text class="label" x="689" y="281">graph</text>
+  <text class="small" x="689" y="303">保留未过滤模型</text>
+  <path class="arrow" d="M776 290 H820" />
+  <rect class="runtime" x="830" y="257" width="150" height="66" rx="4" />
+  <text class="label" x="905" y="281">linkCreator</text>
+  <text class="small" x="905" y="303">构造展示关系</text>
+  <rect class="warn" x="156" y="340" width="715" height="34" rx="4" />
+  <text class="small" x="513" y="362">解析重建 ID 引用：equivalent、inverse、domain / range、sub / superproperty 等</text>
+
+  <path class="arrow" d="M905 323 V423 H794" />
+  <rect class="layer" x="28" y="414" width="984" height="111" rx="5" />
+  <text class="layer-label" x="44" y="435">视图生成</text>
+  <rect class="view" x="68" y="452" width="236" height="52" rx="4" />
+  <text class="label" x="186" y="474">Filters</text>
+  <text class="small" x="186" y="493">选择当前可见的节点和属性</text>
+  <path class="arrow" d="M304 478 H392" />
+  <rect class="view" x="402" y="452" width="236" height="52" rx="4" />
+  <text class="label" x="520" y="474">D3 v3 force layout</text>
+  <text class="small" x="520" y="493">计算节点位置并更新 tick</text>
+  <path class="arrow" d="M638 478 H726" />
+  <rect class="view" x="736" y="452" width="236" height="52" rx="4" />
+  <text class="label" x="854" y="474">SVG 图形</text>
+  <text class="small" x="854" y="493">绘制节点、链接与标签</text>
+
+  <path class="arrow" d="M854 504 V559" />
+  <rect class="layer" x="28" y="548" width="984" height="105" rx="5" />
+  <text class="layer-label" x="44" y="569">应用交互与输出</text>
+  <rect class="node" x="76" y="582" width="190" height="48" rx="4" />
+  <text class="label" x="171" y="611">搜索 / 定位</text>
+  <rect class="node" x="294" y="582" width="190" height="48" rx="4" />
+  <text class="label" x="389" y="611">过滤 / 选择</text>
+  <rect class="node" x="512" y="582" width="190" height="48" rx="4" />
+  <text class="label" x="607" y="611">详情 / 编辑</text>
+  <rect class="node" x="730" y="582" width="230" height="48" rx="4" />
+  <text class="label" x="845" y="603">JSON / SVG / Turtle</text>
+  <text class="tiny" x="845" y="620">Turtle exporter: experimental alpha</text>
+  <path class="arrow" d="M389 582 V536 H186 V504" />
+
+</svg>
