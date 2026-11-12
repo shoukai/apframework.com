@@ -4,7 +4,7 @@ import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
 
-const POSTS_PER_PAGE = 5
+const POSTS_PER_PAGE = 20
 
 export async function generateMetadata(props: {
   params: Promise<{ page: string }>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="550" viewBox="0 0 1440 550" role="img" aria-labelledby="title desc">
+  <title id="title">测试结果阅读索引</title>
+  <desc id="desc">四组测试各自回答不同问题，并标出不可外推的结论。</desc>
+  <rect width="1440" height="550" fill="#ffffff"/>
+  <text x="720" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#172b4d">先看问题，再看分数</text>
+  <text x="720" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#475569">四组测试使用不同样本、分母和评价标准，不合并成单一模型排名</text>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="35" y="125" width="330" height="270" rx="8" fill="#eaf2ff" stroke="#cbd5e1"/>
+    <text x="200" y="170" font-size="23" font-weight="700" fill="#172b4d">业务分类表现</text>
+    <text x="200" y="222" font-size="20" fill="#334155">24 条模拟工单</text>
+    <text x="200" y="258" font-size="20" fill="#334155">16/24 与示意标签一致</text>
+    <text x="200" y="315" font-size="17" fill="#334155">观察边界错例与 other 召回</text>
+    <text x="200" y="355" font-size="16" fill="#8b3030">不能代表生产准确率</text>
+    <rect x="390" y="125" width="330" height="270" rx="8" fill="#e7f6f4" stroke="#cbd5e1"/>
+    <text x="555" y="170" font-size="23" font-weight="700" fill="#172b4d">分类任务样本</text>
+    <text x="555" y="222" font-size="20" fill="#334155">AG News：256 条</text>
+    <text x="555" y="258" font-size="20" fill="#334155">各类 64 条等量抽样</text>
+    <text x="555" y="315" font-size="17" fill="#334155">观察英文新闻标签一致率</text>
+    <text x="555" y="355" font-size="16" fill="#8b3030">不能外推到中文客服</text>
+    <rect x="745" y="125" width="330" height="270" rx="8" fill="#fff3df" stroke="#cbd5e1"/>
+    <text x="910" y="170" font-size="23" font-weight="700" fill="#172b4d">移植实现一致性</text>
+    <text x="910" y="222" font-size="20" fill="#334155">63/63 题 argmax 一致</text>
+    <text x="910" y="258" font-size="20" fill="#334155">另测重复调用可重复性</text>
+    <text x="910" y="315" font-size="17" fill="#334155">检查 MLX 是否复现上游</text>
+    <text x="910" y="355" font-size="16" fill="#8b3030">不是业务正确率</text>
+    <rect x="1100" y="125" width="305" height="270" rx="8" fill="#f0edff" stroke="#cbd5e1"/>
+    <text x="1252" y="170" font-size="23" font-weight="700" fill="#172b4d">工程性能与量化</text>
+    <text x="1252" y="222" font-size="20" fill="#334155">延迟、批量、存储</text>
+    <text x="1252" y="258" font-size="20" fill="#334155">不同位宽输出变化</text>
+    <text x="1252" y="315" font-size="17" fill="#334155">回答特定设备上的代价</text>
+    <text x="1252" y="355" font-size="16" fill="#8b3030">不能替代任务评测</text>
+  </g>
+  <path d="M35 430 H1405" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="720" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#172b4d">阅读顺序建议：先看业务定义与 24 条错例，再看 256 条分类样本，最后看移植、速度和量化</text>
+  <text x="720" y="515" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#475569">数字附带的样本范围和评价口径，比单独比较百分比更重要</text>
+</svg>

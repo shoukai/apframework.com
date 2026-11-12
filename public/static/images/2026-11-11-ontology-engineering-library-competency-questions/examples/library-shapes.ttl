@@ -1,0 +1,16 @@
+@prefix : <https://example.org/library#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:HoldingShape a sh:NodeShape ;
+  sh:targetClass :Holding ;
+  sh:property [ sh:path :isCopyOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Book ] ;
+  sh:property [ sh:path :locatedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Branch ] ;
+  sh:property [ sh:path :status ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "available" "checked_out" ) ] .
+
+:BorrowRecordShape a sh:NodeShape ;
+  sh:targetClass :BorrowRecord ;
+  sh:property [ sh:path :borrows ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Holding ] ;
+  sh:property [ sh:path :borrowDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+  sh:property [ sh:path :loanStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "active" "returned" ) ] ;
+  sh:property [ sh:path :returnDate ; sh:maxCount 1 ; sh:datatype xsd:date ] .

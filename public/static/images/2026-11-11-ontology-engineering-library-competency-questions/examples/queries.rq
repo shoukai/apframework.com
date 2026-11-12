@@ -1,0 +1,47 @@
+# Q1: 《三体》有哪些馆藏分馆？每个分馆只返回一行。
+PREFIX : <https://example.org/library#>
+SELECT DISTINCT ?branchName WHERE {
+  ?holding :isCopyOf ?book ; :locatedAt ?branch .
+  ?book :title "三体" .
+  ?branch :branchName ?branchName .
+}
+ORDER BY ?branchName
+
+# Q2: 当前教学快照中是否存在《三体》的可借副本？
+# false 仅表示本图没有匹配，不能证明现实世界所有馆藏均不可借。
+PREFIX : <https://example.org/library#>
+ASK {
+  ?holding :isCopyOf ?book ; :locatedAt ?branch ; :status "available" .
+  ?book :title "三体" .
+}
+
+# Q3: 刘慈欣有哪些书目？册次可选，不遗漏没有 volume 的书。
+# “还写哪些书”在此解析为作者书目全集；若需排除当前书，另加明确的书目筛选。
+PREFIX : <https://example.org/library#>
+SELECT ?title ?volume WHERE {
+  ?author a :Author ; :authorName "刘慈欣" ; :wrote ?book .
+  ?book :title ?title .
+  OPTIONAL { ?book :volume ?volume }
+}
+ORDER BY ?title ?volume
+
+# Q4: 张三有哪些记录为 active 的借阅？状态来自权威借阅流水的快照。
+PREFIX : <https://example.org/library#>
+SELECT ?title ?volume ?borrowDate WHERE {
+  ?reader a :Reader ; :readerName "张三" ; :hasBorrowRecord ?record .
+  ?record :loanStatus "active" ; :borrows ?holding ; :borrowDate ?borrowDate .
+  ?holding :isCopyOf ?book .
+  ?book :title ?title .
+  OPTIONAL { ?book :volume ?volume }
+}
+
+# Q5: 《三体》第二册当前被谁借走？同时返回具体副本和分馆。
+PREFIX : <https://example.org/library#>
+SELECT ?holding ?branchName ?readerName WHERE {
+  ?book :title "三体" ; :volume 2 .
+  ?holding :isCopyOf ?book ; :locatedAt ?branch .
+  ?branch :branchName ?branchName .
+  ?reader a :Reader ; :readerName ?readerName ; :hasBorrowRecord ?record .
+  ?record :loanStatus "active" ; :borrows ?holding .
+}
+ORDER BY ?branchName ?readerName

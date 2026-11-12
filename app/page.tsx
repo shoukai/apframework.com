@@ -15,5 +15,16 @@ export const metadata: Metadata = {
 export default async function Page() {
   const sortedPosts = sortPosts(allBlogs)
   const posts = allCoreContent(sortedPosts)
-  return <Main posts={posts} />
+  const website = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteMetadata.title,
+    url: `${siteMetadata.siteUrl}/`,
+  }
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(website) }} />
+      <Main posts={posts} />
+    </>
+  )
 }

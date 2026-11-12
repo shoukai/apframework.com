@@ -4,7 +4,7 @@ import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import Link from '@/components/Link'
 
-const POSTS_PER_PAGE = 5
+const POSTS_PER_PAGE = 20
 
 const topics = [
   {

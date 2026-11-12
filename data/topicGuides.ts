@@ -67,4 +67,44 @@ export const topicGuides: Record<
       },
     ],
   },
+  mcp: {
+    title: 'MCP 协议与工具集成',
+    description: '从工具选择和协议边界入手，再看服务端、客户端的实现与运行安全。',
+    takeaway:
+      'MCP 解决工具能力的标准化接入，但工具是否可调用、能访问哪些资源以及如何审计，仍要由应用和运行环境明确控制。',
+    readings: [
+      {
+        path: 'blog/essay/2026-02-16-agent-tool-selection',
+        reason: '先区分工具选择、MCP 接入与应用侧的权限边界。',
+      },
+      {
+        path: 'blog/essay/2025-06-11-Python-MCP',
+        reason: '再看 Python MCP 服务端与客户端的具体实现。',
+      },
+      {
+        path: 'blog/essay/2026-05-23-agent-security-2026',
+        reason: '最后检查工具调用进入生产环境后的安全控制。',
+      },
+    ],
+  },
+  langgraph: {
+    title: 'LangGraph 编排与状态管理',
+    description: '围绕状态、节点和子图，理解 Agent 工作流如何组织，以及何时需要图编排。',
+    takeaway:
+      '先画清状态与步骤之间的依赖，再决定是否使用图结构；子图可以隔离职责，但也需要明确状态传递和失败恢复。',
+    readings: [
+      {
+        path: 'blog/essay/2025-06-08-LangGraph-Tutorials',
+        reason: '从基本状态机和工作流结构开始。',
+      },
+      {
+        path: 'blog/essay/2025-09-12-langgraph-concept-subgraph',
+        reason: '用子图示例理解模块边界与状态共享。',
+      },
+      {
+        path: 'blog/essay/2026-11-02-agent-harness-chain-graph-code',
+        reason: '最后比较 Chain、Graph 与 Code 的适用条件。',
+      },
+    ],
+  },
 }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+<title id="title">Q5 查询路径：三体第二册被谁借走</title><desc id="desc">实际关系方向为 Reader 通过 hasBorrowRecord 指向 BorrowRecord，记录通过 borrows 指向 Holding，副本通过 isCopyOf 指向 Book，并通过 locatedAt 指向总馆。查询从书目反向匹配，返回总馆、副本 ID 和张三，不虚构条码字段。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#56798b"/></marker></defs><rect width="1200" height="430" rx="12" fill="#f7faf9" stroke="#d9e5e1"/>
+<g font-family="PingFang SC, Heiti SC, Microsoft YaHei, sans-serif" fill="#263b43"><text x="36" y="48" font-size="22" font-weight="600">Q5：从《三体》第二册反查活动借阅人</text>
+<g stroke="#93c8ba" fill="#eaf6f3"><rect x="35" y="132" width="220" height="126" rx="8"/><rect x="335" y="132" width="220" height="126" rx="8"/><rect x="635" y="132" width="220" height="126" rx="8"/><rect x="935" y="132" width="220" height="126" rx="8"/></g>
+<g font-size="22"><text x="55" y="174" font-weight="600">Reader</text><text x="55" y="212">张三 · r_zhang</text><text x="355" y="174" font-weight="600">BorrowRecord</text><text x="355" y="212">br_001 · active</text><text x="655" y="174" font-weight="600">Holding</text><text x="655" y="212">h_santi2_main</text><text x="955" y="174" font-weight="600">Book</text><text x="955" y="212">b_santi_2 · volume 2</text></g>
+<g fill="none" stroke="#56798b" stroke-width="2.5" marker-end="url(#arrow)"><path d="M255 196 H335"/><path d="M555 196 H635"/><path d="M855 196 H935"/></g>
+<g font-size="18" fill="#42575f"><text x="255" y="112">hasBorrowRecord</text><text x="585" y="112">borrows</text><text x="870" y="112">isCopyOf</text></g>
+<path d="M745 258 V300 H850" fill="none" stroke="#56798b" stroke-width="2.5" marker-end="url(#arrow)"/><text x="866" y="307" font-size="22">所在分馆：总馆</text>
+<rect x="35" y="330" width="1120" height="62" rx="8" fill="#fff5df" stroke="#e2c27c"/><text x="55" y="370" font-size="22" font-weight="600" fill="#8a651d">返回：总馆 / h_santi2_main（副本 ID，不是条码）/ 张三；东区 br_002 已 returned，不匹配</text>
+</g></svg>

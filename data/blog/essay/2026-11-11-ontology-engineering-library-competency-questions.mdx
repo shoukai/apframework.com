@@ -1,0 +1,209 @@
+---
+title: '企业 AI 为什么需要本体工程？从五个借书问题到知识图谱'
+date: '2026-11-11'
+tags: ['AI', 'Ontology', '知识图谱', '本体建模', 'LLM']
+images: ['/static/images/2026-11-11-ontology-engineering-library-competency-questions/enterprise-ai-ontology-engineering.svg']
+draft: false
+summary: '同一本书，为什么既可借又已借出？从五个图书馆问题出发，理解本体工程如何区分业务对象、组织知识图谱，并为企业 AI 提供可靠的查询与抽取基础，看清 OWL、SHACL 与 LLM 各自的职责。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <img src="/static/images/2026-11-11-ontology-engineering-library-competency-questions/enterprise-ai-ontology-engineering.svg" alt="企业 AI 本体工程：从能力问题到建模、接入与治理" />
+  <figcaption className="text-center">图 1：企业 AI 的本体工程：从能力问题到建模、接入与治理。</figcaption>
+</figure>
+
+图书馆系统里，“《三体》在哪个分馆？”听起来像一次简单检索。可是如果数据只存了书名和一个“馆藏状态”，答案可能混在一起：三册书目条目、两个分馆的第二册副本，以及一册已借出、一册可借的状态交织在一起。读者问的是一本书，系统实际要回答的却是某个书目条目、具体副本、所在分馆和当前借阅记录之间的关系。
+
+这类差异正是本体工程要处理的问题。它不是先把领域里的所有名词画成大图，而是先明确系统需要理解哪些概念、概念如何关联，以及哪些问题应该能被模型和数据回答。一个实用的起点，是把这些问题写成 competency questions，也就是能力问题。
+
+Navaneethan L 在 [Ontology Engineering for Enterprise AI](https://medium.com/@navaneethanjuly1998/ontology-engineering-for-enterprise-ai-grounding-llm-reasoning-in-domain-structure-012d3942ad48) 中，把能力问题、领域模型、实例验证和持续治理串成了一条工程链路。沿着这个思路，下面先用一座图书馆把问题讲清楚，再回到企业 AI：本体到底解决什么，哪些部分必须交给校验器和业务服务。
+
+## 标准各自解决什么问题
+
+RDF 用主语、谓语、宾语三元组表达图数据。比如“总馆的这个副本是《三体》第二册的一个副本”，可以拆成副本的类型、`isCopyOf` 关系和指向总馆的 `locatedAt` 关系。RDF 提供可交换的数据图结构，但不会仅凭标签猜出团队希望某条边具有什么业务意义。
+
+OWL 和 RDFS 可以把类、属性及其语义公理明确表达出来。例如下面这段 Turtle 声明作者、书目，以及它们之间的创作关系：
+
+```turtle
+@prefix : <https://example.org/library#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+:Author a owl:Class .
+:Book a owl:Class .
+:wrote a owl:ObjectProperty ;
+    rdfs:domain :Author ;
+    rdfs:range :Book .
+```
+
+这里的 `rdfs:domain` 和 `rdfs:range` 描述的是属性适用的类型语义。比如出现一条 `:wrote` 关系，domain 可以让推理得到其主语是 `:Author`，range 可以让对象成为 `:Book`。它们不是输入校验规则：若错误地把一个 `:Holding` 接到 `:wrote`，不能把“推理得到一个可能不想要的类型”误当作数据库拒绝了这条记录。
+
+属性的 domain 也不是可选类型列表。若把同一个属性声明两次，分别以 `:Author` 和 `:Reader` 为 domain，RDFS 语义会令使用该属性的资源同时属于这两类，即交集，而不是“它可以是作者，也可以是读者”。因此示例用 `authorName` 和 `readerName` 两个属性。如果业务里确实需要共同的人名属性，更清楚的做法是显式引入 `Person` 超类，再让 `Author` 与 `Reader` 成为相应子类，而不是误用多个 domain 表示并集。
+
+OWL 的另一个关键边界是开放世界假设：图中没有写某项事实，通常表示系统尚不知道它，并不表示它为假。[OWL 2 Primer](https://www.w3.org/TR/owl2-primer/) 对此有明确说明。OWL 能表达基数限制、数据范围等逻辑公理，但不能把它们直接当成“当前文件必须显式填齐字段、枚举取值合法、标识全局唯一”的输入检查；OWL 也不默认不同名字必然代表不同个体。这些业务数据检查需要显式设计校验规则。
+
+当主要需求是统一术语、别名和分类标签时，SKOS 提供较轻量的词汇表达方式。它有首选标签、替代标签、概念方案以及 broader/narrower 等关系。词汇的上下位关系不应不加判断地改写成 OWL 类的 `subClassOf`：一个术语属于另一术语的更窄概念，不总是代表两个类之间的逻辑包含关系。
+
+当需要检查实例数据是否符合预期形状，可以使用 SHACL。它可以要求每个馆藏副本指向一个 `Book` 和一个 `Branch`，状态只能取约定值；也可以要求一条借阅记录有借阅日期、借阅对象及明确状态。形状验证会给出符合与否及问题报告，但通过验证不等于数据事实真实，也不等于数据足够新鲜，更不等于 OWL 推理完成。
+
+LinkML 则可作为 schema-first 的建模入口，用 YAML 描述类别、字段和约束，并生成 JSON Schema、SHACL、OWL 等面向不同工具链的产物。它适合需要一个相对开发者友好的模型来源、又要接多个数据表示的团队。但“可以生成多个格式”不意味着每个目标都能表达源模型中的全部语义；生成器版本、映射约定和目标格式能力都要测试。它是一种建模与生成工具，不是知识图谱数据库，也不会替团队裁定业务定义。
+
+因此，OWL、SKOS、SHACL 和 LinkML 不是一条必须全装齐的技术栈。需要形式语义和推理时考虑 OWL；主要问题是概念词表时 SKOS 可能足够；需要对 RDF 数据做形状验证时使用 SHACL；需要从一份 schema 衍生多种产物时可评估 LinkML。选择由能力问题决定，而不是由图上有多少个工具方框决定。
+
+![OWL 和 RDFS 管形式语义，SKOS 管受控词汇，SHACL 独立校验数据，LinkML 可选生成多种产物；虚线仅表示生成关系](/static/images/2026-11-11-ontology-engineering-library-competency-questions/ontology-standard-roles.svg)
+
+<p className="text-center text-sm text-gray-500 dark:text-gray-400">图 2：RDF/OWL 描述图与语义，SKOS 管词汇，SHACL 校验数据形状；LinkML 可选作 schema 来源。</p>
+
+## TBox、ABox 与源数据
+
+在本体工程讨论里，TBox 通常指领域概念、类层级和公理；ABox 指具体个体及其断言；RBox 常用于讨论关系属性及相关公理。它们是理解知识表示内容的分工，不要求部署成独立服务或文件。源数据则是另一工程层次：目录、借阅数据库、API 或事件流经抽取和对齐后形成图中的事实。
+
+## 能力问题驱动模型设计
+
+假设图书馆要支持以下查询：
+
+1. 《三体》在哪个分馆？
+2. 《三体》现在可借吗？
+3. 刘慈欣还写过哪些书？
+4. 张三当前有哪些未还书？
+5. 《三体》第二册被谁借走？
+
+它们不是五种措辞相近的搜索，而是五个不同的业务能力。第一个要从书目找到实体副本，再定位分馆；第二个涉及“可借”的定义与库存状态；第三个连接作者与书目；第四个需要读者、借阅记录和借阅状态；第五个不仅要找到第二册，还得找到该册对应的实体副本、活动借阅记录及读者。
+
+为了回答这些问题，我们暂时把“带册次的书目条目”建成 `Book`。这里的 `Book` 指一条书目记录，不是严格意义上的作品；模型的六类对象是 `Book`、`Author`、`Branch`、`Holding`、`Reader` 和 `BorrowRecord`。其中 `Holding` 不是另一个书名，而是一件能被借出的物理副本。`Book` 有 `title`，有的条目还有 `volume`；副本有 `status`，并通过 `isCopyOf` 指向书目条目，再通过 `locatedAt` 指向分馆。作者 `wrote` 书；读者 `hasBorrowRecord` 借阅记录；记录 `borrows` 副本。
+
+这些对象由两条路径连起来：作者写作书目条目，副本对应书目并存放于分馆；读者关联借阅记录，记录再指向被借的副本。
+
+`BorrowRecord` 单独成为一个类，是因为借阅行为有自己的时间和状态。一条简单的“张三借了第二册”关系，无法干净地区分张三这次借阅与李四上次已经结束的借阅。类似地，`b_santi_2` 是书目身份，`h_santi2_main` 与 `h_santi2_east` 是两件不同的物理对象；书名和姓名只是便于展示的属性，生产查询应尽量先解析到稳定标识，不能依赖“张三”恰好没有重名。
+
+这里的“书”是刻意压缩的教学模型。《三体》系列、作品、不同版本和实体册次在成熟目录系统里可能需要分层建模；本例把三体第一、二、三册分别当成有册次的书目条目，不意味着它们就是三个完全独立的作品。关键在于把书目描述与馆藏副本分开，否则同一本书在不同分馆的可借状态无法准确表示。
+
+六个类和几条关系不是从某个通用模板照抄来的，而是从查询路径反推的：哪些对象必须区分，哪些关系必须存在，哪些值是筛选条件。反过来，每个新增类也应能解释它服务哪项能力问题。没有当前问题需要、也没有明确未来责任的概念，可以先放入候选区，后续有证据再纳入；不需要为了追求模型“完整”而立刻实现所有概念。
+
+![六类 TBox 的关系方向，以及第二册书目、总馆和东区副本、两次借阅的具体 ABox 身份；源数据经对齐与验证入图](/static/images/2026-11-11-ontology-engineering-library-competency-questions/library-model-instances.svg)
+
+<p className="text-center text-sm text-gray-500 dark:text-gray-400">图 3：类关系映射到具体书目、副本和借阅记录；状态分别属于副本与借阅记录。</p>
+
+## 实例与五个查询
+
+完整数据、查询和形状分别见随文的 [Turtle 数据](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/library.ttl)、[五条 SPARQL 查询](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/queries.rq) 和 [SHACL 形状](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/library-shapes.ttl)，可独立检查与复用。Turtle 文件把概念声明和具体实例放在一起便于阅读；工程上它们也可以分文件、分仓库或分服务管理。
+
+数据中，刘慈欣写了三本分别标成第一、二、三册的《三体》，以及一本没有 `volume` 的《球状闪电》。总馆和东区都有第二册副本：总馆副本状态为 `checked_out`，东区副本状态为 `available`。另有总馆第一册副本可借。张三有一条当前活动借阅记录，借的是总馆第二册；李四曾借东区第二册，记录标为已归还。
+
+书目没有 `volume`，在 RDF 图中意味着该字段当前未提供。我们没有用“null”或虚构册次把它补出来。这个细节马上会影响第三个能力问题：如果查询强制要求每本书都有 `volume`，无册次的《球状闪电》就会从结果里消失。
+
+这是一份截至 **2026-11-10** 的虚构教学快照，记录日期来自题设，不是对真实图书馆的实时查询。五条查询分别做的事并不复杂，但它们把业务假设明确下来。Q1 先从书名找到书目，再沿副本和分馆关系走；结果用 `DISTINCT` 去重，因为多个副本可能属于同一个分馆。Q2 询问图里是否存在状态为 `available` 的副本。它回答的是当前查询数据中有没有符合条件的匹配，不是对现实世界所有馆藏作出绝对判断。
+
+Q3 通过作者的 `wrote` 关系列出书名，并把 `volume` 放进 `OPTIONAL` 模式：
+
+```sparql
+PREFIX : <https://example.org/library#>
+SELECT ?title ?volume WHERE {
+  ?author a :Author ; :authorName "刘慈欣" ; :wrote ?book .
+  ?book :title ?title .
+  OPTIONAL { ?book :volume ?volume }
+}
+ORDER BY ?title ?volume
+```
+
+“还写过哪些书”在这里解释为列出作者在该图中的全部书目。如果交互中已有一本明确的当前书，可以另外排除那个书目标识；查询并没有自动补出刘慈欣的完整现实书单。SPARQL 的 `OPTIONAL` 在可选模式匹配不到时保留原有结果，所以《球状闪电》仍会出现，只是册次没有绑定。若把 `?book :volume ?volume` 写成普通必需模式，它就会被过滤掉。
+
+Q4 查询张三关联且 `loanStatus` 为 `active` 的记录，再找到对应副本和书目。这里有一个刻意的工程约定：查询把借阅流水视作截至某一时点的权威、完整记录，并用显式状态区分 `active` 与 `returned`。真实系统需要确保借出、归还事件可靠更新这一状态，处理撤销、逾期、丢失或状态冲突等业务；示例没有建模这些情况。
+
+为什么不直接把“没有 `returnDate`”当成“尚未归还”？因为开放世界下，字段缺失也可能是数据尚未同步或录入不全。给记录显式状态并不消除数据质量问题，但它把查询依赖的业务判断写在模型里；再由验证规则检查状态是否缺失或取值非法。是否可借也可能受预约、损坏、盘点等因素影响，生产系统应定义唯一权威状态或明确冲突处理规则。
+
+Q5 先定位《三体》第二册，再找它的馆藏副本、分馆和关联的活动借阅记录，最终返回副本、分馆与读者。读者身份信息只应在有授权的业务场景中按需要返回。
+
+![Q5 具体关系路径：第二册 Book 接收 Holding 的 isCopyOf，Holding 接收 BorrowRecord 的 borrows，借阅记录接收张三 Reader 的 hasBorrowRecord](/static/images/2026-11-11-ontology-engineering-library-competency-questions/library-q5-path.svg)
+
+<p className="text-center text-sm text-gray-500 dark:text-gray-400">图 4：Q5 沿第二册书目、副本、活动借阅记录找到张三和总馆副本 <code>h_santi2_main</code>。箭头表示谓词方向，查询可反向匹配；副本状态与借阅状态分别记录。</p>
+
+在这份教学快照中，五条查询的结果如下。它们依赖 SPARQL 匹配和应用侧状态筛选，不包含 OWL 推理；随文材料保留了数据与查询，便于你在自己的环境中复现。
+
+| 问题 | 教学快照上的结果 |
+|---|---|
+| Q1 在哪个分馆 | 东区、总馆，各一行 |
+| Q2 现在可借吗 | `true`；图中存在可借副本，不代表每一册都可借 |
+| Q3 作者还有哪些书 | 《三体》册次 1、2、3，以及无册次的《球状闪电》 |
+| Q4 张三未还书 | 《三体》第二册，借阅日期 2026-10-01 |
+| Q5 第二册被谁借走 | `h_santi2_main`，总馆，张三 |
+
+这两个小变化也说明，模型里的细节会直接改变业务答案：将 Q3 的册次改成必需模式，无册次的《球状闪电》就不再返回；去掉 Q1 的 `DISTINCT`，拥有多个副本的总馆会出现两次。
+
+这里说的“闭世界”是查询侧的局部约定：应用知道某份权威快照在指定范围内足够完整，可以据此作业务判断；它没有把 OWL 的开放世界语义改掉。
+
+Q2 与 Q4 尤其依赖数据完整性和时间边界。假设某册昨天已归还，但库存服务还没更新，查询可能同时看见“借阅 active”和副本 `available`；反过来，图谱同步延迟也可能让已经可借的副本暂时不出现。每个面向业务的回答都应能说明它查询了哪份数据、截至什么时间，以及“无匹配”究竟表示无库存、无记录，还是当前图中缺少事实。
+
+## 用 SHACL 检查摄取数据
+
+`library-shapes.ttl` 给出了两个核心形状。`HoldingShape` 要求每个副本恰有一个 `isCopyOf` 关系和一个 `locatedAt` 关系，且状态限定为 `available` 或 `checked_out`。`BorrowRecordShape` 要求每条记录恰有一个借阅对象、一个借阅日期和一个合法的借阅状态；归还日期允许不存在，但若存在必须是日期。
+
+例如，副本所在分馆的形状可以写成：
+
+```turtle
+@prefix : <https://example.org/library#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+:HoldingShape a sh:NodeShape ;
+  sh:targetClass :Holding ;
+  sh:property [
+    sh:path :locatedAt ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:class :Branch
+  ] .
+```
+
+它要求验证图中的目标副本有且只有一个分馆值，且该值满足分馆类型要求。若删掉总馆副本的 `locatedAt`，支持 SHACL 的处理器应报告这一形状不符合。本文没有在专用 SHACL 验证器中运行这组形状；随文形状可作为读者在本地继续验证的输入。
+
+这组规则不是 OWL 公理的另一种写法。它是在指定数据图上执行的约束检查。将来若模型要求 `loanStatus=returned` 时必须有 `returnDate`，可以在 SHACL 中增加条件约束；这项业务一致性不应靠“没有日期所以一定未还”来暗中推断。SHACL 通过也不能证明借阅事实确实发生，数据源仍需有来源、时间戳和纠错机制。
+
+模型公理与数据形状可能需要一起维护，但它们回答的问题不同：OWL 讨论在既定语义下可以推出什么；SHACL 讨论这批待处理或已存储的数据是否满足形状。数据摄取管道可以先抽取记录、映射实体，再运行 SHACL；发现不符合时进入隔离、补录或人工处理。
+
+基础形状还没有覆盖跨记录一致性。例如，一个副本标为可借，却仍关联一条活动借阅；或者同一副本同时出现在两条 active 记录中。单条记录的字段都可能合法，放在一起却违反了业务规则。这类冲突可以用 SPARQL 查询检查，也可以写入 SHACL-SPARQL 或业务服务。测试时，故意把正在借出的总馆第二册改成 `available`，就能检验规则是否捕捉到了矛盾。
+
+## 把本体交给 LLM 时，别把提示词当验证器
+
+本体能为 LLM 应用提供共享的类型、关系名称和业务定义，但不会自动让模型“理解一切”。一个直接的用法是在查询或回答前，根据用户问题选出相关概念、属性和事实，再把来源与更新时间一起提供给模型。领域定义和实例证据也要区分：`Holding` 是什么，来自模型版本；这一副本今天是否可借，来自库存快照。只有后者能支持当前可借的回答。例如问“哪处分馆可以借《三体》第二册”，应用可以先按标题、册次查找书目，继而查询可借副本与分馆，把结果及库存时间交给 LLM 组织成自然语言。
+
+另一个用法是结构化抽取。模型从目录文本或事件记录提出 `Book`、`Holding`、`Branch` 与关系候选；应用将其转换成 RDF 或目标 schema，再用 SHACL 检查类型、必填关系和允许值。校验失败时可以退回重抽或人工处理。提示词里写“只能输出合法的馆藏记录”并不会本身保证输出合法，真正的检查要由程序执行。
+
+![LLM 回答时区分模型定义和带来源时点的事实；抽取时只提候选，身份对齐和 SHACL 由程序检查，业务动作由服务授权](/static/images/2026-11-11-ontology-engineering-library-competency-questions/llm-context-validation.svg)
+
+<p className="text-center text-sm text-gray-500 dark:text-gray-400">图 5：回答时区分模型定义与带时点的事实；抽取候选由程序校验，业务授权仍由服务负责。</p>
+
+换成企业设备管理，模型中可以对应设备型号、实体设备、仓库、员工和领用记录。“某型号在哪个仓库”“现在哪件可领用”“谁还没归还”与图书馆的查询路径相似；相应地，不能把型号与实体设备混为一谈，也不能把缺失归还日期当作完整的在用证据。迁移的是建模方法，具体类、状态和权限仍由业务定义。
+
+若 Agent 进一步调用“借出”或“归还”操作，本体提供领域对象和关系语义，却不等同于运行时授权。系统还需由业务服务检查用户权限、馆藏状态、并发借阅和操作结果。一次 SPARQL 查询或 OWL 推理都不应被描述成动作许可。
+
+把本体接入 LLM 后，评估也应围绕真实任务展开。可以在这五个问题之外加入“书目存在但无馆藏记录”“同名读者”“部分分馆尚未同步”等情况，观察回答是否保持范围和时间边界。查询能返回正确关系，只说明图上的这一步成立；LLM 是否忠实复述结果、是否补出了不存在的事实，仍需要单独测试。
+
+## 治理模型与版本漂移
+
+通常，目录和借阅事实变化频繁，概念定义与关系语义相对稳定。但“稳定”不等于可以不管。若引入“作品系列”概念，原先直接挂在 `Book` 上的作者关系和查询可能需要迁移；若把 `available` 拆成“在架”“可预约”“仅馆内阅览”，下游应用的筛选条件也会改变。
+
+因此，本体版本变更至少要回答三个问题：哪些能力问题和查询受影响？旧数据如何映射到新定义？新旧版本并存时，消费方依赖什么契约？一个看似只是新增类的变更，也可能通过 domain/range 或子类公理改变推理结果。版本号标成 MINOR 并不能证明向后兼容；要用代表性数据重新跑形状、能力问题查询和下游契约测试，必要时准备迁移与回滚。
+
+![能力问题驱动模型变更，经过数据迁移、SHACL、查询和契约回归后发布版本，漂移反馈回到能力问题](/static/images/2026-11-11-ontology-engineering-library-competency-questions/ontology-governance-loop.svg)
+
+<p className="text-center text-sm text-gray-500 dark:text-gray-400">图 6：变更通过数据迁移与查询、形状和契约回归后发布；运行中的漂移再反馈到能力问题。版本标签本身不证明兼容。</p>
+
+能力问题由此不只在建模开始时有用。每次改动都可以回到五个问题：查询路径是否仍然完整，是否引入了新的歧义，旧数据是否能回答，空结果的解释是否改变。未被当前问题使用的候选概念可先暂缓，记录原因和复核条件；若后来长期没人维护、且确认没有消费者，再按治理流程弃用或删除。这样既控制范围，也避免把“当前没用”误当作“永远无用”。
+
+## 何时值得采用
+
+如果多个系统对同一业务词有不同解释、查询需要跨多种关系、数据抽取需要明确约束，或系统要和既有领域词表互操作，那么投入本体建模和治理可能值得。若需求只是给少量字段做结构校验，普通 JSON Schema、数据库约束或轻量分类表就可能足够；没有形式推理需求，也不必仅因为“AI”而引入完整 OWL 推理栈。
+
+图书馆例子最终说明的是一种工作顺序：先问系统要回答什么，再决定需要区分哪些实体；用 RDF/OWL 或合适的 schema 表达模型；用 SHACL 约束实例数据；用 SPARQL 把能力问题变成可重复查询；持续记录事实来源和时间，并把这些查询放进版本回归。工具可以变化，真正需要长期维护的是问题、概念、事实和消费方之间的契约。对企业 AI 而言，本体的价值也正在这里：它让“回答什么、依据什么、缺少什么”从提示词里的隐含约定，变成多个系统可以共同使用的工程对象。
+
+## 参考资料
+
+- Navaneethan L, [“Ontology Engineering for Enterprise AI: Grounding LLM Reasoning in Domain Structure”](https://medium.com/@navaneethanjuly1998/ontology-engineering-for-enterprise-ai-grounding-llm-reasoning-in-domain-structure-012d3942ad48), Medium。
+- W3C, [OWL 2 Web Ontology Language Document Overview](https://www.w3.org/TR/owl2-overview/)。
+- W3C, [OWL 2 Primer](https://www.w3.org/TR/owl2-primer/)，开放世界、个体同一性及 domain/range 说明。
+- W3C, [RDF 1.1 Concepts and Abstract Syntax](https://www.w3.org/TR/rdf11-concepts/)、[RDF Schema 1.1](https://www.w3.org/TR/rdf-schema/#ch_domain)，三元组与 domain 语义。
+- W3C, [SPARQL 1.1 Query Language](https://www.w3.org/TR/sparql11-query/)。
+- W3C, [Shapes Constraint Language (SHACL)](https://www.w3.org/TR/shacl/)。
+- W3C, [SKOS Simple Knowledge Organization System Reference](https://www.w3.org/TR/skos-reference/)。
+- LinkML, [LinkML at a glance](https://linkml.io/linkml/intro/overview.html)。
+
+可复现材料：[`library.ttl`](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/library.ttl)、[`library-shapes.ttl`](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/library-shapes.ttl)、[`queries.rq`](/static/images/2026-11-11-ontology-engineering-library-competency-questions/examples/queries.rq)。

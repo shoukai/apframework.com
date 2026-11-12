@@ -10,6 +10,7 @@ import SectionContainer from '@/components/SectionContainer'
 import Image from '@/components/Image'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
+import { formatDate } from 'pliny/utils/formatDate'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import Giscus from '@/components/Giscus'
 import TOC from '@/components/TOC'
@@ -41,7 +42,7 @@ export default function PostLayout({
   relatedReadNote,
   children,
 }: LayoutProps) {
-  const { filePath, path, slug, date, title, tags } = content
+  const { filePath, path, slug, date, lastmod, title, tags } = content
   const basePath = path.split('/')[0]
   
   // Extract headings from the children for TOC
@@ -103,6 +104,11 @@ export default function PostLayout({
                       {new Date(date).getDate()}日
                     </time>
                   </dd>
+                  {lastmod && lastmod !== date && (
+                    <dd className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      修改于 <time dateTime={lastmod}>{formatDate(lastmod, siteMetadata.locale)}</time>
+                    </dd>
+                  )}
                 </div>
               </dl>
               <div>
@@ -128,7 +134,11 @@ export default function PostLayout({
                       )}
                       <dl className="min-w-0 text-sm font-medium leading-5">
                         <dt className="sr-only">姓名</dt>
-                        <dd className="text-gray-900 dark:text-gray-100">{author.name}</dd>
+                        <dd className="text-gray-900 dark:text-gray-100">
+                          <Link href="/about" className="hover:text-primary-500">
+                            {author.name}
+                          </Link>
+                        </dd>
                         {author.occupation && (
                           <>
                             <dt className="sr-only">身份</dt>

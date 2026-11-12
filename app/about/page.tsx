@@ -8,7 +8,7 @@ export const metadata = genPageMetadata({
   title: '关于',
   path: '/about',
   description:
-    'About Shoukai Huang and ApFramework: software architecture, AI agents, and Agentic Practice.',
+    '了解 ApFramework 与作者 Shoukai Huang：软件架构、AI 智能体实践、项目和文章的形成方式。',
 })
 
 export default function Page() {

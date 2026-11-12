@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+<title id="title">标准职责：语义、术语、校验与生成</title><desc id="desc">OWL/RDFS 表达形式语义，SKOS 管受控词汇，SHACL 独立校验；LinkML 可选生成目标产物，虚线表示生成示意而非执行顺序。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#56798b"/></marker></defs>
+<rect width="1200" height="500" rx="12" fill="#f7faf9" stroke="#d9e5e1"/>
+<g font-family="PingFang SC, Heiti SC, Microsoft YaHei, sans-serif" fill="#263b43">
+<text x="40" y="52" font-size="22" font-weight="600">标准各司其职，不构成必选流水线</text>
+<g><rect x="40" y="90" width="250" height="250" rx="8" fill="#edf1fb" stroke="#a7b7dd"/><text x="60" y="130" font-size="22" font-weight="600" fill="#425f9b">OWL / RDFS</text><text x="60" y="184" font-size="22">类、属性与公理</text><text x="60" y="220" font-size="22">既定语义下推导类型</text><text x="60" y="278" font-size="22">开放世界</text><text x="60" y="314" font-size="22">未写明不等于为假</text></g>
+<g><rect x="330" y="90" width="250" height="250" rx="8" fill="#eaf6f3" stroke="#93c8ba"/><text x="350" y="130" font-size="22" font-weight="600" fill="#247565">SKOS</text><text x="350" y="184" font-size="22">受控词汇</text><text x="350" y="220" font-size="22">首选标签与别名</text><text x="350" y="278" font-size="22">broader / narrower</text><text x="350" y="314" font-size="22">不自动等于 OWL 子类</text></g>
+<g><rect x="620" y="90" width="250" height="250" rx="8" fill="#fff5df" stroke="#e2c27c"/><text x="640" y="130" font-size="22" font-weight="600" fill="#8a651d">SHACL</text><text x="640" y="184" font-size="22">独立数据校验</text><text x="640" y="220" font-size="22">检查关系、数量、允许值</text><text x="640" y="278" font-size="22">输出符合性报告</text><text x="640" y="314" font-size="22">通过不证明事实真实</text></g>
+<g><rect x="910" y="90" width="250" height="250" rx="8" fill="#edf5f8" stroke="#9bbdcb"/><text x="930" y="130" font-size="22" font-weight="600" fill="#3d6d82">LinkML · 可选</text><text x="930" y="184" font-size="22">schema-first 建模</text><text x="930" y="220" font-size="22">YAML schema</text><text x="930" y="278" font-size="22">生成 OWL / SHACL</text><text x="930" y="314" font-size="22">等目标产物</text></g>
+<path d="M1035 365 V405 H745 V350" fill="none" stroke="#56798b" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#arrow)"/><text x="420" y="445" font-size="22" fill="#52666d">虚线：LinkML 可生成 SHACL；不表示必选顺序或语义无损</text>
+</g></svg>

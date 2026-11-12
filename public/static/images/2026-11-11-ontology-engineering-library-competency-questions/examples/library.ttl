@@ -1,0 +1,48 @@
+@prefix : <https://example.org/library#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+# TBox：教学模型中 Book 表示书目条目/册次。
+:Book a owl:Class .
+:Author a owl:Class .
+:Branch a owl:Class .
+:Holding a owl:Class .
+:Reader a owl:Class .
+:BorrowRecord a owl:Class .
+
+:wrote a owl:ObjectProperty ; rdfs:domain :Author ; rdfs:range :Book .
+:isCopyOf a owl:ObjectProperty ; rdfs:domain :Holding ; rdfs:range :Book .
+:locatedAt a owl:ObjectProperty ; rdfs:domain :Holding ; rdfs:range :Branch .
+:hasBorrowRecord a owl:ObjectProperty ; rdfs:domain :Reader ; rdfs:range :BorrowRecord .
+:borrows a owl:ObjectProperty ; rdfs:domain :BorrowRecord ; rdfs:range :Holding .
+
+:title a owl:DatatypeProperty ; rdfs:domain :Book ; rdfs:range xsd:string .
+:volume a owl:DatatypeProperty ; rdfs:domain :Book ; rdfs:range xsd:integer .
+:authorName a owl:DatatypeProperty ; rdfs:domain :Author ; rdfs:range xsd:string .
+:readerName a owl:DatatypeProperty ; rdfs:domain :Reader ; rdfs:range xsd:string .
+:branchName a owl:DatatypeProperty ; rdfs:domain :Branch ; rdfs:range xsd:string .
+:status a owl:DatatypeProperty ; rdfs:domain :Holding ; rdfs:range xsd:string .
+:borrowDate a owl:DatatypeProperty ; rdfs:domain :BorrowRecord ; rdfs:range xsd:date .
+:returnDate a owl:DatatypeProperty ; rdfs:domain :BorrowRecord ; rdfs:range xsd:date .
+:loanStatus a owl:DatatypeProperty ; rdfs:domain :BorrowRecord ; rdfs:range xsd:string .
+
+# ABox：书目、人员、副本与借阅实例。教学快照截至 2026-11-10。
+:b_santi_1 a :Book ; :title "三体" ; :volume 1 .
+:b_santi_2 a :Book ; :title "三体" ; :volume 2 .
+:b_santi_3 a :Book ; :title "三体" ; :volume 3 .
+:b_ball a :Book ; :title "球状闪电" .
+:a_liu a :Author ; :authorName "刘慈欣" ; :wrote :b_santi_1, :b_santi_2, :b_santi_3, :b_ball .
+
+:br_main a :Branch ; :branchName "总馆" .
+:br_east a :Branch ; :branchName "东区" .
+
+:h_santi2_main a :Holding ; :isCopyOf :b_santi_2 ; :locatedAt :br_main ; :status "checked_out" .
+:h_santi2_east a :Holding ; :isCopyOf :b_santi_2 ; :locatedAt :br_east ; :status "available" .
+:h_santi1_main a :Holding ; :isCopyOf :b_santi_1 ; :locatedAt :br_main ; :status "available" .
+
+:r_zhang a :Reader ; :readerName "张三" ; :hasBorrowRecord :br_001 .
+:r_li a :Reader ; :readerName "李四" ; :hasBorrowRecord :br_002 .
+:br_001 a :BorrowRecord ; :borrows :h_santi2_main ; :borrowDate "2026-10-01"^^xsd:date ; :loanStatus "active" .
+:br_002 a :BorrowRecord ; :borrows :h_santi2_east ; :borrowDate "2026-09-01"^^xsd:date ; :returnDate "2026-09-20"^^xsd:date ; :loanStatus "returned" .
