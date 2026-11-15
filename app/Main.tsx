@@ -32,14 +32,14 @@ export default function Home({ posts }) {
               </div>
               
               <div className="bg-black/20 backdrop-blur-md p-5 md:p-6 rounded-xl max-w-xl border border-white/10 shadow-xl">
-                <h1 className="text-3xl font-normal leading-9 tracking-tight text-white sm:text-4xl sm:leading-10 md:text-5xl md:leading-14 mb-3">
-                  Agentic Practice
+                <h1 className="mb-3 text-2xl font-normal leading-tight tracking-tight text-white sm:text-3xl md:text-4xl" lang="en">
+                  Agent Production Framework
                 </h1>
                 <p className="text-lg leading-7 text-gray-100">
-                  探索 AI 智能体的架构与实践
+                  AI 智能体架构设计与生产落地
                 </p>
-                <p className="mt-2 text-sm leading-6 text-gray-200">
-                  Exploring how AI agents are designed, built, and improved.
+                <p className="mt-2 text-sm leading-6 text-gray-200" lang="en">
+                  Engineering reliable AI agents for production.
                 </p>
               </div>
             </div>

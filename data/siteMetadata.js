@@ -5,7 +5,7 @@ const siteMetadata = {
   headerText: 'Recording Technology and Life',
   headerTitle: 'ApFramework',
   description:
-    'ApFramework（Agentic Practice）：探索 AI 智能体的架构与实践，分享软件架构、Agent Skills、开源项目与阅读思考。',
+    'ApFramework（Agent Production Framework）记录 AI 智能体工程实践，涵盖 Agent 架构、上下文工程、评估与生产落地。',
   language: 'zh',
   theme: 'system', // system, dark or light
   siteUrl: 'https://apframework.com',

@@ -58,7 +58,7 @@ node .yarn/releases/yarn-3.6.1.cjs test
 
 文章和笔记至少填写 `title`、`date`，建议补充 `summary`；可用 `draft: true` 暂停公开。图片等公开资源放在 `public/static/`。栏目、RSS 与阅读数据的更多约定见[站点结构](docs/site-structure.md)。
 
-`apframework.com` 的主站由阿里云服务器承载。这个仓库用于维护源码与备份；GitHub Actions 只负责构建和测试，不负责线上发布。静态导出不会执行 Next.js API 路由或 middleware，也不会自动应用 `next.config.js` 中的 redirects 和 headers；服务器上的跳转与响应头需要单独核对。
+`apframework.com` 的主站由阿里云服务器承载。这个仓库用于维护源码与备份；GitHub Actions 只负责构建和测试，不负责线上发布。静态导出不会执行 Next.js API 路由或 middleware，也不会自动应用 `next.config.js` 中的 redirects 和 headers。服务器跳转与静态路由配置在 [config/nginx](config/nginx)，应用前请按 [部署与核对清单](docs/superpowers/plans/2026-11-14-geo-baseline.md) 检查现有虚拟主机。
 
 ## 来源与许可
 

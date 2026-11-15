@@ -1,0 +1,557 @@
+---
+title: 'A2A 协议概览：从能力发现到任务交付'
+date: '2026-11-14'
+tags: ['A2A', 'AI Agent', '多智能体系统', 'Python']
+draft: false
+summary: 'A2A（Agent2Agent）协议如何连接独立 Agent？本文结合 a2a-sdk 1.3.0 差旅 Demo，说明 Agent Card 发现、Message 与 Task 状态、Artifact 交付和任务查询，并分析 MCP 分工、信任授权及部署边界。'
+---
+
+![两套独立 Agent 系统通过 A2A 协议交换消息、跟踪任务并交付结果](/static/images/2026-11-14-a2a-protocol-overview/a2a-protocol-cover.jpg)
+
+设想一个差旅 Agent 收到“规划一次北京往返上海的出差”后，发现预算信息还缺失。它返回一个处于 `INPUT_REQUIRED` 的任务。用户补充“预算上限 8000 元”后，系统再建立一个与前序工作相关的任务，生成行程草案，并允许调用方查询任务状态和产物。
+
+这是本文 A2A Demo 实际运行的过程。沿着这次交互，可以看到 Agent 如何发现对方的接口，消息、任务和结果如何关联，补充输入如何进入后续工作，以及协议和业务系统各自承担什么。
+
+本文依据 A2A 官网当前规范与主题文档介绍协议，结合五篇外部工程与分析资料讨论适用场景和边界，并用 `a2a-sdk==1.3.0` 的本地 Demo 展示实际交互。外部教程和示例可能使用旧版字段；代码运行结果仅适用于本文记录的 SDK 版本和演示环境。
+
+## A2A 解决什么问题
+
+A2A（Agent2Agent）是一种面向彼此独立的 Agent 系统互操作的协议。不同团队、框架、语言或运行时构建的 Agent 可以保留各自的提示、上下文、工具和执行策略，通过共同约定发现能力、交换消息、跟踪任务并交付结果，而不必向对方开放内部实现。
+
+这与在单一应用里调用一个函数不同。跨服务协作通常需要明确服务入口、能力范围、消息格式、运行状态和结果交付方式。一个请求可能马上完成，也可能需要澄清、等待较长时间或在稍后交付结果。若双方各自定义一套消息和状态约定，集成成本会随参与系统增加。
+
+A2A 在 Agent 技术栈中承担的是 Agent 到 Agent 的交互契约。MCP 常用于 Agent 与工具、资源之间的集成；A2A 则用于独立 Agent 系统之间的协作。两者可以组合：一个远端 Agent 通过 A2A 暴露能力，同时在自己的边界内用 MCP 接入工具。选哪一种，取决于交互对象和系统边界，而不是简单按“有状态/无状态”划线。
+
+微软的工程指导也把边界作为判断因素：同一进程、同一团队或同一运行时内的组合往往更直接；跨服务、跨团队或跨组织协作时，才更有理由承担网络协议、身份和运维成本。这是工程选择提示，不是规范要求。引入 A2A 不会自动让业务目标一致，也不保证远端结果正确。
+
+## Agent Card：先发现，再决定是否信任
+
+第一次通信之前，调用方需要知道对方是谁、提供什么能力、从哪里访问，以及使用何种协议接口。A2A 的 Agent Card 描述 Agent 的身份信息、技能、输入与输出模式、支持接口、协议版本和可选能力。公开部署可以通过 well-known 路径发现卡片；也可以由受管理目录提供卡片，或在双方已知地址时直接配置。规范并没有定义一个全行业统一的 Agent 注册目录 API。
+
+卡片是能力和连接信息的声明，不是信任证明。知道某个 URL 并不意味着可以把敏感数据发送给它；卡片列出一个技能，也不等于对方已经获得代表当前用户操作的授权。部署方仍要决定如何验证服务身份、颁发或转交凭证、限制访问范围，并处理用户授权。官方规范允许与安全方案配合使用；外部安全讨论提出的发现信任、委托凭证范围和输入最小化，适合作为威胁建模议题，不应被说成协议自动解决或某个未经核实实验已经证明的结论。
+
+## Message、Task 与 Artifact
+
+A2A 用不同对象表示通信、工作和结果：
+
+| 对象 | 作用 | 差旅 Demo 中的例子 |
+| --- | --- | --- |
+| Message | 一轮通信，包含发送方、内容和关联信息 | 初始差旅请求、补充预算回复 |
+| Task | 可跟踪的工作单元，具有状态和历史 | 等待预算的任务、预算补齐后的规划任务 |
+| Artifact | Agent 交付的工作产物 | `trip-plan` 行程草案 |
+| Part | 消息或产物中的内容片段 | 文本内容；也可以承载其他支持的数据形式 |
+| Context | 将相关交互分组的上下文标识 | 两个相关 Task 使用相同 `contextId` |
+
+简单交互可以直接以 Message 作为结果；需要状态跟踪或异步协作时，Task 才是更合适的容器。Task 状态表达工作处于提交、处理中、等待输入或终止等阶段；Artifact 则表达产出本身。两者不能混为一谈：一个任务进入 `COMPLETED`，是状态变化；一个 Artifact 则是实际交付的内容。
+
+`contextId` 用于把相关通信放进同一上下文，`taskId` 定位一个具体任务。上下文标识本身不等于共享的远端记忆，也不保证服务端一定保留完整历史或无限期保存产物。实际可查询内容还取决于 Agent 的存储策略、请求参数和部署生命周期。
+
+## Demo 设计与运行过程
+
+差旅规划 Demo 由一个 Starlette 服务和一个异步客户端组成。服务端发布 Agent Card 与 JSON-RPC 入口，接收消息并把任务事件交给 SDK 的任务存储；客户端先发现卡片，再发送两条消息，最后使用 `GetTask` 独立查询任务。业务逻辑采用确定性实现，不调用模型、搜索引擎或预订服务，因此运行结果可复现，但不能作为真实行程建议。
+
+### 目录与环境
+
+下面的命令都在 `demo` 目录运行。目录中已有三份程序文件，运行时也在这里使用虚拟环境和日志。
+
+```text
+demo/
+├── server.py
+├── client.py
+├── run_demo.sh
+├── .venv/       # 本地创建的 Python 虚拟环境
+├── server.log   # 一键脚本重定向的 Uvicorn 日志
+└── server.pid   # 一键脚本运行期间记录的服务进程号
+```
+
+Demo 使用 Python 3.13，下面的安装命令固定了实际使用的依赖版本。这些命令可用于创建环境，但本文编辑期间未再次从零安装验证。
+
+```sh
+python3.13 -m venv .venv
+.venv/bin/python -m pip install 'a2a-sdk==1.3.0' 'httpx==0.28.1' 'starlette==1.10.0' 'uvicorn==0.54.0'
+.venv/bin/python -c 'from importlib.metadata import version; print("a2a-sdk", version("a2a-sdk"))'
+```
+
+这里有三种不同的版本号。Agent Card 中 `supported_interfaces[].protocol_version` 的 `1.0` 表示服务声明支持的 A2A 协议版本；卡片顶层 `version="1.0.0"` 是这个 Agent 应用自身的版本；`a2a-sdk==1.3.0` 是 Python 客户端和服务端所用 SDK 包的发行版本。三者不能互换，也不能仅凭版本号相近就推断兼容关系。
+
+### 服务端源码
+
+`server.py` 同时描述能力和实现请求处理。以下代码为 Demo 磁盘文件的完整内容：
+
+```python
+from __future__ import annotations
+
+from uuid import uuid4
+
+from starlette.applications import Starlette
+
+from a2a.server.agent_execution.agent_executor import AgentExecutor
+from a2a.server.agent_execution.context import RequestContext
+from a2a.server.agent_execution.simple_request_context_builder import SimpleRequestContextBuilder
+from a2a.server.events.event_queue import EventQueue
+from a2a.server.request_handlers.default_request_handler_v2 import DefaultRequestHandlerV2
+from a2a.server.routes.agent_card_routes import create_agent_card_routes
+from a2a.server.routes.jsonrpc_routes import create_jsonrpc_routes
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.types import (
+    AgentCapabilities,
+    AgentCard,
+    AgentSkill,
+    Artifact,
+    Message,
+    Part,
+    Task,
+    TaskArtifactUpdateEvent,
+    TaskState,
+    TaskStatus,
+    TaskStatusUpdateEvent,
+)
+
+
+class TripPlannerExecutor(AgentExecutor):
+    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        task_id = context.task_id
+        context_id = context.context_id
+        if not task_id or not context_id:
+            raise ValueError("The request handler did not assign task/context IDs")
+
+        user_text = context.get_user_input().strip()
+        if not context.current_task or context.current_task.status.state != TaskState.TASK_STATE_INPUT_REQUIRED:
+            if context.related_tasks:
+                await event_queue.enqueue_event(
+                    Task(
+                        id=task_id,
+                        context_id=context_id,
+                        status=TaskStatus(state=TaskState.TASK_STATE_SUBMITTED),
+                    )
+                )
+                await self._complete_task(task_id, context_id, user_text, event_queue)
+                return
+            await event_queue.enqueue_event(
+                Task(
+                    id=task_id,
+                    context_id=context_id,
+                    status=TaskStatus(state=TaskState.TASK_STATE_SUBMITTED),
+                )
+            )
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    task_id=task_id,
+                    context_id=context_id,
+                    status=TaskStatus(
+                        state=TaskState.TASK_STATE_INPUT_REQUIRED,
+                        message=Message(
+                            parts=[Part(text="我可以规划北京往返上海的差旅。请补充预算上限，例如 8000 元。")],
+                            role="ROLE_AGENT",
+                        ),
+                    ),
+                )
+            )
+            return
+
+        await self._complete_task(task_id, context_id, user_text, event_queue)
+
+    async def _complete_task(
+        self, task_id: str, context_id: str, budget: str, event_queue: EventQueue
+    ) -> None:
+        summary = f"行程草案：北京往返上海，预算上限 {budget}；建议先比较高铁与机票，再按住宿预算筛选酒店。"
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=task_id,
+                context_id=context_id,
+                status=TaskStatus(state=TaskState.TASK_STATE_WORKING),
+            )
+        )
+        await event_queue.enqueue_event(
+            TaskArtifactUpdateEvent(
+                task_id=task_id,
+                context_id=context_id,
+                artifact=Artifact(
+                    artifact_id=str(uuid4()),
+                    name="trip-plan",
+                    description="根据补充预算生成的确定性演示结果",
+                    parts=[Part(text=summary)],
+                ),
+                append=False,
+                last_chunk=True,
+            )
+        )
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=task_id,
+                context_id=context_id,
+                status=TaskStatus(state=TaskState.TASK_STATE_COMPLETED),
+            )
+        )
+
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        if context.task_id and context.context_id:
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    task_id=context.task_id,
+                    context_id=context.context_id,
+                    status=TaskStatus(state=TaskState.TASK_STATE_CANCELED),
+                )
+            )
+
+
+agent_card = AgentCard(
+    name="Trip Planner Demo Agent",
+    description="A deterministic A2A demo that asks for a budget and returns a trip-plan artifact.",
+    supported_interfaces=[
+        {
+            "url": "http://127.0.0.1:8000/a2a",
+            "protocol_binding": "JSONRPC",
+            "protocol_version": "1.0",
+        }
+    ],
+    version="1.0.0",
+    capabilities=AgentCapabilities(streaming=False, push_notifications=False),
+    default_input_modes=["text/plain"],
+    default_output_modes=["text/plain"],
+    skills=[
+        AgentSkill(
+            id="trip-planning",
+            name="Trip planning",
+            description="Collects a budget and returns a simple trip-plan artifact.",
+            tags=["travel", "planning"],
+            examples=["Plan a Beijing to Shanghai business trip"],
+            input_modes=["text/plain"],
+            output_modes=["text/plain"],
+        )
+    ],
+)
+
+task_store = InMemoryTaskStore()
+handler = DefaultRequestHandlerV2(
+    agent_executor=TripPlannerExecutor(),
+    task_store=task_store,
+    agent_card=agent_card,
+    request_context_builder=SimpleRequestContextBuilder(
+        should_populate_referred_tasks=True,
+        task_store=task_store,
+    ),
+)
+
+app = Starlette(
+    routes=[
+        *create_agent_card_routes(agent_card),
+        *create_jsonrpc_routes(handler, rpc_url="/a2a"),
+    ]
+)
+```
+
+`AgentCard` 是服务对外发布的能力说明。它把名称、Agent 软件版本、技能 `trip-planning`、文本输入输出模式、JSON-RPC 地址以及协议版本放在一起；`streaming=False` 和 `push_notifications=False` 则明确表示这个示例没有提供这两种能力。卡片用于发现和协商入口，不是执行权限或服务可信度的证明。
+
+`TripPlannerExecutor.execute` 收到 SDK 构造的 `RequestContext` 与 `EventQueue`。处理器会提供当前消息的文本、任务 ID、Context ID、当前任务和关联任务等信息。这里先校验处理器分配了两个 ID，再读取用户输入。若当前工作不是一个处于 `INPUT_REQUIRED` 的既有 Task，且没有由请求上下文装入的关联任务，执行器就先发出 `SUBMITTED` Task，再发出要求预算的 `INPUT_REQUIRED` 状态事件。第一条消息到此为止，没有 Artifact。
+
+补充消息在本 Demo 中引用了等待输入的 Task。`SimpleRequestContextBuilder(should_populate_referred_tasks=True, task_store=task_store)` 会按引用从同一个任务存储中取回相关任务并放入请求上下文；执行器据此识别“这是带有关联工作的后续输入”，为该消息对应的新 Task 发出 `SUBMITTED`，然后进入 `_complete_task`。这说明 `reference_task_ids` 不只是描述性字符串：在本服务配置下，它参与构建执行上下文。服务端选择这种双 Task 组织方式是教学设计，不是 SDK 或协议强制要求。
+
+完成路径按顺序发出 `WORKING`、Artifact 更新和 `COMPLETED`。Artifact 名称为 `trip-plan`，文本由字符串模板拼接而来。由于模板本身包含“预算上限”，而传入的原文也是“预算上限 8000 元。”，实际 Artifact 文本会出现重复词组。它只是字符串拼接的演示瑕疵，不是预算解析、校验或真正规划的结果。`append=False` 表示这不是在已有 Artifact 内容后追加片段，`last_chunk=True` 标记该产物更新的最后一块；本例实际上只有一个文本 Part。
+
+Task 对象和后续事件有明确的顺序：先建立处于 `SUBMITTED` 的首个 Task，再发出 `INPUT_REQUIRED` 状态更新；完成时先发出 `WORKING`，再交付 Artifact，最后进入 `COMPLETED`。任务是可保存、可查询的工作对象，事件用于推进或补充它的状态。客户端首次收到的是当时的 Task 快照，后续状态仍可能变化。
+
+`Part` 是内容片段，而不是任意字符串字段。本例通过 `Part(text=...)` 表达纯文本，`Message.parts` 和 `Artifact.parts` 都是 Part 列表。SDK 的类型来自 Protobuf 生成模型：判断可选的消息体时使用 `HasField("task")`，不能用 Python 的 `None` 检查替代 Protobuf 字段存在性语义；状态值则是枚举，`TaskState.Name(value)` 把枚举数值转成 `TASK_STATE_INPUT_REQUIRED`、`TASK_STATE_WORKING` 等可读名称。打印出来的枚举名称不是另外一种协议状态。
+
+### 客户端源码
+
+`client.py` 负责发现、发送与查询。完整文件如下：
+
+```python
+from __future__ import annotations
+
+import asyncio
+import json
+
+import httpx
+from a2a.client import ClientConfig
+from a2a.client.card_resolver import A2ACardResolver
+from a2a.client.client_factory import create_client
+from a2a.types import (
+    GetTaskRequest,
+    Message,
+    Part,
+    Role,
+    SendMessageConfiguration,
+    SendMessageRequest,
+    Task,
+    TaskState,
+)
+
+
+async def main() -> None:
+    base_url = "http://127.0.0.1:8000"
+    async with httpx.AsyncClient(trust_env=False) as http:
+        card = await A2ACardResolver(http, base_url).get_agent_card()
+    print("DISCOVERED_AGENT_CARD")
+    print(json.dumps({"name": card.name, "version": card.version, "skills": [s.id for s in card.skills]}, ensure_ascii=False))
+
+    client = await create_client(
+        card,
+        client_config=ClientConfig(
+            streaming=False,
+            polling=False,
+            httpx_client=httpx.AsyncClient(trust_env=False),
+        ),
+    )
+    try:
+        first_message = Message(
+            message_id="demo-initial-message",
+            role=Role.ROLE_USER,
+            parts=[Part(text="请规划一次北京往返上海的差旅。")],
+        )
+        first_request = SendMessageRequest(
+            message=first_message,
+            configuration=SendMessageConfiguration(return_immediately=False),
+        )
+        first_responses = [response async for response in client.send_message(first_request)]
+        first_response = first_responses[0]
+        first_task = first_response.task if first_response.HasField("task") else None
+        if first_task is None:
+            raise RuntimeError(f"Expected a Task, got: {first_responses!r}")
+        print("FIRST_RESPONSE")
+        print(json.dumps({"taskId": first_task.id, "contextId": first_task.context_id, "state": TaskState.Name(first_task.status.state), "statusMessage": [p.text for p in first_task.status.message.parts]}, ensure_ascii=False))
+
+        follow_up = Message(
+            message_id="demo-budget-follow-up",
+            context_id=first_task.context_id,
+            role=Role.ROLE_USER,
+            parts=[Part(text="预算上限 8000 元。")],
+            reference_task_ids=[first_task.id],
+        )
+        follow_up_request = SendMessageRequest(
+            message=follow_up,
+            configuration=SendMessageConfiguration(return_immediately=False),
+        )
+        final_responses = [response async for response in client.send_message(follow_up_request)]
+        final_response = final_responses[0]
+        final_task = final_response.task if final_response.HasField("task") else None
+        if final_task is None:
+            raise RuntimeError(f"Expected a Task, got: {final_responses!r}")
+        artifacts = [
+            {"name": artifact.name, "text": "\n".join(part.text for part in artifact.parts if part.text)}
+            for artifact in final_task.artifacts
+        ]
+        print("FINAL_RESPONSE")
+        print(json.dumps({"taskId": final_task.id, "contextId": final_task.context_id, "state": TaskState.Name(final_task.status.state), "artifacts": artifacts}, ensure_ascii=False))
+
+        first_persisted = await client.get_task(GetTaskRequest(id=first_task.id))
+        if TaskState.Name(first_persisted.status.state) != "TASK_STATE_INPUT_REQUIRED":
+            raise AssertionError(f"First task state changed unexpectedly: {TaskState.Name(first_persisted.status.state)}")
+        persisted = await client.get_task(GetTaskRequest(id=final_task.id))
+        if TaskState.Name(persisted.status.state) != "TASK_STATE_COMPLETED":
+            raise AssertionError(f"Follow-up task did not persist in completed state: {TaskState.Name(persisted.status.state)}")
+        print("GET_TASK")
+        print(json.dumps({"firstTaskState": TaskState.Name(first_persisted.status.state), "followUpTaskId": persisted.id, "followUpState": TaskState.Name(persisted.status.state), "artifactCount": len(persisted.artifacts)}, ensure_ascii=False))
+    finally:
+        await client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+`A2ACardResolver` 先从服务基址取得 well-known Agent Card，随后 `create_client` 根据卡片接口创建 SDK Client。发现阶段和 ClientConfig 中传入的 HTTPX 都设置了 `trust_env=False`，让这两处本地请求不读取代理环境变量，以避开本机环境代理的干扰。这个设置解决了本次请求问题，但并未定位或证明代理软件内部的具体缺陷。
+
+每条 `Message` 都带有角色与 Part。首条消息只有 `message_id` 和文本；第二条消息另外携带首 Task 的 `context_id`，并以 `reference_task_ids=[first_task.id]` 指明所关联的工作。服务端据此在同一 Context 下创建后续 Task，但它们仍是两个不同的 `taskId`。一个 Context 可以容纳多个有关联的 Task，表示它们归入同一交互上下文，不表示两个 Task 合并成一个，也不自动意味着 SDK 为它们提供了共享的长期记忆。
+
+这里的 `client.send_message` 返回异步迭代器，所以代码用 async comprehension 将结果收集起来。客户端配置 `streaming=False`，卡片也声明不支持 streaming；因此这段消费方式是 SDK 统一的异步接口形态，不代表本次运行观察到了逐块流式状态。`return_immediately=False` 表示等待服务端处理后返回；代码取第一条响应，并用 Protobuf 的 `HasField("task")` 检查响应究竟是否包含 Task。真正的状态复核随后通过 `get_task(GetTaskRequest(...))` 发起，而非把响应快照当作持久状态查询。
+
+### 运行方式与协议请求形态
+
+手动运行时开两个终端，当前目录都设为 `demo`。第一个终端启动服务：
+
+```sh
+.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8000
+```
+
+第二个终端运行客户端：
+
+```sh
+.venv/bin/python client.py
+```
+
+也可以在 `demo` 目录用一键脚本：
+
+```sh
+sh run_demo.sh
+```
+
+脚本会检查虚拟环境和依赖，后台启动 Uvicorn，把服务输出写入 `server.log`，记录 PID，轮询 Agent Card 直到服务就绪，再运行客户端；退出时由 trap 结束刚启动的服务并删除 PID 文件。因为端口固定为 `8000`，若该端口已经被其他进程占用，服务可能无法正常启动或脚本无法通过卡片就绪检查。先确认端口用途，再停止占用进程或手动改用其他端口并同步调整客户端和卡片地址。脚本退出后进程内的 `InMemoryTaskStore` 随服务进程消失，所以不能在脚本结束后再 curl 查询刚才的任务；需要保留服务供手动复查时，使用双终端方式，在查询结束前不要关闭服务。
+
+`run_demo.sh` 的完整源码如下：
+
+```sh
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PYTHON="$SCRIPT_DIR/.venv/bin/python"
+LOG="$SCRIPT_DIR/server.log"
+PID_FILE="$SCRIPT_DIR/server.pid"
+
+if [ ! -x "$PYTHON" ]; then
+  echo "Missing virtualenv Python: $PYTHON" >&2
+  exit 1
+fi
+
+"$PYTHON" -c 'import a2a, httpx, starlette, uvicorn' || {
+  echo "Missing runtime dependency. Install the documented requirements first." >&2
+  exit 1
+}
+
+"$PYTHON" -m uvicorn server:app --app-dir "$SCRIPT_DIR" --host 127.0.0.1 --port 8000 >"$LOG" 2>&1 &
+SERVER_PID=$!
+printf '%s\n' "$SERVER_PID" > "$PID_FILE"
+cleanup() {
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
+  rm -f "$PID_FILE"
+}
+trap cleanup EXIT INT TERM
+
+READY=0
+for _ in $(seq 1 50); do
+  if curl --silent --fail http://127.0.0.1:8000/.well-known/agent-card.json >/dev/null; then
+    READY=1
+    break
+  fi
+  sleep 0.1
+done
+if [ "$READY" -ne 1 ]; then
+  echo "Server did not become ready. See $LOG" >&2
+  exit 1
+fi
+
+"$PYTHON" "$SCRIPT_DIR/client.py"
+```
+
+脚本用自身所在目录定位虚拟环境、日志和客户端，因此从 `demo` 目录执行的 `sh run_demo.sh` 不依赖调用者当前目录以外的路径。它将服务日志重定向到文件，最多轮询 50 次、每次间隔 0.1 秒等待卡片就绪；客户端退出、启动失败或收到中断信号时，trap 会尝试清理本次启动的服务进程。`curl` 就绪检查运行在该脚本中，没有显式 `--noproxy`；下面手动发现卡片的命令会显式绕过代理。
+
+服务仍运行时，可直接发现卡片：
+
+```sh
+curl --noproxy '*' http://127.0.0.1:8000/.well-known/agent-card.json
+```
+
+`--noproxy '*'` 让这次 curl 明确绕过代理。该命令只查询卡片，不会创建任务。客户端使用 SDK 把类型化请求转换为协议绑定上的调用。下面是帮助理解的 JSON-RPC 请求形态示意，突出消息字段及 RPC 方法；它不是客户端终端汇总输出，也不是声称抓取到的逐字 HTTP 报文：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "request-id",
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "demo-budget-follow-up",
+      "contextId": "577ba9c0-7ec0-4674-8f09-26b37c63840f",
+      "role": "ROLE_USER",
+      "parts": [{"text": "预算上限 8000 元。"}],
+      "referenceTaskIds": ["a1e6b39c-2481-45c5-914d-120a55e5c617"]
+    },
+    "configuration": {"returnImmediately": false}
+  }
+}
+```
+
+`GetTask` 则是另一项请求，用任务 ID 查询服务端存储中的当前对象。下面展示的是本 Demo 所用 SDK 1.3.0 的 JSON-RPC 绑定请求（方法名分别为 `SendMessage` 与 `GetTask`），字段采用该 SDK 的 JSON 表示：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "request-id",
+  "method": "GetTask",
+  "params": {"id": "1f93834d-99a6-4302-b1e2-2cbcdc1d8803"}
+}
+```
+
+### 真实运行结果与状态解释
+
+一次成功运行中，客户端先发现 `Trip Planner Demo Agent`，读取到 Agent 软件版本 `1.0.0` 和技能 `trip-planning`。首条消息请求规划北京往返上海的差旅；Agent 返回状态为 `TASK_STATE_INPUT_REQUIRED` 的 Task，并提示补充预算。随后客户端发送“预算上限 8000 元。”，关联前序 Task，收到一个新的、状态为 `TASK_STATE_COMPLETED` 的 Task 和 1 个 `trip-plan` Artifact。最后，客户端分别调用 `GetTask` 查询两项任务：首 Task 仍为 `TASK_STATE_INPUT_REQUIRED`，后续 Task 为 `TASK_STATE_COMPLETED`，Artifact 数为 1。
+
+用户手动运行时记录的终端输出如下。Task ID 和 Context ID 是这次运行生成的；重新运行时会变化：
+
+```text
+.venv/bin/python client.py
+DISCOVERED_AGENT_CARD
+{"name": "Trip Planner Demo Agent", "version": "1.0.0", "skills": ["trip-planning"]}
+FIRST_RESPONSE
+{"taskId": "a3c0aa68-30f9-48f1-b09f-6237e44c533d", "contextId": "70ac763f-ed9d-4d77-921c-ab02f14d495c", "state": "TASK_STATE_INPUT_REQUIRED", "statusMessage": ["我可以规划北京往返上海的差旅。请补充预算上限，例如 8000 元。"]}
+FINAL_RESPONSE
+{"taskId": "dcc0ee97-a763-4ec2-a788-2039cd2b0053", "contextId": "70ac763f-ed9d-4d77-921c-ab02f14d495c", "state": "TASK_STATE_COMPLETED", "artifacts": [{"name": "trip-plan", "text": "行程草案：北京往返上海，预算上限 预算上限 8000 元。；建议比较高铁与机票，再按住宿预算筛选酒店。"}]}
+GET_TASK
+{"firstTaskState": "TASK_STATE_INPUT_REQUIRED", "followUpTaskId": "dcc0ee97-a763-4ec2-a788-2039cd2b0053", "followUpState": "TASK_STATE_COMPLETED", "artifactCount": 1}
+```
+
+Artifact 中“预算上限”重复，是因为代码把模板文字与用户输入直接拼接，并未解析预算字段。这里的结果反映 Demo 当前实现，不是经过预算解析或真实行程规划后生成的建议。客户端输出的 `DISCOVERED_AGENT_CARD`、`FIRST_RESPONSE`、`FINAL_RESPONSE` 和 `GET_TASK` 是便于阅读的摘要 JSON，并非抓包得到的协议请求和响应原文。此前一次成功运行也得到相同的状态关系，但 Task ID 与 Context ID 不同。
+
+在服务端 SDK 内部，`ActiveTask._run_producer` 会在循环中持续等待后续请求；`_RequestCompleted` 事件负责释放请求锁，并不表示事件队列或生产者循环已关闭。这里描述的只是 SDK `1.3.0` 的行为，不能据此推断其他 SDK 采用相同实现。
+
+### 失败经过与正确解释
+
+一次早期运行中，Agent Card 与首条请求成功，第二条请求却得到 404，日志中请求路径变成了编码后的 `http%3A//127.0.0.1%3A8000/...`。检查到当时进程的 `HTTP_PROXY`、`HTTPS_PROXY` 指向本机代理；HTTPX 默认读取这些环境变量。将发现客户端和 SDK Client 都配置为 `trust_env=False` 后，本机 Demo 请求恢复正常。这只证明禁用环境代理后这条本地请求路径可用，不足以断定代理内部具体哪个行为造成了错误。
+
+另一次断言失败并不是 SDK 无法处理同 Task 补充输入。早先真实 HTTP 输出中，原 Task `eb52d899-4f11-4fb7-a097-cb7819dad635` 首次处于 `INPUT_REQUIRED`；后续消息携带同一 `taskId` 后，服务返回 `COMPLETED` 和 1 个 Artifact。失败原因是当时客户端断言仍要求首 Task 保持 `INPUT_REQUIRED`，与该次同 Task 续接的实际结果相矛盾。不能把这个断言失败解释为协议或 SDK 的限制。
+
+2026-11-14 又用独立 SDK 与 `httpx.ASGITransport` 测试了同 Task 续接，输出为 `same_task True first TASK_STATE_INPUT_REQUIRED final TASK_STATE_COMPLETED stored TASK_STATE_COMPLETED artifacts 1`，断言通过并以 exit 0 结束。因此，双 Task 只是主 Demo 为展示关联任务而选的组织方式；同 Task 原地续接也可以运行。
+
+若想在客户端尝试同 Task 变体，只替换 follow-up 消息的任务关联字段：设置 `task_id=first_task.id`，并删除 `reference_task_ids`。例如：
+
+```python
+follow_up = Message(
+    message_id="demo-budget-follow-up",
+    task_id=first_task.id,
+    context_id=first_task.context_id,
+    role=Role.ROLE_USER,
+    parts=[Part(text="预算上限 8000 元。")],
+)
+```
+
+对应的查询断言要改为查询同一个 ID，并检查完成状态与单个 Artifact：
+
+```python
+persisted = await client.get_task(GetTaskRequest(id=first_task.id))
+assert TaskState.Name(persisted.status.state) == "TASK_STATE_COMPLETED"
+assert len(persisted.artifacts) == 1
+```
+
+`first_task` 变量仍是第一次响应里已取得的对象快照，改为续接并不会自动改写这个 Python 对象；要判断服务端最新状态，应以 `GetTask` 返回的 `persisted` 为准。这也解释了为何“首响应显示等待输入”和“之后查询同一 Task 显示完成”可以同时成立。
+
+以上双 Task 主路径的真实 ID 与输出来自已记录的成功运行；同 Task 的结论仅限上述明确记录的 HTTP 输出和 2026-11-14 独立测试。内存存储只在服务进程存活期间有效；脚本清理服务后，旧任务不能再查询。日志适合排查当前运行，不能替代持久化存储或跨进程任务历史。
+
+## 任务更新与不同交付方式
+
+对于需要跟踪的工作，调用方可以通过任务状态了解进展。根据 Agent 声明的能力和使用的协议绑定，客户端可以采用轮询、流式更新或推送通知等方式接收状态变化。JSON-RPC、gRPC 与 HTTP+JSON 是不同的绑定选择；不能把所有绑定都描述成 JSON-RPC，也不能把所有更新机制说成 SSE。选择方式时，要一起考虑网络连接、服务端能力、超时、客户端是否能保持连接以及通知端点的安全性。
+
+长任务还意味着应用必须处理取消、超时、断连、重试与重复请求。收到 `INPUT_REQUIRED` 之后如何保存用户等待状态、如何把后续输入关联到既有工作，是 Agent 实现的一部分。不同 SDK 的活跃任务生命周期和持久化机制也可能不同。本文的 SDK 1.3.0 Demo 使用内存存储，服务一退出，任务数据就不再可查询；生产系统需要适合自身可用性和审计要求的持久化方案。
+
+Google Developers Blog 的跨语言示例展示了 A2A 如何隔离 Python 与 Go 服务的实现语言，但其部分代码字段和调用方式来自较早版本，不应直接复制为 v1.0 示例。Future AGI 的追踪演示也说明可以把 A2A 调用与分布式追踪联系起来，但这不是协议自动提供的可观测性保证。服务端仍需要关联 task、请求和 trace 标识，设置日志与审计策略，并控制敏感数据暴露。
+
+## 协议的边界与接入判断
+
+A2A 提供共同的交互语义和通信约定，不负责替应用决定哪个 Agent 最合适、任务如何拆分、预算如何控制，也不验证 Artifact 是否满足用户目标。Agent Card 中的技能描述需要与调用方的业务语义匹配；权限系统要限制 Agent 能代表谁做什么；失败恢复、用户确认、结果校验和敏感信息治理都需要由部署方落实。
+
+因此，考虑 A2A 时可以先问三个问题：协作双方是否由独立系统管理？是否需要跨框架或跨团队互操作？工作是否需要多轮输入、状态跟踪或异步交付？如果答案大多是否定的，已有 API、工具接口或进程内组合可能更轻。如果答案是肯定的，A2A 提供的统一交互模型可能抵消接入、部署、身份和运维成本。微软的决策指导支持把系统边界作为主要判断线索；这仍是工程建议，不是适用性定理。
+
+A2A 让独立 Agent 用一组共同的对象和状态协商工作：先声明能力，再交换消息，必要时跟踪任务，最后交付结果。这不意味着要把所有 Agent 接入同一个网络，也不会消除业务集成工作。要实现互操作，双方仍须对齐实现、正确授权、明确失败处理方式，并由应用对结果负责。
+
+## 资料来源
+
+### 官方基准
+
+- [A2A Protocol Specification](https://a2a-protocol.org/latest/specification/)
+- [What is A2A?](https://a2a-protocol.org/latest/topics/what-is-a2a/)
+- [Life of a Task](https://a2a-protocol.org/latest/topics/life-of-a-task/)
+- [A2A and MCP: Detailed Comparison](https://a2a-protocol.org/latest/topics/a2a-and-mcp/)
+- [Enterprise Implementation of A2A](https://a2a-protocol.org/latest/topics/enterprise-ready/)
+- [Agent Discovery](https://a2a-protocol.org/latest/topics/agent-discovery/)
+
+### 外部工程与分析资料
+
+- [Microsoft Learn: Agent-to-agent (A2A)](https://learn.microsoft.com/zh-cn/agent-framework/journey/agent-to-agent)
+- [Future AGI: A2A Protocol Explained With a Python Example and a Traced Handoff](https://futureagi.com/blog/a2a-protocol-python-example/)
+- [Google Developers Blog: Build Cross-Language Multi-Agent Team with Google ADK and A2A](https://developers.googleblog.com/en/build-cross-language-multi-agent-team-with-google-agent-development-kit-and-a2a)
+- [Mike Zupper: A2A: The Protocol That Treats Other Agents as Partners, Not Tools](https://mikezupper.com/posts/a2a-agent-to-agent-protocol)
+- [腾讯云开发者社区：协商的协议，信任的荒漠：A2A从能力发现到意图泄漏的结构性张力](https://cloud.tencent.com/developer/article/2752914)
+
+外部资料用于补充部署选择、跨语言案例、追踪和安全议题。规范字段与协议行为以 A2A 官方规范为准；腾讯云文章中缺少可核实论文标识的攻击实验数据未用于本文结论。
