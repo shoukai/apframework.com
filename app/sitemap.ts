@@ -7,13 +7,14 @@ import projectsData from '@/data/projectsData'
 import { slug } from 'github-slugger'
 import tagData from 'app/tag-data.json'
 import { isIndexableTag } from '@/lib/tagIndex'
+import { POSTS_PER_PAGE } from '@/lib/blogPagination'
 
 export const dynamic = 'force-static'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl
   const publishedPosts = allBlogs.filter((post) => !post.draft)
-  const pageCount = Math.ceil(publishedPosts.length / 5)
+  const pageCount = Math.ceil(publishedPosts.length / POSTS_PER_PAGE)
   const blogPageRoutes = Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => ({
     url: `${siteUrl}/blog/page/${index + 2}`,
   }))

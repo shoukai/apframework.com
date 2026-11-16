@@ -3,8 +3,7 @@ import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
-
-const POSTS_PER_PAGE = 20
+import { POSTS_PER_PAGE } from '@/lib/blogPagination'
 
 export async function generateMetadata(props: {
   params: Promise<{ page: string }>

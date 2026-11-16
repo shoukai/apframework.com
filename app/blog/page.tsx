@@ -3,8 +3,7 @@ import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import Link from '@/components/Link'
-
-const POSTS_PER_PAGE = 20
+import { POSTS_PER_PAGE } from '@/lib/blogPagination'
 
 const topics = [
   {
