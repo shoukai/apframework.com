@@ -1,10 +1,15 @@
 ---
 title: 'DeepAgents 深度解析：从概念到代码验证的完整指南'
 date: '2025-10-25'
+lastmod: '2026-11-16'
 tags: ['DeepAgents', 'LangChain', 'LangGraph', 'AI Agent', 'Python', '多智能体系统', '工具包', '代理框架', '代理运行时', 'DeepSeek', 'Tavily', '任务规划', '上下文管理']
 draft: false
-summary: '深入解析 DeepAgents 代理工具包的核心概念与技术架构。文章系统梳理了 DeepAgents、LangChain 和 LangGraph 三者的关系与定位，详细对比了代理工具包、代理框架和代理运行时的区别。通过完整的代码示例和详细的日志分析，展示了如何使用 DeepSeek 和 Tavily 构建智能研究代理，为开发者提供从理论到实践的完整学习路径。'
+summary: '理解 DeepAgents、LangChain 和 LangGraph 的分工。用 DeepSeek 和 Tavily 运行一个研究代理，通过工具调用日志验证任务规划、搜索和带来源的报告。'
 ---
+
+**DeepAgents 是 LangChain 生态中的 Python Agent 工具包。** 它构建在 LangChain 和 LangGraph 之上，提供任务规划、文件式上下文管理和子代理委派，适合需要多轮检索、汇总资料并产出报告的任务。固定的少量步骤可以直接用 LangChain 的代理接口。业务需要明确控制节点、状态和分支时，可以用 LangGraph 定义工作流。 [Deep Agents 官方概览](https://docs.langchain.com/oss/python/deepagents/overview)
+
+**用第 3 节的研究代理做一次验证。** 配置 DeepSeek 和 Tavily 后，把任务设为「查阅 LangGraph 官方文档，说明 checkpoint 与跨线程 store 的区别，并列出来源」。先看日志是否有 `internet_search` 的调用和返回结果，再逐条核对最终报告的链接及其原文。规划工具和子代理是否被调用取决于任务和模型，生产环境还需在应用层约束可用工具、运行时长和调用预算。
 
 <div className="text-center">
   <img src="/static/images/2025-10-25-DeepAgents/micah-sammie-chaffin-IYWNiaSXo4c-unsplash.jpg" alt="DeepAgents" />

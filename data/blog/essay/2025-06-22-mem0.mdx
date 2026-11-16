@@ -1,10 +1,15 @@
 ---
 title: 'Mem0 深度解析：开源本地 AI 智能体长期记忆系统原理与实战'
 date: '2025-06-22'
+lastmod: '2026-11-16'
 tags: ['Mem0', 'OpenMemory', 'AI记忆', 'MCP', '向量存储', 'AI Agent', 'Python', '本地部署', 'LangGraph', 'Dify']
 draft: false
-summary: '本文全面解析 Mem0（mem-zero）开源本地 AI 记忆管理系统的技术原理与架构设计，详细介绍如何在本地环境下安全部署 Mem0，实现 AI 智能体的长期记忆与上下文感知。文章涵盖 Mem0 的核心原理、MCP 协议、向量存储与图数据库集成，并通过完整的本地搭建流程、代码实操、LangGraph 与 Dify 集成案例，帮助开发者快速构建具备持久记忆与个性化交互能力的 AI 应用。'
+summary: '了解 Mem0 如何为 AI Agent 提供跨会话记忆。用 Ollama 和 Qdrant 自托管，验证用户偏好的写入、检索与账号隔离，并查看 LangGraph、Dify 和 OpenMemory MCP 的集成示例。'
 ---
+
+**Mem0 是面向 AI Agent 的长期记忆层。** 它从对话中提取用户偏好等可复用信息，按用户或其他作用域保存，并在后续会话中检索相关记忆。客服助手和个人助手可以用它记住用户的沟通偏好，应用仍需负责用户授权、数据保留期限和记忆纠错。
+
+**用两个测试账号验证跨会话记忆。** 按第 3 节配置 Ollama 和 Qdrant，选一个独立的测试集合，通过 `add` 为用户 `alice` 写入「喜欢科幻电影」。另开一个会话，用同一个记忆存储和 `search` 查询偏好。预期 `alice` 能检索到该偏好，未写入过这条偏好的 `bob` 的结果里没有它。每次请求的 `user_id` 应由应用按登录身份确定。自托管时也要检查模型供应商，本例的 DeepSeek 调用可能把参与提取的对话内容发给配置的模型服务。可根据安装版本查看对应的搜索参数形式。 [Mem0 记忆检索文档](https://github.com/mem0ai/mem0/blob/main/docs/core-concepts/memory-operations/search.mdx)
 
 <div className="text-center">
   <img src="/static/images/2025-06-22-mem0/mohammad-rahmani-LrxSl4ZxoRs-unsplash.jpg" alt="Mem0" />

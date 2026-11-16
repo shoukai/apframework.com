@@ -1,10 +1,15 @@
 ---
 title: 'AI Agent 安全最佳实践 2026：从业界共识到工程落地'
 date: '2026-05-23'
+lastmod: '2026-11-16'
 tags: ['AI Agent', 'Security', 'MCP', 'Agentic AI', 'OWASP', 'Architecture']
 draft: false
-summary: '2026 年的 AI Agent 安全，已经不能只靠 Prompt Guardrail。Agent 一旦具备工具调用、MCP、记忆、工作流编排和外部系统访问能力，本质上就是一个会行动的软件主体。本文从业界共识出发，拆解 Agent 的七层攻击面，归纳六个工程控制点，并给出业务服务+智能体服务的双层安全架构和落地要点。'
+summary: '为具备工具调用、MCP 和长期记忆的 AI Agent 设计安全边界，覆盖独立身份、最小权限、写操作审批与审计，并给出可验收的运行时控制。'
 ---
+
+**能调用工具的 AI Agent 应在执行前校验身份、权限和操作范围。** 对只读查询授予最小权限，对高风险写操作设置人工审批。在工具执行端强制校验这些规则，并在审计记录中保留发起者、工具、策略结果和追踪 ID。
+
+**用隔离测试环境验证写操作审批。** 让只有读取权限的测试 Agent 查看工单，再检查它对更新工单请求的处理。通过标准是读取成功、更新在执行前被拒绝、工单状态保持原值，且可以用追踪 ID 查到拒绝原因。若生产流程允许审批后写入，再用有相应权限的测试身份验证批准仅覆盖对应工单和这一次操作。
 
 <div className="flex flex-col items-center text-center">
   <img src="/static/images/2026-05-23-agent-security-2026/jefflssantos-9SoCnyQmkzI-unsplash.jpg" alt="AI Agent 安全最佳实践 2026" />
