@@ -1,18 +1,24 @@
 ---
 title: '从 OpenTelemetry 到受控自治：SRE 可观测性的五阶段演进'
 date: '2026-11-15'
-tags: []
+tags: ['OpenTelemetry', '可观测性', 'SRE', 'AI Agent', 'LLM', 'Kubernetes']
 draft: false
 summary: '从统一遥测与运营上下文，到只读 AI 调查、LLM 应用观测和受控修复，梳理 AI 驱动 SRE 的五阶段建设路径及其工程边界。'
+images: ['/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/otel-autonomous-sre-cover.png']
 ---
+
+![OpenTelemetry 遥测信号、AI 调查与受控修复构成的 SRE 可观测性路线](/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/otel-autonomous-sre-cover.png)
 
 把 AI 接入生产运维，常见的设想是让模型读取告警、检索日志，甚至自动修复故障。但模型能否作出有用判断，首先取决于遥测信号是否完整、能否与服务及变更关联；它能否采取行动，则取决于模型之外是否有明确的权限控制和结果验证。
 
 Aman Kohli 在《From OpenTelemetry to Autonomous SRE》中提出了五阶段路线：统一遥测、建立运营上下文、引入只读 AI 调查、观测 LLM 应用自身，最后再开放受策略约束的修复。这不是某个产品的部署清单，而是逐步建设生产运维能力的路径：先让系统状态可见，再审慎地赋予系统行动能力。
 
-[![AI 驱动可观测性架构：五阶段路线、六栏组件与横切关注点，MCP GPT 中文翻译图](/static/images/2026-11-15-from-opentelemetry-t/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/ai-driven-observability-zh-model.pngen-observability-zh-model.png)](assets/ai-driven-observability-zh-model.png)
-
-*图：用户提供的参考图，来源、作者与授权均未核实；由 MCP GPT 辅助翻译重绘，现供审阅，公开使用前仍需核实授权。图中保留五阶段、六栏组件和主要连线，不代表规范架构或行业成熟度标准。第二阶段标题将“运营上下文”误写为“运营上下文义”；正文采用正确术语，PNG 中的误字尚未修订，其他文字也仍需人工校对。可点击图片查看原尺寸；手机端可横向滚动查看各栏。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/ai-driven-observability-zh-model.png"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/ai-driven-observability-zh-model.png" alt="AI 驱动可观测性五阶段架构图" /></a>
+  <figcaption className="text-center">
+    AI 驱动可观测性架构（翻译来源 Aman Kohli，《From OpenTelemetry to Autonomous SRE》）
+  </figcaption>
+</figure>
 
 ## 一、先统一遥测，让请求路径连得起来
 
@@ -22,9 +28,10 @@ OpenTelemetry（OTel）提供生成、采集和导出遥测数据的统一框架
 
 跨服务调查还需要上下文传播。上游服务调用下游服务时，trace context 可以随请求传递，使下游 span 与上游 span 归入同一条 trace。日志也可以记录 trace 和 span 标识，方便从错误日志回溯到对应的请求路径。这样，排查者看到的不只是彼此孤立的服务指标，还能定位延迟或错误出现在请求链路的哪个环节。
 
-[![跨服务 trace 关联与 Collector 接收、处理、导出及后端边界](/static/images/2026-11-15-from-opentelem/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/collector-trace-boundaries.svgdmap/collector-trace-boundaries.svg)](assets/collector-trace-boundaries.svg)
-
-*图：请求传播 trace context；遥测经各信号的 pipeline 送往后端。原创概念示意，非实测截图；接收成功不等于送达。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/collector-trace-boundaries.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/collector-trace-boundaries.svg" alt="Collector 遥测管道与跨服务 trace 关联示意图" /></a>
+  <figcaption className="text-center">Collector 与 trace 关联</figcaption>
+</figure>
 
 不过，trace 呈现的是已采集到的执行关系，只能提供关联和诊断线索，不能单独证明某次部署导致了故障。原文举例说，部署时间与延迟上升同时出现，可以帮助确定调查方向；若要判断两者是否相关，还需比较变更前后的数据库行为、连接等待和请求路径。
 
@@ -40,9 +47,10 @@ OpenTelemetry（OTel）提供生成、采集和导出遥测数据的统一框架
 
 对 AI 调查来说，这也是上下文工程问题。模型不需要未经筛选的全部日志和文档，而需要围绕当前事故挑选、整理并标明出处的材料。构建上下文时，应对齐服务名与依赖关系、限定事故时间窗、过滤无关内容，并保留证据来源。缺少 owner、时间范围或服务关系，即使材料很多也可能只是噪声。上下文还应标明资料的更新时间和适用范围，避免过期的 runbook 或错误的依赖图误导调查。检索同样要遵守使用者原有的权限边界，不能为了让模型“看全”而扩大访问范围。
 
-[![以服务、时间窗、变更和运行手册关联可回溯的调查证据](/static/images/2026-11-15-from-opentelemet/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/operational-context-evidence.svg/operational-context-evidence.svg)](assets/operational-context-evidence.svg)
-
-*图：围绕同一服务与时间窗关联变更和运行资料，保留原记录出处、更新时间及适用范围。原创概念示意，非原文缺失图的复原。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/operational-context-evidence.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/operational-context-evidence.svg" alt="运营上下文与调查证据关联示意图" /></a>
+  <figcaption className="text-center">运营上下文与调查证据</figcaption>
+</figure>
 
 原文在 “A typical investigation pipeline” 后只有图示占位，没有可读取的流程细节。本文加入的架构图来自用户补充的另一张参考图，用于说明一种组件分层方式；它既不是对原文缺失流程图的复原，也不是 OpenTelemetry 规定的标准架构。两者能够确认的共同点仅在于：应将遥测与运行文档、服务依赖和变更历史结合起来，供工程师及后续 AI 调查使用。
 
@@ -54,9 +62,10 @@ OpenTelemetry（OTel）提供生成、采集和导出遥测数据的统一框架
 
 这一阶段应维持只读。编排器可以查询遥测、部署记录和依赖信息，但不应同时拥有重启服务或修改配置的权限。要确认调查能力确实只读，需要检查工具能调用哪些 API、能访问哪些服务，以及查询范围，而不能只看角色名称。这样可以限制错误假设的影响，也能先评估调查质量，再决定是否扩大权限。
 
-[![只读 AI 调查循环及假设、证据、替代解释与验证报告](/static/images/2026-11-15-from-opentelemet/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/read-only-investigation-loop.svg/read-only-investigation-loop.svg)](assets/read-only-investigation-loop.svg)
-
-*图：按信息缺口继续只读查询，报告交由工程师复核；调查工具没有生产写入入口。原创概念示意，非实测流程。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/read-only-investigation-loop.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/read-only-investigation-loop.svg" alt="只读 AI 调查与证据复核流程图" /></a>
+  <figcaption className="text-center">只读 AI 调查流程</figcaption>
+</figure>
 
 评估不应只看回答是否流畅。可以先检查证据引用能否回到真实 trace 或变更记录、调查轨迹是否覆盖必要步骤且没有无效循环，以及最终假设是否得到后续证据支持。随后再看经验证诊断耗时、人工接受或驳回的原因，以及调查遗漏了什么。选用工具、调查步骤、任务完成情况和事故结果属于不同评估层次，不能由一个模型评分概括。原文建议将结果与历史基线比较，但没有给出经过验证的改进幅度。
 
@@ -72,9 +81,10 @@ OpenTelemetry 的 GenAI 语义约定为模型推理、Agent 调用、工具执�
 
 还要区分运行过程与任务质量。可观测性可以记录请求经过哪些步骤、花费多少时间和资源，却不能单独证明答案正确、根因成立或任务已完成。语义质量仍需通过任务级校验、回放评估或人工抽查来判断，不能由一条完整 trace 代替。比如，调查 Agent 成功调用日志检索工具，只能说明工具调用完成；它是否引用了正确的时间窗、是否遗漏关键依赖、建议是否经验证解决了告警，还要看任务结果。将执行轨迹与评估结果关联，才能进一步判断问题出在检索、推理还是执行环节。
 
-[![RAG 和 LLM 的检索、上下文、模型、工具 span 与独立任务质量评估](/static/images/2026-11-15-from-opentel/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/llm-trace-and-evaluation.svg-roadmap/llm-trace-and-evaluation.svg)](assets/llm-trace-and-evaluation.svg)
-
-*图：运行轨迹与质量评估相互关联、分别判断。原创概念示意；框宽不代表耗时，操作不要求固定顺序。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/llm-trace-and-evaluation.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/llm-trace-and-evaluation.svg" alt="LLM 应用调用轨迹与任务评估示意图" /></a>
+  <figcaption className="text-center">LLM 调用轨迹与任务评估</figcaption>
+</figure>
 
 ## 五、把修复动作交给受约束的执行系统
 
@@ -88,17 +98,19 @@ OpenTelemetry 的 GenAI 语义约定为模型推理、Agent 调用、工具执�
 
 假设系统将部署副本数从四个扩到六个，副本数变化只能证明动作已执行，不能说明事故已经解决。执行后，应在约定的观察窗口内检查延迟和错误率是否回到服务目标范围，同时关注依赖服务和相关 SLO，确认没有引入新的回归。如果指标没有按预期变化，或出现新的异常，应停止叠加动作，并按预先定义的规则回滚或升级给工程师。事先约定成功条件、观察窗口和停止条件，再记录实际动作、验证结果及回滚信息，才能让修复过程可检查、可审计。
 
-[![模型建议经独立策略、按需人审、受控执行与遥测验证，成功或停止升级](/static/images/2026-11-15-from-openteleme/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/controlled-remediation-loop.svgap/controlled-remediation-loop.svg)](assets/controlled-remediation-loop.svg)
-
-*图：执行后按约定窗口验证服务状态；验证失败或出现新异常时停止叠加动作，按规则回滚或升级。原创概念示意，不自动无限重试。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/controlled-remediation-loop.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/controlled-remediation-loop.svg" alt="受策略约束的自动修复闭环示意图" /></a>
+  <figcaption className="text-center">受控自动修复闭环</figcaption>
+</figure>
 
 ## 用基线判断阶段是否带来帮助
 
 原文建议用运营结果衡量这条路线，而不是数已经上线多少 AI 功能。指标可以按阶段观察：遥测是否完整、摄取是否可靠；调查从告警到经验证诊断用了多久、假设有多少得到核实；LLM 应用的请求链性能、可靠性、质量和单位成功任务成本如何；修复动作是否成功获准并达到预期，策略违规和回滚出现得是否频繁。事故解决时间也可以作为更高层的结果指标，但解释时要考虑事故类型、严重程度及同期发生的其他变化。
 
-[![五阶段能力与验收重点：关联信号、回溯背景、复核诊断、评估链路、验证动作](/static/images/2026-11-15-from-o/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/five-phase-roadmap.svge-five-phase-roadmap/five-phase-roadmap.svg)](assets/five-phase-roadmap.svg)
-
-*图：对照五阶段各自需要验证的能力，再比较运营结果。基于既有正文和公开来源的原创概念示意，不是成熟度评级或实测结果。以上 SVG 图均可点击查看原图，手机端可横向阅读。*
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/five-phase-roadmap.svg"><img className="my-0" src="/static/images/2026-11-15-from-opentelemetry-to-autonomous-sre-five-phase-roadmap/five-phase-roadmap.svg" alt="SRE 可观测性五阶段路线图" /></a>
+  <figcaption className="text-center">SRE 可观测性五阶段路线</figcaption>
+</figure>
 
 这些指标都需要在目标环境中定义基线、成功判据和归因方法。例如，“AI 假设准确率”必须说明由谁根据什么证据判定；自动修复成功率也要明确，衡量的是动作执行成功，还是服务指标在观察窗口内恢复。成本最好按成功完成的调查或任务计算，而不只看单次模型调用的 token 数，否则缓存、重试、检索和人工返工等开销可能被漏掉。若指标口径不一致，看似可比较的数字实际衡量的可能是不同事件。
 

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="470" viewBox="0 0 1100 470" role="img" aria-labelledby="title desc">
+  <title id="title">企业 AI 治理控制闭环示意</title>
+  <desc id="desc">从用例边界和责任分配，经过治理要求映射、共享平台控制和用例级审查，再由评估、人工升级与审计反馈到系统改进。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#536a78" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="470" fill="#ffffff" />
+  <text x="40" y="42" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1c2c35">企业 AI 治理：从责任到控制，再回到改进</text>
+  <text x="40" y="70" font-family="Arial, sans-serif" font-size="14" fill="#536a78">概念示意，不代表统一标准或已部署架构</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="40" y="120" width="210" height="115" rx="6" fill="#eaf3f4" stroke="#7aa6a8" stroke-width="1.5" />
+    <text x="58" y="151" font-size="17" font-weight="700" fill="#18343a">1. 用例与责任</text>
+    <text x="58" y="179" font-size="14" fill="#263b42">目的、用户、数据、动作</text>
+    <text x="58" y="202" font-size="14" fill="#263b42">技術 / 产品 / 数据 / 风险</text>
+
+    <rect x="300" y="120" width="210" height="115" rx="6" fill="#f1f4e8" stroke="#a2ae73" stroke-width="1.5" />
+    <text x="318" y="151" font-size="17" font-weight="700" fill="#334020">2. 要求映射</text>
+    <text x="318" y="179" font-size="14" fill="#35402a">原则 → 控制位置</text>
+    <text x="318" y="202" font-size="14" fill="#35402a">Owner → 可检查证据</text>
+
+    <rect x="560" y="120" width="225" height="115" rx="6" fill="#f5eee5" stroke="#c19a6a" stroke-width="1.5" />
+    <text x="578" y="151" font-size="17" font-weight="700" fill="#49351f">3. 控制落地</text>
+    <text x="578" y="179" font-size="14" fill="#493d30">平台：权限、护栏、评估、审计</text>
+    <text x="578" y="202" font-size="14" fill="#493d30">用例：范围、阈值、例外</text>
+
+    <rect x="835" y="120" width="225" height="115" rx="6" fill="#edf0f8" stroke="#8e9ac0" stroke-width="1.5" />
+    <text x="853" y="151" font-size="17" font-weight="700" fill="#28324d">4. 运行治理</text>
+    <text x="853" y="179" font-size="14" fill="#343b50">变更评估与生产监测</text>
+    <text x="853" y="202" font-size="14" fill="#343b50">人工升级与审计记录</text>
+
+    <line x1="252" y1="177" x2="292" y2="177" stroke="#536a78" stroke-width="2" marker-end="url(#arrow)" />
+    <line x1="512" y1="177" x2="552" y2="177" stroke="#536a78" stroke-width="2" marker-end="url(#arrow)" />
+    <line x1="787" y1="177" x2="827" y2="177" stroke="#536a78" stroke-width="2" marker-end="url(#arrow)" />
+
+    <path d="M948 245 C948 335 150 335 150 245" fill="none" stroke="#536a78" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)" />
+    <rect x="370" y="295" width="360" height="58" rx="6" fill="#ffffff" stroke="#536a78" stroke-width="1.5" />
+    <text x="550" y="320" text-anchor="middle" font-size="15" font-weight="700" fill="#263b42">反馈：评估差异、事故、审阅决定、控制例外</text>
+    <text x="550" y="341" text-anchor="middle" font-size="13" fill="#536a78">修订用例边界、测试集、控制与责任安排</text>
+  </g>
+  <text x="40" y="420" font-family="Arial, sans-serif" font-size="13" fill="#536a78">平台共享控制可以复用；风险判断、业务例外与法律适用仍需具名责任人处理。</text>
+</svg>

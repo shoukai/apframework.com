@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="570" viewBox="0 0 1040 570" role="img" aria-labelledby="title desc">
+  <title id="title">企业 AI 治理的分层控制示意</title>
+  <desc id="desc">共享治理平台提供身份权限、护栏、评估、审计和观测底座；每个 AI 用例在其上配置用途范围、数据、阈值、风险判断、人工升级和例外责任。</desc>
+  <rect width="1040" height="570" fill="#ffffff" />
+  <text x="42" y="48" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1c2c35">共享平台提供底座，用例治理保留具体判断</text>
+  <text x="42" y="76" font-family="Arial, sans-serif" font-size="14" fill="#536a78">概念示意：控制可复用，但用途与风险决策不能脱离具体系统</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="42" y="112" width="956" height="132" rx="6" fill="#edf3f5" stroke="#7896a2" stroke-width="1.5" />
+    <text x="66" y="145" font-size="18" font-weight="700" fill="#243d49">用例层：每个 AI 系统需要明确的治理配置</text>
+    <rect x="66" y="166" width="205" height="54" rx="4" fill="#ffffff" stroke="#9babb1" />
+    <text x="168" y="189" text-anchor="middle" font-size="14" font-weight="700" fill="#293d44">用途与边界</text>
+    <text x="168" y="208" text-anchor="middle" font-size="12" fill="#536a78">用户 / 数据 / 可执行动作</text>
+    <rect x="291" y="166" width="205" height="54" rx="4" fill="#ffffff" stroke="#9babb1" />
+    <text x="393" y="189" text-anchor="middle" font-size="14" font-weight="700" fill="#293d44">风险与阈值</text>
+    <text x="393" y="208" text-anchor="middle" font-size="12" fill="#536a78">场景影响 / 评估维度</text>
+    <rect x="516" y="166" width="205" height="54" rx="4" fill="#ffffff" stroke="#9babb1" />
+    <text x="618" y="189" text-anchor="middle" font-size="14" font-weight="700" fill="#293d44">人工升级</text>
+    <text x="618" y="208" text-anchor="middle" font-size="12" fill="#536a78">触发 / 审阅权限 / 记录</text>
+    <rect x="741" y="166" width="233" height="54" rx="4" fill="#ffffff" stroke="#9babb1" />
+    <text x="857" y="189" text-anchor="middle" font-size="14" font-weight="700" fill="#293d44">责任与例外</text>
+    <text x="857" y="208" text-anchor="middle" font-size="12" fill="#536a78">具名 owner / 偏离标准控制</text>
+
+    <rect x="42" y="277" width="956" height="178" rx="6" fill="#f2f1e8" stroke="#a8a47b" stroke-width="1.5" />
+    <text x="66" y="311" font-size="18" font-weight="700" fill="#46442c">共享平台层：产品默认继承的通用控制能力</text>
+    <rect x="66" y="335" width="278" height="90" rx="4" fill="#ffffff" stroke="#bab79b" />
+    <text x="205" y="365" text-anchor="middle" font-size="15" font-weight="700" fill="#393a2d">身份与访问</text>
+    <text x="205" y="391" text-anchor="middle" font-size="13" fill="#536a78">认证、授权、租户隔离</text>
+    <rect x="381" y="335" width="278" height="90" rx="4" fill="#ffffff" stroke="#bab79b" />
+    <text x="520" y="365" text-anchor="middle" font-size="15" font-weight="700" fill="#393a2d">质量与安全门禁</text>
+    <text x="520" y="391" text-anchor="middle" font-size="13" fill="#536a78">评估、输入输出防护、发布检查</text>
+    <rect x="696" y="335" width="278" height="90" rx="4" fill="#ffffff" stroke="#bab79b" />
+    <text x="835" y="365" text-anchor="middle" font-size="15" font-weight="700" fill="#393a2d">审计与可观测</text>
+    <text x="835" y="391" text-anchor="middle" font-size="13" fill="#536a78">事件、追踪、告警、事故复盘</text>
+
+    <line x1="205" y1="270" x2="205" y2="250" stroke="#536a78" stroke-width="2" />
+    <line x1="520" y1="270" x2="520" y2="250" stroke="#536a78" stroke-width="2" />
+    <line x1="835" y1="270" x2="835" y2="250" stroke="#536a78" stroke-width="2" />
+    <line x1="205" y1="261" x2="835" y2="261" stroke="#536a78" stroke-width="2" />
+
+    <path d="M835 461 C835 510 205 510 205 461" fill="none" stroke="#536a78" stroke-width="2" stroke-dasharray="7 5" />
+    <rect x="258" y="485" width="524" height="52" rx="4" fill="#ffffff" stroke="#82939a" />
+    <text x="520" y="507" text-anchor="middle" font-size="14" font-weight="700" fill="#293d44">运行反馈：评估差异 · 用户升级 · 事故 · 例外</text>
+    <text x="520" y="526" text-anchor="middle" font-size="12" fill="#536a78">回流修订用例配置、测试集和共享控制</text>
+  </g>
+</svg>
