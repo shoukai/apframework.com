@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+<title id="title">策略约束的修复与遥测验证闭环</title><desc id="desc">模型建议经独立策略判断，按确定性规则需要时人审，再由受控执行器实施。执行后在观察窗口用遥测验证；成功则记录，失败停止叠加动作并按规则回滚或升级，不自动无限重试。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#697d8b"/></marker></defs>
+<rect width="960" height="430" rx="12" fill="#f7fafc"/>
+<g font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#283e4c">
+<text x="28" y="32" font-size="16" font-weight="600">从建议到执行，再用服务状态验证结果</text>
+<rect x="28" y="63" width="170" height="88" rx="7" fill="#edf5fa" stroke="#bfd4e1"/><text x="113" y="89" text-anchor="middle" font-weight="600">模型提出建议</text><text x="113" y="113" text-anchor="middle">动作 / 证据 / 理由</text><text x="113" y="136" text-anchor="middle" fill="#536c7a">不直接持有生产凭据</text>
+<path d="M198 107H240" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="242" y="63" width="200" height="88" rx="7" fill="#fff6e8" stroke="#dfc99f"/><text x="342" y="89" text-anchor="middle" font-weight="600">独立策略裁决</text><text x="342" y="113" text-anchor="middle">身份 / 资源 / 操作范围</text><text x="342" y="136" text-anchor="middle" fill="#756347">限额 / 冷却 / 审批规则</text>
+<path d="M442 107H484" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="486" y="63" width="200" height="88" rx="7" fill="#fff6e8" stroke="#dfc99f"/><text x="586" y="89" text-anchor="middle" font-weight="600">按需人工审批</text><text x="586" y="113" text-anchor="middle">由确定性规则触发</text><text x="586" y="136" text-anchor="middle" fill="#756347">无需审批则按策略放行</text>
+<path d="M686 107H728" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="730" y="63" width="202" height="88" rx="7" fill="#eff7f3" stroke="#b6d3c5"/><text x="831" y="89" text-anchor="middle" font-weight="600">受控执行器</text><text x="831" y="113" text-anchor="middle">只执行已获准动作</text><text x="831" y="136" text-anchor="middle" fill="#536c7a">权限与资源范围受限</text>
+<path d="M342 151V192M586 151V174H342" fill="none" stroke="#9b715d"/>
+<rect x="28" y="194" width="414" height="47" rx="6" fill="#fff1ee" stroke="#dcb5a9"/><text x="235" y="223" text-anchor="middle">策略拒绝 / 审批驳回：停止，不执行</text>
+<path d="M831 151V264H688" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<text x="831" y="209" text-anchor="middle" fill="#536c7a">执行后</text>
+<rect x="470" y="244" width="216" height="84" rx="7" fill="#edf5fa" stroke="#bfd4e1"/><text x="578" y="269" text-anchor="middle" font-weight="600">遥测验证</text><text x="578" y="292" text-anchor="middle">约定观察窗口与成功条件</text><text x="578" y="315" text-anchor="middle" fill="#536c7a">延迟 / 错误 / SLO / 回归</text>
+<path d="M470 269H442" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="28" y="254" width="414" height="47" rx="6" fill="#eff7f3" stroke="#b6d3c5"/><text x="235" y="283" text-anchor="middle">成功：记录动作与验证结果，完成本次闭环</text>
+<path d="M578 328V358H442" fill="none" stroke="#9b715d" marker-end="url(#arrow)"/>
+<rect x="28" y="327" width="414" height="60" rx="6" fill="#fff1ee" stroke="#dcb5a9"/><text x="235" y="352" text-anchor="middle">失败 / 新异常：停止叠加动作</text><text x="235" y="375" text-anchor="middle">按预定规则回滚或升级给工程师</text>
+<text x="470" y="388" fill="#756347">验证失败不自动无限重试。</text>
+<text x="28" y="414" fill="#536c7a">全程记录建议、策略决定、审批、执行和验证；动作执行成功不等于事故解决。</text>
+</g></svg>

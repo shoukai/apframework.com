@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" role="img" aria-labelledby="title desc">
+<title id="title">围绕事故关联运营上下文与证据</title><desc id="desc">服务、时间窗、变更和运行手册共同限定证据范围；调查材料保留原记录、更新时间和适用范围，检索受原有访问权限约束。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#697d8b"/></marker></defs>
+<rect width="960" height="400" rx="12" fill="#f7fafc"/>
+<g font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#283e4c">
+<text x="28" y="32" font-size="16" font-weight="600">从事故范围出发，把材料变成可回溯的证据</text>
+<rect x="28" y="58" width="904" height="72" rx="8" fill="#edf5fa" stroke="#bfd4e1"/>
+<text x="48" y="86">调查入口：订单接口变慢</text><text x="48" y="110" fill="#536c7a">限定服务与依赖、事故时间窗；先检查使用者的访问权限。</text>
+<path d="M480 130V153M137 153H823M137 153V174M366 153V174M595 153V174M823 153V174" fill="none" stroke="#697d8b"/>
+<rect x="28" y="174" width="218" height="98" rx="7" fill="#ffffff" stroke="#bfd4e1"/><text x="46" y="200" font-weight="600">service · 服务</text><text x="46" y="225">统一名称 / 依赖关系</text><text x="46" y="250" fill="#536c7a">关联 owner、SLO</text>
+<rect x="257" y="174" width="218" height="98" rx="7" fill="#ffffff" stroke="#bfd4e1"/><text x="275" y="200" font-weight="600">time · 时间</text><text x="275" y="225">限定异常与对照时间窗</text><text x="275" y="250" fill="#536c7a">对齐 trace、日志与指标</text>
+<rect x="486" y="174" width="218" height="98" rx="7" fill="#ffffff" stroke="#bfd4e1"/><text x="504" y="200" font-weight="600">change · 变更</text><text x="504" y="225">部署 / 配置历史</text><text x="504" y="250" fill="#536c7a">保留变更记录与发生时间</text>
+<rect x="715" y="174" width="217" height="98" rx="7" fill="#ffffff" stroke="#bfd4e1"/><text x="733" y="200" font-weight="600">runbook · 运行手册</text><text x="733" y="225">步骤 / 历史事故</text><text x="733" y="250" fill="#536c7a">核对更新时间与适用范围</text>
+<path d="M137 272V294H823V272M366 272V294M595 272V294M480 294V315" fill="none" stroke="#697d8b"/><path d="M480 302V315" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="150" y="317" width="660" height="54" rx="7" fill="#eff7f3" stroke="#b6d3c5"/><text x="480" y="340" text-anchor="middle">调查材料：相关信号 + 运行背景 + 原记录出处</text><text x="480" y="360" text-anchor="middle" fill="#536c7a">每项可回溯；相似事故与时间相近的变更，仍只是待验证的线索。</text>
+</g></svg>

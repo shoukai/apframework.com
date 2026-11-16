@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="270" viewBox="0 0 960 270" role="img" aria-labelledby="title desc">
+<title id="title">五阶段能力与验收重点总览</title><desc id="desc">统一遥测使信号可关联，运营上下文使背景可追溯，只读调查使假设可复核，LLM 可观测性关联运行轨迹与独立评估，受控修复使动作可授权且结果可验证。不是固定组织成熟度等级。</desc>
+<defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="#697d8b"/></marker></defs>
+<rect width="960" height="270" rx="12" fill="#f7fafc"/>
+<g font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#283e4c">
+<text x="28" y="32" font-size="16" font-weight="600">按阶段检查能力是否可用，再与运营基线比较</text>
+<rect x="28" y="60" width="168" height="132" rx="7" fill="#edf5fa" stroke="#bfd4e1"/><text x="44" y="85" font-weight="600">1 · 统一遥测</text><text x="44" y="113">请求路径连续追踪</text><text x="44" y="138">采集缺口可见</text><text x="44" y="175" fill="#536c7a">信号能否关联？</text>
+<path d="M197 126H210" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="212" y="60" width="168" height="132" rx="7" fill="#eff7f3" stroke="#b6d3c5"/><text x="228" y="85" font-weight="600">2 · 运营上下文</text><text x="228" y="113">服务 / 时间 / 变更</text><text x="228" y="138">资料新鲜且有出处</text><text x="228" y="175" fill="#536c7a">背景能否回溯？</text>
+<path d="M381 126H394" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="396" y="60" width="168" height="132" rx="7" fill="#fff6e8" stroke="#dfc99f"/><text x="412" y="85" font-weight="600">3 · 只读 AI 调查</text><text x="412" y="113">假设有证据支持</text><text x="412" y="138">替代解释与验证</text><text x="412" y="175" fill="#536c7a">诊断能否复核？</text>
+<path d="M565 126H578" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="580" y="60" width="168" height="132" rx="7" fill="#f2effa" stroke="#cdc2e5"/><text x="596" y="85" font-weight="600">4 · LLM 可观测</text><text x="596" y="113">关联检索 / 模型 / 工具</text><text x="596" y="138">质量需独立评估</text><text x="596" y="175" fill="#536c7a">过程与结果可评估？</text>
+<path d="M749 126H762" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="764" y="60" width="168" height="132" rx="7" fill="#eff7f3" stroke="#b6d3c5"/><text x="780" y="85" font-weight="600">5 · 受控修复</text><text x="780" y="113">策略 / 审批 / 执行</text><text x="780" y="138">验证与停止条件</text><text x="780" y="175" fill="#536c7a">动作获准且有效？</text>
+<text x="28" y="226">比较之前，先定义指标口径、成功判据与归因方法；本文没有实测改进幅度。</text>
+<text x="28" y="250" fill="#536c7a">顺序表示能力建设路径，不是固定成熟度等级；团队可按风险调整节奏。</text>
+</g></svg>

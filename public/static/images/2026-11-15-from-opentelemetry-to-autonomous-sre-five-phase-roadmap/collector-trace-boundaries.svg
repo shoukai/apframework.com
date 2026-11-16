@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+<title id="title">跨服务 trace 与 Collector 采集边界</title><desc id="desc">请求在服务之间传播 trace context；遥测通过按信号类型配置的接收、处理和导出管道送往独立后端。关联不等于因果，接收不等于送达。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#647b87"/></marker></defs>
+<rect width="960" height="430" rx="12" fill="#f7fafc"/>
+<g font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#283e4c">
+<text x="28" y="32" font-size="16" font-weight="600">请求关联与遥测输送，是两条不同的路径</text>
+<rect x="28" y="52" width="904" height="120" rx="8" fill="#edf5fa" stroke="#bfd4e1"/>
+<text x="46" y="77" fill="#4f6879">应用请求路径 · 同一 trace，多个 span</text>
+<rect x="60" y="96" width="180" height="52" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="150" y="117" text-anchor="middle">结账服务 · span A</text><text x="150" y="137" text-anchor="middle" fill="#607483">日志可带 trace / span ID</text>
+<path d="M240 120H394" fill="none" stroke="#647b87" marker-end="url(#arrow)"/><text x="317" y="109" text-anchor="middle">trace context</text>
+<rect x="396" y="96" width="180" height="52" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="486" y="127" text-anchor="middle">库存服务 · span B</text>
+<path d="M576 120H730" fill="none" stroke="#647b87" marker-end="url(#arrow)"/><text x="653" y="109" text-anchor="middle">trace context</text>
+<rect x="732" y="96" width="172" height="52" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="818" y="127" text-anchor="middle">下游服务 · span C</text>
+<path d="M150 172V208H302V242M486 172V208M818 172V208H302" fill="none" stroke="#647b87" stroke-dasharray="5 4"/><path d="M302 208V242" fill="none" stroke="#647b87" marker-end="url(#arrow)"/>
+<rect x="28" y="242" width="650" height="110" rx="8" fill="#eff7f3" stroke="#b6d3c5"/>
+<text x="46" y="266">Collector · traces / metrics / logs 分别配置 pipeline</text>
+<rect x="46" y="283" width="172" height="46" rx="5" fill="#ffffff" stroke="#a8c8b9"/><text x="132" y="311" text-anchor="middle">receivers · 接收</text>
+<path d="M218 306H250" fill="none" stroke="#647b87" marker-end="url(#arrow)"/>
+<rect x="252" y="283" width="172" height="46" rx="5" fill="#ffffff" stroke="#a8c8b9"/><text x="338" y="311" text-anchor="middle">processors · 处理</text>
+<path d="M424 306H456" fill="none" stroke="#647b87" marker-end="url(#arrow)"/>
+<rect x="458" y="283" width="200" height="46" rx="5" fill="#ffffff" stroke="#a8c8b9"/><text x="558" y="311" text-anchor="middle">exporters · 队列与导出</text>
+<path d="M678 306H728" fill="none" stroke="#647b87" marker-end="url(#arrow)"/>
+<rect x="730" y="242" width="202" height="110" rx="8" fill="#fff6e8" stroke="#dfc99f"/><text x="831" y="269" text-anchor="middle">可观测性后端</text><text x="831" y="296" text-anchor="middle">存储 · 查询 · 展示</text><text x="831" y="325" text-anchor="middle" fill="#756347">后端可分别选型</text>
+<text x="350" y="232" fill="#536c7a">采集 / 导出遥测（虚线；非业务请求）</text>
+<text x="28" y="385">采集边界：入口、处理、导出均需观测；队列积压也可能来自后端或网络瓶颈。</text>
+<text x="28" y="409" fill="#607483">trace 关联提供调查线索，不单独证明部署与故障之间的因果关系。</text>
+</g></svg>

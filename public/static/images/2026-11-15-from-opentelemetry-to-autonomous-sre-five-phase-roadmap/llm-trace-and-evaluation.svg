@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="410" viewBox="0 0 960 410" role="img" aria-labelledby="title desc">
+<title id="title">LLM 请求轨迹与任务质量评估分离</title><desc id="desc">同一条请求 trace 关联检索、上下文构造、模型调用和工具执行。运行轨迹记录耗时、错误和用量；任务级校验、回放或人工抽查独立判断答案与任务质量。方框宽度不表示耗时。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#697d8b"/></marker></defs>
+<rect width="960" height="410" rx="12" fill="#f7fafc"/>
+<g font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#283e4c">
+<text x="28" y="32" font-size="16" font-weight="600">一条请求轨迹，关联多个操作；质量另行评估</text>
+<rect x="28" y="56" width="904" height="146" rx="8" fill="#edf5fa" stroke="#bfd4e1"/>
+<text x="48" y="82">请求 / Agent trace · 关联各操作 span</text>
+<rect x="48" y="103" width="195" height="72" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="145" y="130" text-anchor="middle">检索 span</text><text x="145" y="153" text-anchor="middle" fill="#536c7a">文档检索 / 来源</text>
+<path d="M243 139H271" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="273" y="103" width="190" height="72" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="368" y="130" text-anchor="middle">上下文构造 span</text><text x="368" y="153" text-anchor="middle" fill="#536c7a">筛选与组织材料</text>
+<path d="M463 139H491" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="493" y="103" width="190" height="72" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="588" y="130" text-anchor="middle">模型调用 span</text><text x="588" y="153" text-anchor="middle" fill="#536c7a">一次或多次调用</text>
+<path d="M683 139H711" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="713" y="103" width="199" height="72" rx="6" fill="#ffffff" stroke="#95b7ca"/><text x="812" y="130" text-anchor="middle">工具执行 span</text><text x="812" y="153" text-anchor="middle" fill="#536c7a">外部操作 / 结果</text>
+<text x="48" y="192" font-size="13" fill="#536c7a">操作顺序为概念示意，非固定拓扑；框宽不代表耗时，上下文构造命名不声明为规范字段。</text>
+<path d="M253 202V239M707 202V239" fill="none" stroke="#697d8b" marker-end="url(#arrow)"/>
+<rect x="28" y="241" width="430" height="112" rx="8" fill="#eff7f3" stroke="#b6d3c5"/><text x="48" y="267" font-weight="600">运行过程：发生了什么</text><text x="48" y="294">单次 trace：步骤、耗时、失败位置</text><text x="48" y="319">汇总指标：延迟 / 错误 / token 用量</text><text x="48" y="341" fill="#536c7a">完整轨迹不能单独证明答案正确。</text>
+<rect x="502" y="241" width="430" height="112" rx="8" fill="#fff6e8" stroke="#dfc99f"/><text x="522" y="267" font-weight="600">任务质量：是否完成目标</text><text x="522" y="294">任务级校验 / 回放评估 / 人工抽查</text><text x="522" y="319">证据是否适用、假设是否成立、任务是否完成</text><text x="522" y="341" fill="#756347">与轨迹关联，仍需独立判定。</text>
+<path d="M458 297H500" fill="none" stroke="#697d8b" stroke-dasharray="4 4"/>
+<text x="28" y="386" fill="#536c7a">数据治理：原始输入、输出与工具参数是否采集，需另定脱敏、访问与保留边界。</text>
+</g></svg>
