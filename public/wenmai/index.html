@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在本机整理资料，与 Codex 或 Claude 写作，审阅定稿后连同插图导出 PDF 或离线 HTML。">
+  <title>文脉引擎｜从资料到成稿的本地写作工作台</title>
+  <link rel="alternate" hreflang="zh-CN" href="index.html">
+  <link rel="alternate" hreflang="en" href="en.html">
+  <link rel="canonical" href="https://apframework.com/wenmai/index.html">
+  <link rel="icon" href="assets/brand.png" type="image/png">
+  <script>
+    try {
+      if (localStorage.getItem("wenmai-landing-theme") === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      }
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="page.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="header">
+    <div class="topbar wrap">
+      <a class="brand" href="index.html">
+        <img src="assets/brand.png" alt="" width="34" height="34">
+        <span>文脉引擎</span>
+      </a>
+      <nav class="topnav" aria-label="页面导航">
+        <a href="#workflow">创作流程</a>
+        <a href="#examples">试用样例</a>
+        <a href="#quick-start">快速开始</a>
+      </nav>
+      <div class="preferences">
+        <nav class="languages" aria-label="语言">
+          <a href="index.html" hreflang="zh-CN" lang="zh-CN" aria-current="page">中文</a>
+          <a href="en.html" hreflang="en" lang="en">English</a>
+        </nav>
+        <button class="theme-toggle" type="button" hidden aria-label="切换到深色"
+          data-to-light="切换到浅色" data-to-dark="切换到深色"><span class="theme-icon" aria-hidden="true"></span></button>
+      </div>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner wrap">
+        <div class="hero-copy">
+          <p class="kicker">本地知识创作工作台</p>
+          <h1 id="hero-title">把收集的资料， <span>写成自己的文章。</span></h1>
+          <p class="lead">把资料存入知识库，选一篇或多篇与 Codex 或 Claude 一起写。审阅定稿后，连同插图导出 PDF 或离线 HTML。</p>
+          <div class="actions">
+            <a class="button primary" href="#workflow">查看创作流程</a>
+            <a class="button" href="https://github.com/apframework-studio/open-context-forge" target="_blank" rel="noopener noreferrer">GitHub 仓库 ↗</a>
+          </div>
+        </div>
+        <figure class="stage glass">
+          <figcaption class="shot-bar"><strong>文章工作台</strong><span>社区图书角试用截图</span></figcaption>
+          <div class="hero-shot">
+            <img src="assets/zh-CN/03-writing.webp" alt="文脉引擎中文工作台，左侧展示文章草案，右侧是 Codex 对话和两篇创作资料" width="1440" height="900" fetchpriority="high">
+          </div>
+        </figure>
+      </div>
+    </section>
+    <section class="section wrap" id="workflow" aria-labelledby="workflow-title">
+      <div class="section-intro">
+        <h2 id="workflow-title">从资料到成稿</h2>
+        <p>用一篇资料写一篇解读，也可以对照多个来源，写出自己的分析。</p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="创作步骤" hidden>
+          <button type="button" role="tab" id="tab-intake" aria-controls="panel-intake" aria-selected="true" tabindex="0">收集与入库</button>
+          <button type="button" role="tab" id="tab-writing" aria-controls="panel-writing" aria-selected="false" tabindex="-1">协作写作</button>
+          <button type="button" role="tab" id="tab-delivery" aria-controls="panel-delivery" aria-selected="false" tabindex="-1">定稿与导出</button>
+      </div>
+        <section class="step-panel" id="panel-intake" role="tabpanel" aria-labelledby="tab-intake">
+          <figure class="step-shot">
+            <img src="assets/zh-CN/01-sources.webp" width="1440" height="900" alt="中文资料列表中的两篇图书角资料均显示已入库" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>把原始资料存进知识库</h3>
+            <p>导入 Markdown、HTML、纯文本或 ZIP。入库后，在知识库里核对原文和来源信息。</p>
+            <ul>
+                <li>使用内置知识库，或连接已有的 Obsidian 文件夹。</li>
+                <li>按规则自动入库，可按库开启自动维护。</li>
+                <li>需要快速梳理资料时，可生成带原文依据的智能摘要。</li>
+            </ul>
+            <a class="text-link" href="assets/zh-CN/01-sources.webp" target="_blank" rel="noopener">查看原尺寸截图</a>
+          </div>
+        </section>
+        <section class="step-panel" id="panel-writing" role="tabpanel" aria-labelledby="tab-writing">
+          <figure class="step-shot">
+            <img src="assets/zh-CN/04-review.webp" width="1440" height="900" alt="中文工作台的正文审阅弹窗，显示智能体候选正文及采用操作" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>选好来源，再讨论和审阅</h3>
+            <p>选用一篇或多篇资料，在右侧与本机 Codex 或 Claude 讨论大纲和正文。</p>
+            <ul>
+                <li>从对话打开大纲和正文，核对引用与当轮资料。</li>
+                <li>审阅并采用后，左侧工作台才更新正式文稿。</li>
+            </ul>
+            <a class="text-link" href="assets/zh-CN/04-review.webp" target="_blank" rel="noopener">查看原尺寸截图</a>
+          </div>
+        </section>
+        <section class="step-panel" id="panel-delivery" role="tabpanel" aria-labelledby="tab-delivery">
+          <figure class="step-shot">
+            <img src="assets/zh-CN/06-export.webp" width="1440" height="900" alt="中文导出页中的成稿预览、已选插图和两种导出操作" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>带上插图，导出一份成稿</h3>
+            <p>定稿后进入导出预览，可从图片素材里选用插图。</p>
+            <ul>
+                <li>下载 HTML，直接在浏览器离线打开。</li>
+                <li>通过浏览器打印窗口另存为 PDF。</li>
+            </ul>
+            <a class="text-link" href="assets/zh-CN/06-export.webp" target="_blank" rel="noopener">查看原尺寸截图</a>
+          </div>
+        </section>
+    </section>
+    <section class="section proof wrap" id="examples" aria-labelledby="examples-title">
+      <div class="proof-grid">
+        <div>
+          <h2 id="examples-title">用一组样例走完整个流程</h2>
+          <p>中英文试用都从两份虚构的社区图书角资料开始，走过入库、审阅和带图导出。可下载原始资料，按上面的截图复现，再对照导出的成稿。</p>
+          <p>从空白工作区验证的流程使用 README 中记录的知识库维护技能版本。如果导入后长时间停在入库中，可在 README 查看兼容版本和配置方式。</p>
+        </div>
+        <div class="sample" id="sample-outputs">
+          <div class="sample-top">
+            <h3>让社区图书角的交接有据可查</h3>
+            <p>社区图书角试用案例</p>
+          </div>
+          <div class="sample-row">
+            <strong>原始资料</strong>
+            <a class="text-link" href="assets/zh-CN/library-lending.md" download>借阅记录</a>
+            <a class="text-link" href="assets/zh-CN/library-handover.md" download>志愿者交接</a>
+          </div>
+          <div class="sample-row">
+            <strong>导出样稿</strong>
+            <a class="text-link" href="assets/zh-CN/example.html" target="_blank" rel="noopener">打开 HTML</a>
+            <a class="text-link" href="assets/zh-CN/example.pdf" target="_blank" rel="noopener">查看 PDF</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section start wrap" id="quick-start" aria-labelledby="start-title">
+      <div class="start-grid">
+        <div>
+          <h2 id="start-title">在本机开始写作</h2>
+          <p>使用 Node.js 22.12 或更高版本。按安装说明准备入库、写作技能，并在本机登录 Codex 或 Claude CLI 后开始 AI 写作。</p>
+        </div>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/apframework-studio/open-context-forge/blob/main/README.zh-CN.md">查看中文安装说明</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer wrap">
+    <span>文脉引擎 <span aria-hidden="true">/</span> Open Context Forge</span>
+    <div class="footnav"><a href="/projects/open-context-forge">项目详情</a><a href="https://github.com/apframework-studio/open-context-forge">查看 GitHub</a></div>
+  </footer>
+</body>
+</html>

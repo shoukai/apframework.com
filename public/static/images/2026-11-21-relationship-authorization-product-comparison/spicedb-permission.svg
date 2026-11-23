@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 360" role="img" aria-labelledby="title desc">
+  <title id="title">SpiceDB 文档读取权限推导</title>
+  <desc id="desc">小周通过文档直接分享读取。小陈是研发组成员，研发组可读父文件夹，因此沿文档父文件夹关系继承读取。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#748392"/></marker>
+    <style>
+      text{font-family:Arial,"Noto Sans CJK SC",sans-serif;fill:#263746}.title{font-size:19px;font-weight:700}.label{font-size:15px;font-weight:700}.body{font-size:13px}.small{font-size:12px}
+      .box{fill:#fff;stroke:#cbd5dc;stroke-width:1.5}.person{fill:#edf5f6;stroke:#8bb7b4}.group{fill:#f1f5fb;stroke:#9db2cf}.folder{fill:#faf5e9;stroke:#d7c58f}.doc{fill:#f5f1f8;stroke:#b9a6c9}.fact{stroke:#668b88;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.derive{stroke:#8b7ca4;stroke-width:2.5;stroke-dasharray:7 5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="680" height="360" fill="#fff"/>
+  <text x="28" y="36" class="title">document.read = 直接读者 ∪ 父文件夹读者</text>
+  <rect x="34" y="90" width="142" height="64" rx="8" class="box person"/>
+  <text x="105" y="117" text-anchor="middle" class="label">小陈</text><text x="105" y="139" text-anchor="middle" class="small">user:chen</text>
+  <rect x="34" y="236" width="142" height="64" rx="8" class="box person"/>
+  <text x="105" y="263" text-anchor="middle" class="label">小周</text><text x="105" y="285" text-anchor="middle" class="small">user:zhou</text>
+  <rect x="236" y="90" width="150" height="64" rx="8" class="box group"/>
+  <text x="311" y="117" text-anchor="middle" class="label">研发组</text><text x="311" y="139" text-anchor="middle" class="small">group:engineering</text>
+  <rect x="438" y="90" width="178" height="64" rx="8" class="box folder"/>
+  <text x="527" y="117" text-anchor="middle" class="label">研发资料夹</text><text x="527" y="139" text-anchor="middle" class="small">folder:research · reader</text>
+  <rect x="438" y="236" width="178" height="64" rx="8" class="box doc"/>
+  <text x="527" y="263" text-anchor="middle" class="label">项目路线图</text><text x="527" y="285" text-anchor="middle" class="small">document:roadmap · read</text>
+  <path d="M176 122H231" class="fact"/><text x="201" y="110" text-anchor="middle" class="small">member</text>
+  <path d="M386 122H433" class="fact"/><text x="410" y="110" text-anchor="middle" class="small">reader</text>
+  <path d="M527 154V231" class="fact"/><text x="539" y="199" class="small">parent</text>
+  <path d="M105 154C105 194 280 192 432 260" class="derive"/>
+  <path d="M176 268H432" class="fact"/><text x="300" y="255" text-anchor="middle" class="small">direct_reader</text>
+  <text x="34" y="333" class="small">实线：已写入的关系事实　　虚线：权限求值路径　　任一读取路径成立即可</text>
+</svg>

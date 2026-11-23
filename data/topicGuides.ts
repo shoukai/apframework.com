@@ -9,7 +9,7 @@ export const topicGuides: Record<
 > = {
   'ai-agent': {
     title: 'AI Agent 架构与治理',
-    description: '从单 Agent 到多智能体编排，按职责边界、上下文隔离和质量门禁理解架构选型。',
+    description: '从单 Agent 与多智能体的架构选型，读到生产评估、工具调用授权与企业 AI 治理。',
     takeaway:
       '先定义任务和失败代价，再决定是否拆分 Agent。多智能体适合边界明确、需要不同知识域或独立验收的流程；组件变多也会增加路由、传递和运维成本。',
     readings: [
@@ -23,7 +23,39 @@ export const topicGuides: Record<
       },
       {
         path: 'blog/essay/2026-10-31-production-ai-system-design',
-        reason: '最后把容量、安全、恢复和评估放入生产设计。',
+        reason: '把容量、安全、恢复和评估纳入生产设计。',
+      },
+      {
+        path: 'blog/essay/2026-10-27-agentcore-production-evaluation-framework',
+        reason: '评估与质量：为工具调用、执行轨迹和最终结果定义质量标准。',
+      },
+      {
+        path: 'blog/essay/2026-06-04-tool-call-not-function-call',
+        reason: '授权：在工具真正执行前检查调用主体、资源和操作权限。',
+      },
+      {
+        path: 'blog/essay/2026-11-16-enterprise-ai-governance-control-mapping',
+        reason: '治理：把风险要求落实为可验证的工程控制。',
+      },
+    ],
+  },
+  ontology: {
+    title: '本体工程（Ontology）与企业语义层',
+    description: '从本体建模和领域驱动设计（DDD）入手，了解如何用企业语义层支持 AI Agent 的可信查询。',
+    takeaway:
+      '先明确业务对象、关系和可验证的约束，再把这些定义落实到查询路径。领域模型负责业务行为，本体帮助不同系统共享术语与语义。',
+    readings: [
+      {
+        path: 'blog/essay/2026-05-29-Ontology-FCKG',
+        reason: '用电影奖项图谱理解类、实例、关系与推理。',
+      },
+      {
+        path: 'blog/essay/2026-05-31-ontology-vs-ddd',
+        reason: '区分本体与领域模型的职责，以及它们如何配合。',
+      },
+      {
+        path: 'blog/essay/2026-11-07-ontology-to-trustworthy-query',
+        reason: '看业务语义如何约束查询路径并支持结果追溯。',
       },
     ],
   },

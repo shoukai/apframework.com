@@ -103,7 +103,10 @@ test('an updated article shows readers the same modification date as its structu
   const script = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1]
   const article = JSON.parse(script)
   assert.equal(article.dateModified, '2026-11-05T00:00:00.000Z')
-  assert.match(html, /修改于[^<]*<time dateTime="2026-11-05T00:00:00.000Z"/)
+  assert.ok(
+    /<time dateTime="2026-10-27T00:00:00.000Z">2026-10-27<\/time> 发布<\/span><span aria-hidden="true">·<\/span><span><time dateTime="2026-11-05T00:00:00.000Z">2026-11-05<\/time> 更新/.test(html),
+    'Expected publication and update dates together in YYYY-MM-DD format'
+  )
 })
 
 test('legacy articles keep the page title as their only top-level heading', () => {
@@ -142,4 +145,28 @@ test('legacy HTTP article images do not create insecure structured data URLs', (
   const article = JSON.parse(script)
 
   assert.ok(article.image?.startsWith('https://'), `Insecure image URL: ${article.image}`)
+})
+
+test('the article index features exactly three topics and the homepage has no topic block', () => {
+  const home = renderedPage('/')
+  assert.ok(!home.includes('<nav aria-label="专题导读"'), 'Homepage still has a topic block')
+
+  const blog = renderedPage('/blog')
+  const topics = blog.match(/<section aria-labelledby="featured-topics-heading"[^>]*>(.*?)<\/section>/)?.[1]
+  assert.ok(topics, 'Article index is missing the featured topics')
+  const routes = [...topics.matchAll(/href="(\/tags\/[^"]+)"/g)].map((match) => match[1])
+  assert.deepEqual(routes, ['/tags/ai-agent', '/tags/ontology', '/tags/agent-evaluation'])
+
+  const sitemap = readFileSync(path.join(outputRoot, 'sitemap.xml.body'), 'utf8')
+  for (const route of routes) {
+    assert.ok(sitemap.includes(`<loc>${siteUrl}${route}</loc>`))
+    assert.doesNotMatch(renderedPage(route), /<meta name="robots" content="noindex/)
+  }
+})
+
+test('Ontology guide leads readers from foundations to trustworthy queries', () => {
+  const html = renderedPage('/tags/ontology')
+  assert.match(html, /建议阅读顺序/)
+  assert.match(html, /href="\/blog\/essay\/2026-05-31-ontology-vs-ddd"/)
+  assert.match(html, /href="\/blog\/essay\/2026-11-07-ontology-to-trustworthy-query"/)
 })

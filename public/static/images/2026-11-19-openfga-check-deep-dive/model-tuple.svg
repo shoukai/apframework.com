@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">授权模型与关系元组如何合成一次 Check</title>
+  <desc id="desc">模型定义合法路径，tuple 记录当前关系事实，Check 把用户、关系和对象代入规则，所有必需关系匹配后得到允许。条件授权还需合并 tuple 参数和请求上下文。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#53666b"/></marker>
+    <style>
+      .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}
+      .head{font:700 22px Arial,'Noto Sans CJK SC',sans-serif}.label{font:700 19px Arial,'Noto Sans CJK SC',sans-serif;fill:#263a3e}.body{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:16px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}
+      .box{stroke-width:2}.arrow{fill:none;stroke:#53666b;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="520" fill="#fff"/>
+  <text class="title" x="60" y="52">模型规定可走的路，tuple 说明路上有什么</text>
+  <text class="sub" x="60" y="82">Check 将一个具体问题放进规则和事实中求值</text>
+  <rect class="box" x="60" y="120" width="420" height="278" rx="8" fill="#edf4f7" stroke="#6d98a7"/>
+  <text class="head" x="88" y="158" fill="#315c6b">规则 · 授权模型</text>
+  <text class="body" x="88" y="204">document.editor</text><text class="body" x="118" y="233">= 直接 editor</text><text class="body" x="118" y="262">或 editor from project</text>
+  <text class="body" x="88" y="308">project.editor</text><text class="body" x="118" y="337">= user 或 organization#member</text>
+  <text class="small" x="88" y="376">定义合法关系组合，不授予具体用户</text>
+
+  <rect class="box" x="720" y="120" width="420" height="278" rx="8" fill="#f4f1e8" stroke="#b39b63"/>
+  <text class="head" x="748" y="158" fill="#735f31">事实 · 关系元组</text>
+  <rect x="752" y="183" width="356" height="48" rx="5" fill="#fff" stroke="#d2c69f"/><text class="body" x="770" y="213">Alice  member  Acme</text>
+  <rect x="752" y="244" width="356" height="48" rx="5" fill="#fff" stroke="#d2c69f"/><text class="body" x="770" y="274">Acme#member  editor  Launch</text>
+  <rect x="752" y="305" width="356" height="48" rx="5" fill="#fff" stroke="#d2c69f"/><text class="body" x="770" y="335">Launch  project  Roadmap</text>
+  <text class="small" x="748" y="376">记录当前 Store 中存在的关系</text>
+
+  <path class="arrow" d="M480 256 H570"/><path class="arrow" d="M720 256 H630"/>
+  <rect class="box" x="540" y="205" width="120" height="102" rx="8" fill="#e9f0e8" stroke="#719887"/>
+  <text class="label" x="600" y="245" text-anchor="middle">Check</text><text class="small" x="600" y="273" text-anchor="middle">Alice?</text>
+
+  <rect class="box" x="190" y="430" width="820" height="58" rx="8" fill="#eef2f2" stroke="#829195"/>
+  <text class="label" x="600" y="466" text-anchor="middle">user:alice · editor · document:roadmap → 规则与三条事实都匹配，结果才是允许</text>
+  <path d="M600 398 V425" fill="none" stroke="#53666b" stroke-width="2.5" marker-end="url(#arrow)"/>
+</svg>

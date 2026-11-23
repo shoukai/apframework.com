@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380" role="img" aria-labelledby="title desc">
+<title id="title">三条权限感知搜索路线</title><desc id="desc">路线一搜索候选再批量检查并顺序补页；路线二完整可见ID限制搜索；路线三派生授权索引限制搜索再复核。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#4b6477"/></marker></defs>
+<rect width="680" height="380" fill="#fff"/>
+<g font-family="PingFang SC,Microsoft YaHei,sans-serif" text-anchor="middle" fill="#20384c">
+<text x="340" y="32" font-size="21" font-weight="600">同一排序目标，三个候选入口</text>
+<g font-size="17">
+<rect x="24" y="57" width="192" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="120" y="88">① 搜索有序候选</text>
+<rect x="246" y="57" width="188" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="340" y="88">BatchCheck</text>
+<rect x="464" y="57" width="192" height="50" rx="8" fill="#edf7f3" stroke="#a3cbbd"/><text x="560" y="88">原序消费、继续补页</text>
+<rect x="24" y="157" width="192" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="120" y="188">② ListObjects</text>
+<rect x="246" y="157" width="188" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="340" y="188">完整可见 ID 集合</text>
+<rect x="464" y="157" width="192" height="50" rx="8" fill="#edf7f3" stroke="#a3cbbd"/><text x="560" y="188">限制搜索、业务排序</text>
+<rect x="24" y="257" width="192" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="120" y="288">③ 关系与规则变更</text>
+<rect x="246" y="257" width="188" height="50" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="340" y="288">派生索引限制搜索</text>
+<rect x="464" y="257" width="192" height="50" rx="8" fill="#edf7f3" stroke="#a3cbbd"/><text x="560" y="288">返回前复核、补页</text>
+</g>
+<g stroke="#4b6477" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M216 82H241"/><path d="M434 82H459"/><path d="M216 182H241"/><path d="M434 182H459"/><path d="M216 282H241"/><path d="M434 282H459"/></g>
+<g font-size="15" fill="#627584"><text x="340" y="133">保留未消费尾部；未知不能按拒绝跳过</text><text x="340" y="233">接口成功不等于集合完整；不是相关性分页</text><text x="340" y="333">复核能剔除撤权残留，补不回索引漏掉的新可见项</text><text x="340" y="364">概念示意；本图路线编号按本文叙述顺序</text></g>
+</g></svg>

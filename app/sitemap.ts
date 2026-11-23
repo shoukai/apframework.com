@@ -42,6 +42,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'read/list',
     'projects',
     ...projectsData.map((project) => `projects/${project.slug}`),
+    'wenmai/index.html',
+    'wenmai/en.html',
     'tags',
     'about',
   ].map((route) => ({ url: `${siteUrl}/${route}` }))

@@ -1,0 +1,303 @@
+---
+title: 'Cedar 授权策略：从 Schema 到 permit / forbid'
+date: '2026-11-23'
+tags: ['Cedar', 'OpenFGA', '授权策略', '访问控制', '权限系统', '系统架构']
+draft: false
+summary: '从 Cedar 的设计哲学与 OpenFGA 的关系讲起，沿文档协作案例解释授权请求结构、Schema、permit、forbid 与策略求值边界。'
+images: ['/static/images/2026-11-23-cedar-authorization-policy/cedar-authorization-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-23-cedar-authorization-policy/cedar-authorization-cover.jpg"><img className="my-0" src="/static/images/2026-11-23-cedar-authorization-policy/cedar-authorization-cover.jpg" alt="Cedar授权策略流程：关系与上下文进入策略判断，最终得到允许或拒绝" /></a>
+  <figcaption className="text-center">Cedar 将请求事实交给策略求值，形成明确的授权决定</figcaption>
+</figure>
+
+Cedar 是一门描述授权规则的专用语言，也有开源求值实现。它把「谁（principal）在什么上下文（context）下，对哪个资源（resource）执行什么操作（action）」写成策略，再将策略与请求数据交给求值器，得到 `Allow` 或 `Deny`。应用仍负责准备可信输入，并把结果落实到真正的业务操作上。
+
+在进入例子之前，先区分 Cedar 的语言与实现、它为何采用受限的策略表达方式，以及它与 OpenFGA 的不同边界。后文再沿用林岚、小周、小陈和《项目路线图》这一关系授权案例，讲解 Cedar 如何把层级关系、请求属性与策略组合起来。文中的分类、分享期限、MFA 与 IP 要求均是教学假设。
+
+## 1. Cedar是什么：语言、开源求值器与托管服务
+
+Cedar 首先是一门专为授权设计的声明式语言：策略表达主体、操作、资源和条件；规范同时定义如何对请求求值。它的官方开源 Rust 实现提供授权引擎，也包含策略验证、解析等工具；应用可以通过库集成求值器。语言规范与 SDK 等项目以 Apache-2.0 许可开放。
+
+这不等于 Cedar 本身就是一个管理策略的云服务。应用内嵌求值器时，策略如何存储和分发、请求需要哪些实体与上下文，仍由应用系统负责。另有服务可以基于 Cedar 托管策略并提供管理和授权 API，例如 Amazon Verified Permissions；服务的策略存储和接口属于该服务的产品边界，不能与 Cedar 语言或开源求值器混为一谈。
+
+## 2. Cedar的设计哲学：把授权做成可读、可分析的规则
+
+Cedar 的设计目标，是让授权规则既能独立于业务代码维护，又能以受限、明确的语义求值。策略可以单独审阅和更新；Schema 验证与分析工具则帮助检查规则结构及其影响。这并不意味着应用里不再需要授权调用或业务执行代码，而是把「规则如何表达」从每个处理器里分离出来。
+
+它不是通用脚本语言。Cedar 有意不提供文件、网络等 I/O 能力；官方文档说明，有界大小的策略保证终止且无副作用，设计文章也强调避免阻塞操作和不终止循环。受限表达有助于让求值可预测，并使策略能接受自动分析，而不是允许策略执行任意程序。
+
+可靠性工作也有明确层次：Cedar 项目提供以 Lean 实现的形式化模型并证明其中的性质；生产授权引擎以 Rust 实现，再通过属性测试及差分测试检查实现与模型的一致性。这提高了对语言语义和实现的信心，但不证明某个团队写出的业务策略一定正确，也不替应用验证所有输入和执行边界。
+
+在决定组合上，Cedar采用固定而可读的规则：没有匹配的 `permit` 默认 `Deny`，任一匹配的 `forbid` 都覆盖 `permit`，不依赖策略排列顺序。需要特别记住后文会解释的 `skip-on-error`：求值错误的单条策略会被忽略并进入诊断，并非整个请求自动失败。因此，受限语言与固定组合语义让规则更易检查，但仍要求应用理解结果和诊断。
+
+## 3. 先分清访问控制模型、引擎与输入
+
+RBAC、ABAC、ReBAC、Cedar、OpenFGA、PARC 与关系元组经常被放在同一张对照表里，看起来像一排互相替代的产品。其实它们回答的问题不同： **RBAC、ABAC、ReBAC描述授权规则主要依据什么；Cedar、OpenFGA提供表达或计算授权的语言、模型与引擎；PARC、策略、实体和关系元组则是这些实现处理请求与授权事实时涉及的数据。** 这些层次有关联，却不是一一对应。
+
+先看三种常见的授权建模思路。RBAC（Role-Based Access Control，基于角色的访问控制）按用户承担的角色授予权限，例如“项目编辑者可以修改路线图”；ABAC（Attribute-Based Access Control，基于属性的访问控制）根据主体、资源或请求属性作判断，例如“只有MFA已通过且来自公司网络的请求可读机密文件”；ReBAC（Relationship-Based Access Control，基于关系的访问控制）则沿用户、组、文件夹和文档之间的关系判断，例如“研发组成员可以读取其有权访问的文件夹中的文档”。一个实际授权模型可以组合这些思路：角色本身可能由关系表达，关系路径之外也可能附加属性条件。
+
+Cedar和OpenFGA不是RBAC、ABAC、ReBAC的别名，也不分别只实现其中一种。Cedar允许策略关联角色或组，也允许策略使用主体、资源及请求条件的属性；可以据此写出RBAC或ABAC风格的规则，也可以用实体层级表达关系。OpenFGA以关系模型为中心，常用来表达ReBAC，也可以建模角色关系，并通过Conditions及请求时输入处理部分属性约束。这里比较的是它们的中心抽象和事实管理方式，不是把授权模型与产品硬性配对。
+
+两者处理关系事实的路径尤其不同。Cedar授权调用通常由应用一次提供策略、请求核心和相关实体数据；实体可以带父级层级，策略可用 `in` 判断成员或祖先关系，但Cedar不负责替应用从关系数据库取齐这些事实。OpenFGA则通常把关系元组持久化在其关系存储中，由授权模型定义如何沿关系查询。Check类请求还可携带本次求值所需的context和Contextual Tuples：前者用于满足条件，后者是只对本次请求有效的临时关系。对“谁能访问哪些文档”这类反向查询，关系引擎也能基于已保存的关系回答，而不是要求应用每次把整张关系图送入策略请求。
+
+### 一张图看清几层概念
+
+![授权概念分层图：RBAC、ABAC、ReBAC是可组合的建模思路；Cedar以策略求值为中心，OpenFGA以关系查询为中心，两者的请求与事实数据各有职责](/static/images/2026-11-23-cedar-authorization-policy/authorization-concept-layers.svg)
+
+*图1：建模思路、授权实现与请求数据分处不同层次；图示概括常见取向，不表示一一绑定。*
+
+输入层不是一组完全对称的格式清单。PARC（Principal、Action、Resource、Context，即主体、操作、资源、上下文）是Cedar请求中的四个核心字段；完整求值还需策略集合和相关实体数据。Context适合放本次请求特有的信息，不是所有属性的“万能容器”。OpenFGA一侧则要区分授权模型、关系元组和请求数据：模型定义类型、关系与条件；持久元组记录关系事实，若关系带条件，元组还可保存该条件所需的上下文；Check请求可另行提供本次求值的context，Contextual Tuples则只在本次请求中临时参与关系判断。它们各有职责，不能合并成一个“tuple格式”。
+
+因此，用户提供的简图有一个很有用的主线——把“授权思路、计算实现、请求与关系事实”拆开看；但有三处需要加限定：
+
+- **RBAC／ABAC／ReBAC不是引擎专属的实现标签。** Cedar文档明确举例说明它可表达RBAC和ABAC；OpenFGA也将其模型语言称为一种policy，并支持Conditions和Contextual Tuples。图中的对应关系只能表示常见路径，不能画成排他归属。
+- **“ABAC主要写在Cedar的 `when`”过于狭窄。** Cedar策略的主体、操作、资源scope也能作判断，条件可访问主体属性、资源属性以及请求Context；ABAC描述的是决策依据，不是某个语法位置。
+- **“Cedar无状态、OpenFGA有状态”是架构取向的简写，不是绝对实现性质。** Cedar求值所需输入通常由调用方提供，OpenFGA常见模式由关系存储持有图数据；但OpenFGA可作为Go库嵌入，且contextual tuples本来就是单次请求的临时输入。更稳妥的对比是：关系事实由谁维护、调用时哪些数据需要提供、是否需要从关系图进行查询。
+
+### Cedar与OpenFGA：中心抽象不同，但可以组合
+
+Cedar是policy-centric：策略明确主体、操作、资源的适用范围及附加条件，应用提供求值所需的请求、策略与实体。OpenFGA是relationship-centric：authorization model用DSL声明关系及其组合，tuple记录关系事实，常见服务部署保存并查询关系图。前者更直接地评估一组策略对当前请求是否适用；后者更直接地回答关系模型能否从用户、关系和对象之间的事实推出授权。这是中心抽象和常见数据管理方式的差异，不是能力高低排名，也不表示前者绝不保存任何输入、后者只会做图遍历。OpenFGA模型同样承载授权规则，Conditions可为关系增加属性条件，Contextual Tuples可补充请求时才有的关系；这些能力仍围绕关系模型组织，并不使它与Cedar成为同一种策略引擎。
+
+也不能据此把Cedar理解为“只有属性”、把OpenFGA理解为“只有关系”。Cedar的entity hierarchy可表示用户属于组、文档属于文件夹；OpenFGA的Conditions可以约束关系是否适用于当前属性，Contextual Tuples可以把本次请求才知道的关系带入Check等查询。OpenFGA的条件元组可保存该关系条件所需的上下文，Check请求也可提供请求级context；具体如何组合取决于模型中条件的定义。
+
+两者可以在应用里组合，但没有必须双引擎的前提，也不是开箱即用的Cedar–OpenFGA集成。若OpenFGA负责查复杂关系、Cedar再检查其他策略，应用必须明确调用顺序、两边使用的数据是否一致，以及任一引擎报错时如何处理；尤其不能把Cedar单条策略的 `skip-on-error` 偷换成跨引擎的全局拒绝规则。最后仍由应用执行授权决定并控制资源操作。
+
+## 4. 一条关系成立，为什么仍可能拒绝？
+
+假设小陈是研发组成员，研发组可以读取「研发资料」文件夹，路线图放在这个文件夹里。应用按这条父子关系构造相关实体；策略如果允许研发组成员读取其中的文档，小陈便有一条可能匹配的 `permit` 路径。
+
+小周则是另一种情况：林岚直接把《项目路线图》分享给他。分享是否仍然有效，可以再受截止时间限制。这个例子里，关系资格回答「是否存在这条授权来源」；本次上下文回答「在此时、此认证状态、此来源地址下，这条来源是否还能用」。
+
+还可以假设路线图被标记为机密，读取必须通过MFA，并来自公司网络。即使小陈通过了组与文件夹的关系判断，或小周仍有一条有效分享，机密规则仍可能禁止本次读取。
+
+这些条件的属性应由可信服务端构造。例如MFA状态来自已验证的认证会话，客户端源地址由服务端可信代理链计算，当前时间由服务端时钟给出。若直接相信调用者自行填写的 `mfa: true` 或任意IP地址，策略只会严谨地判断一份可以伪造的数据。
+
+## 5. Cedar把一次请求写成PARC
+
+回到《项目路线图》的读取请求，先把参与这次判断的信息组织起来。
+
+一次请求可记为PARC：
+
+- **P — Principal**：谁在请求，例如 `Docs::User::"chen"`。
+- **A — Action**：要做什么，例如 `Docs::Action::"read"`。
+- **R — Resource**：操作哪个对象，例如 `Docs::Document::"roadmap"`。
+- **C — Context**：只对这次请求有意义的信息，例如MFA状态、请求IP和服务端时间。
+
+四项描述请求本身。与之分开的两项输入是待评估的策略（policies）和求值需要的实体集合（entities）。实体包含Principal、Resource及策略可能遍历到的相关实体、属性与父级关系。应用需要准备这些输入；Cedar不会替应用查询自己的业务数据库或认证服务。
+
+Cedar evaluator逐条求值策略，返回整体 `Allow` 或 `Deny`，同时给出决定性策略及错误诊断。应用还必须检查结果并执行它：允许时读取文档，拒绝时不返回文档。仅仅调用求值器、却忽略它的决定，不能保护资源。
+
+![Cedar 请求输入输出结构示意：应用收集PARC和entities，策略与实体数据交给Cedar authorizer，输出decision及diagnostics](/static/images/2026-11-23-cedar-authorization-policy/cedar-parc.svg)
+
+*图2：应用负责组织PARC与相关实体；authorizer按策略计算decision并附带diagnostics。结构示意。*
+
+## 6. Schema规定策略可以引用哪些类型
+
+先把案例中的类型写清楚。以下是Cedar Schema语法示例，定义用户属于组、文档属于文件夹，以及一次 `read` 操作的context shape。
+
+```cedar
+namespace Docs {
+    entity Group;
+    entity User in [Group] {
+        displayName: String
+    };
+    entity Folder;
+    entity Document in [Folder] {
+        owner: User,
+        readers: Set<User>,
+        classification: String,
+        sharedUntil: datetime
+    };
+    action "read" appliesTo {
+        principal: [User],
+        resource: [Document],
+        context: {
+            mfa: Bool,
+            sourceIp: ipaddr,
+            requestTime: datetime
+        }
+    };
+}
+```
+
+`namespace Docs`让 `User`、`Document` 和 `Action::"read"` 有明确的名称空间。`entity User in [Group]`与`entity Document in [Folder]`声明允许的直接父类型；某个实体实际属于哪些组、位于哪个文件夹，仍由应用在求值时提供相应父关系。Cedar可用实体层级的 `in` 判断成员或后代关系，但不会替业务系统持久化、维护这些事实。OpenFGA则定位为关系引擎，由其服务存储和查询关系图；两者在数据组织和服务边界上不同，不必由此推成能力高低或互不搭配。
+
+Schema的属性shape也很具体：`readers`是实体集合，`classification`是字符串，`sharedUntil`是时间；`read` action只适用于特定Principal、Resource类型，并声明三项context字段。每个action可以有自己的context shape。
+
+Schema供策略验证器判断策略引用了什么类型、属性和action；它不是每次授权调用都要附带的业务数据。真正进入运行时求值的，是请求本身、相关entities和context。策略验证与授权求值是两件分开的事。
+
+![Schema验证和runtime授权两条独立流程示意：策略创建时Schema进入validator；运行时请求由app提供PARC、entities和policies给authorizer](/static/images/2026-11-23-cedar-authorization-policy/cedar-schema-runtime.svg)
+
+*图3：Schema用于策略验证；授权API另行接收请求、策略与实体，不要把静态验证和运行时求值混作一个步骤。结构示意。*
+
+## 7. 用permit表达「哪些来源能读」
+
+Schema提供类型之后，策略才表达谁能做什么。以下三条 `permit` 分别对应林岚的所有者权限、小陈的组与文件夹继承权限，以及小周的单篇分享。它们是教学示例。
+
+```cedar
+// 文档所有者可以读取
+permit (
+    principal is Docs::User,
+    action == Docs::Action::"read",
+    resource is Docs::Document
+)
+when {
+    principal == resource.owner
+};
+
+// 工程组成员可以读取研发资料文件夹中的文档
+permit (
+    principal is Docs::User in Docs::Group::"engineering",
+    action == Docs::Action::"read",
+    resource is Docs::Document in Docs::Folder::"engineering-docs"
+);
+
+// 文档的直接分享名单可以读取，但分享需在截止前有效
+permit (
+    principal is Docs::User,
+    action == Docs::Action::"read",
+    resource is Docs::Document
+)
+when {
+    resource.readers.contains(principal)
+    && context.requestTime < resource.sharedUntil
+};
+```
+
+每条策略都有 `permit` 效果和作用范围：主体、操作、资源；可选的 `when` 附加条件。小陈的策略用类型与层级限定主体和资源；小周的策略检查 `readers` 集合是否精确包含这个Principal。`in` 能沿提供的父级层级判断成员关系；它不代表Cedar替你找到了某条业务分享记录，更不会把任意组成员自动变成文档读者。必须有对应的策略明确使用这条层级关系。
+
+多条 `permit` 可提供不同的授权来源：本次请求满足其中任意一条，便存在可授予访问的候选。但候选允许并非最终结果；后文的 `forbid` 仍可覆盖它们。
+
+## 8. 用when和unless约束本次请求
+
+Cedar的 `when` 表达式为真，策略的条件才满足；`unless` 表达式为假，策略条件才满足。多条条件分别按自己的效果和作用范围组合。分享策略的截止时间只限制「直接分享」这条授权来源。过期后这条策略不再允许，但小周如果又是所有者，或通过另一条有效的permit，仍可能得到允许。
+
+若业务要求所有读取路线图的方式都必须通过MFA和公司网段检查，就应让这两项条件独立于某一条permit路径。以下假设「机密文档」读取均须符合两项要求：
+
+```cedar
+// 对机密文档，MFA未通过时禁止读取
+forbid (
+    principal,
+    action == Docs::Action::"read",
+    resource is Docs::Document
+)
+when {
+    resource.classification == "confidential"
+}
+unless {
+    context.mfa
+};
+
+// 对机密文档，来源不在公司网段时禁止读取
+forbid (
+    principal,
+    action == Docs::Action::"read",
+    resource is Docs::Document
+)
+when {
+    resource.classification == "confidential"
+}
+unless {
+    context.sourceIp.isInRange(ip("10.20.0.0/16"))
+};
+```
+
+`unless` 条件要求表达式结果为false才算满足这条策略。于是MFA为false时，`unless { context.mfa }` 满足，`forbid` 生效；MFA为true时，这条forbid不匹配。同理，来源IP在网段内时，IP限制不匹配；在网段外则命中禁止。两个forbid都未命中，permit才可能让请求通过。
+
+这些示例也显示context为什么应来自服务端。即使Schema写明 `mfa: Bool`、`sourceIp: ipaddr`，类型正确并不证明值可信。反过来，信任可信认证链和代理链是应用的责任，不是比较表达式可以建立的属性。
+
+## 9. Permit、forbid与策略错误怎样合成决定
+
+Cedar对每条策略分别求值，单条策略的结果可为true、false或error。对本次请求，先看有没有任何 `forbid` 成功，再看有没有 `permit` 成功：任一forbid为true，最终便是 `Deny`；没有命中的forbid、且至少一个permit为true，才是 `Allow`；否则为 `Deny`。没有匹配permit时的Deny就是default-deny。
+
+![Cedar策略决策矩阵示意：forbid true覆盖permit，至少一个permit且无forbid才allow，无permit默认deny，单条error被跳过并记录diagnostic](/static/images/2026-11-23-cedar-authorization-policy/cedar-decision.svg)
+
+*图4：error属于单条策略求值结果；跳过错误策略不等于跳过整次授权请求。结构示意。*
+
+关键的细节在 `skip-on-error`。某一条策略求值发生error时，这条策略不参与最终合成；其策略ID和错误详情会出现在diagnostics中。其他策略仍然各自求值。因此，不能把「Cedar遇到任何error就整个请求自动拒绝」当作算法规则。
+
+这条边界尤其影响 `forbid`。如果某条本应拦截请求的forbid因缺属性、缺实体或类型不匹配而error，它会被跳过；另一条成功的permit仍可能导致 `Allow`。应用应读取诊断，并根据自身安全要求决定是否对带错误的响应改为拒绝或报警。错误策略跳过与应用最终拒绝，是两层不同的选择。
+
+## 10. Schema验证降低风险，但不替运行时把关
+
+Schema可以帮助验证器在策略创建、加载或更新时发现未知的action、属性引用和类型错误；验证API与授权API彼此分开。对符合Schema预期的输入，验证能排除很多可能的求值错误，但这不表示authorizer会在每次请求时强制把所有实体数据重新校验一遍。
+
+运行时的PARC、context和实体集合仍由应用提供。如果它们实际不符合曾用于验证策略的Schema，策略可能在求值时error，并按前述算法被忽略。比如属性漏了、字符串字段错传成整数、策略访问的相关实体没有放入实体集合，都会带来问题。缺实体也不同于缺权限：Cedar不是自动从数据库补全该实体。
+
+有些运行时错误也不只是Schema能排除的输入形状问题，例如整数运算溢出。可选属性访问应使用 `has` 检查存在性，再读取属性；仅把属性标成optional并不保证直接访问安全。错误如果出现在forbid中，保护策略可能因此被跳过。
+
+变更Schema会改变验证依据和授权模型。先前通过验证的策略可能受影响，需评估哪些策略依赖改动的实体、属性或action，并review、必要时修订和重新验证。若策略验证与生产运行时使用不同版本的Schema、不同实体来源规则或不同类型约束，验证结果也不能代表实际请求的数据质量。
+
+## 11. 把一次路线图读取完整走完
+
+现在把输入收回到一个请求：小陈读取机密的《项目路线图》。应用先认证小陈，确认MFA状态，并从受信任网络层获得来源地址及服务端当前时间；再从自己的数据源取出用户、研发组、文件夹、文档及其属性和父级关系。假设这次请求来自公司网段、MFA已完成，文档分类为confidential，且小陈属于engineering组、路线图位于engineering-docs文件夹。
+
+请求的PARC是：
+
+```text
+principal = Docs::User::"chen"
+action    = Docs::Action::"read"
+resource  = Docs::Document::"roadmap"
+context   = { mfa: true, sourceIp: "10.20.4.18", requestTime: "2026-11-22T09:30:00Z" }
+```
+
+实体集合带入例如以下事实：
+
+```json
+[
+  {"uid":{"type":"Docs::Group","id":"engineering"},"attrs":{},"parents":[]},
+  {"uid":{"type":"Docs::User","id":"chen"},"attrs":{"displayName":"小陈"},"parents":[{"type":"Docs::Group","id":"engineering"}]},
+  {"uid":{"type":"Docs::Folder","id":"engineering-docs"},"attrs":{},"parents":[]},
+  {"uid":{"type":"Docs::User","id":"lin"},"attrs":{"displayName":"林岚"},"parents":[]},
+  {"uid":{"type":"Docs::User","id":"zhou"},"attrs":{"displayName":"小周"},"parents":[]},
+  {"uid":{"type":"Docs::Document","id":"roadmap"},"attrs":{"owner":{"__entity":{"type":"Docs::User","id":"lin"}},"readers":[{"__entity":{"type":"Docs::User","id":"zhou"}}],"classification":"confidential","sharedUntil":{"__extn":{"fn":"datetime","arg":"2026-12-01T00:00:00Z"}}},"parents":[{"type":"Docs::Folder","id":"engineering-docs"}]}
+]
+```
+
+`context`是独立的请求记录，按同一JSON扩展类型表示法编码：
+
+```json
+{
+  "mfa": true,
+  "sourceIp": {"__extn":{"fn":"ip","arg":"10.20.4.18"}},
+  "requestTime": {"__extn":{"fn":"datetime","arg":"2026-11-22T09:30:00Z"}}
+}
+```
+
+对本例而言，组与文件夹的permit范围匹配，MFA和IP两个forbid均不匹配，最终为 `Allow`。小周在截止前通过reader分享策略也有一个permit候选；过期之后，该条不再适用，但不自动取消他的其他授权路径。若将小陈的context改为 `mfa: false`，MFA forbid命中，哪怕组路径permit为true，最终仍是 `Deny`。
+
+若求值时缺少 `context.mfa`，相关forbid可能error并被跳过；响应会把策略错误放进diagnostics，而不是把它伪装为一个命中的禁止策略。若此时组permit仍为true，算法可能仍给出Allow。应用看到错误后是否把这次决定降级为拒绝，必须由应用明确实现和测试。
+
+![《项目路线图》授权链示意：应用收集用户组和文档父关系、MFA/IP/时间context，再并行评估permit与forbid，authorizer返回decision及diagnostics，由应用决定是否提供文档](/static/images/2026-11-23-cedar-authorization-policy/cedar-document-flow.svg)
+
+*图5：关系与资源事实来自应用数据；服务端构造请求context；策略产生决定和诊断，只有应用收到Allow后才执行文档读取。案例示意。*
+
+Cedar把策略表达与业务代码分开，却没有把可信数据、关系事实和资源执行从应用中拿走。读策略时要把两件事分开看：哪条 `permit` 给出授权来源；哪些 `forbid` 与本次请求条件冲突。部署时也要把两类检查分开：创建策略时做Schema验证；请求到来时保证实际输入可信、完整，并检查decision与diagnostics，再决定是否返回资源。
+
+下一篇可以在这个请求链上继续讨论：当同一个Agent要在多份文档、不同工具权限之间执行任务时，如何把授权结果接入工具调用边界。
+
+## 参考资料
+
+- [Cedar Policy Language Reference Guide](https://docs.cedarpolicy.com/)（2026-11-22访问；指南自标 Cedar language Version 4.6。主站新闻按4.15标注11月16日发布，历史页列语言版本4.7对应 SDK 4.15.0；这些标识不能混作同一版本。本文按指南自标4.6核对语法，不宣称它是当前最新SDK版本。）
+- [Cedar 官方网站](https://www.cedarpolicy.com/)（语言与策略求值规范、Apache-2.0开放项目、Amazon Verified Permissions托管服务说明）
+- [Cedar 官方 Rust 实现](https://github.com/cedar-policy/cedar)（授权引擎、validator与工具）
+- [Cedar security](https://docs.cedarpolicy.com/other/security.html)（形式化模型、生产引擎验证方式与shared responsibility）
+- [Why was Cedar created?](https://cedarland.blog/design/why-cedar/content.html)（Cedar开发团队成员对设计目标的说明）
+- [Authorization](https://docs.cedarpolicy.com/auth/authorization.html)
+- [Cedar schema](https://docs.cedarpolicy.com/schema/schema.html)
+- [Cedar policy validation against schema](https://docs.cedarpolicy.com/policies/validation.html)
+- [Basic policy construction in Cedar](https://docs.cedarpolicy.com/policies/syntax-policy.html)
+- [Cedar schema format](https://docs.cedarpolicy.com/schema/human-readable-schema.html)
+- [Entities and context syntax](https://docs.cedarpolicy.com/auth/entities-syntax.html)
+- [Cedar data types](https://docs.cedarpolicy.com/policies/syntax-datatypes.html)
+- [Cedar operators](https://docs.cedarpolicy.com/policies/syntax-operators.html)
+- [Entities in Cedar](https://docs.cedarpolicy.com/policies/syntax-entity.html)
+- [OpenFGA：Policy Engines vs. Relationship Engines](https://openfga.dev/docs/learn/policy-engine/)
+- [OpenFGA：ABAC vs. ReBAC](https://openfga.dev/docs/learn/abac-vs-rebac)
+- [OpenFGA：Modeling ABAC with OpenFGA](https://openfga.dev/docs/best-practices/modeling-abac)
+- [OpenFGA：Conditions](https://openfga.dev/docs/modeling/conditions)
+- [OpenFGA：Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)
+- [OpenFGA 官方实现](https://github.com/openfga/openfga)
+- [History for the Cedar Policy Language](https://docs.cedarpolicy.com/other/doc-history.html)

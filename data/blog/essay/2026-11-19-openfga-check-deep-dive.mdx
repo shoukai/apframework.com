@@ -1,0 +1,229 @@
+---
+title: '一次 OpenFGA Check 如何完成：从请求、关系图到存储查询'
+date: '2026-11-19'
+tags: ['OpenFGA', 'ReBAC', '授权系统', '细粒度授权', '访问控制', '系统架构', '源码分析']
+draft: false
+summary: '从一次 Check 请求追踪 OpenFGA 的模型解析、关系求值与 datastore 读取，解释 union、intersection、exclusion、递归、条件上下文、并发和缓存，并拆解 v1 与 weighted-graph v2 的 shadow、fallback 和一致性边界。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-19-openfga-check-deep-dive/openfga-check-deep-dive-cover.jpg"><img className="my-0" src="/static/images/2026-11-19-openfga-check-deep-dive/openfga-check-deep-dive-cover.jpg" alt="OpenFGA 授权检查示意：用户经由团队与资源关系进入求值器，得到文档访问结果" /></a>
+  <figcaption className="text-center">一次 Check 将关系事实交给求值器，沿授权模型定义的路径判断资源访问</figcaption>
+</figure>
+
+上一篇把一个小型协作模型跑了起来：Alice 是 Acme 成员，Acme 的成员集合可以编辑 Launch 项目，Roadmap 文档属于 Launch。Check 请求询问 Alice 能不能编辑 Roadmap，服务返回允许。这个答案看起来只有一个布尔值，背后却要先确定使用哪版模型，再沿模型允许的关系路径检查 Store 中的关系事实；路径中出现递归、条件或多个逻辑分支时，还要调度子查询并访问存储。
+
+理解这条链路，也能帮助解释上一篇实验中的一些现象：并发增加时总请求速率上升，但单次延迟分位数也上升；继承层级变化时，延迟并不总按层数同比增加。不过源码只能说明请求有哪些处理步骤和限制，不能单独证明某一轮测量为什么得到那个数字。前一篇测的是一个固定版本的本机服务；本文分析的是本机 OpenFGA 源码 checkout 中的实现，两者的版本并非完全相同，因此下面涉及 v1 与 weighted-graph v2 的实现细节，都以当前 checkout 为准。
+
+**先给结论：** 一次 Check 不是简单的一次数据库查询，而是一条由授权模型限定路径、tuple 提供关系事实、求值器按逻辑关系展开的执行过程。它的结果、耗时和写入可见性还受求值器版本、并发限制、缓存与 datastore 配置影响。前篇的单次实验可以帮助理解这条路径，但不能单凭源码解释测得的数值。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/reading-guide.svg"><img className="my-0 h-auto w-full" width={1200} height={480} src="/static/images/2026-11-19-openfga-check-deep-dive/reading-guide.svg" alt="本文的金字塔式阅读路线" /></a>
+  <figcaption className="text-center">图 1：阅读路线从 Check 的核心结论出发，再看关系求值与存储控制，最后核对版本、缓存和实验边界。</figcaption>
+</figure>
+
+## 1. 从一个问题进入服务
+
+### 1.1 Check 请求携带什么
+
+Check 的核心问题可以写成三元组：用户、关系、对象。例如：
+
+```text
+user:alice  editor  document:roadmap
+```
+
+意思是“Alice 是否拥有 Roadmap 的 editor 关系？”请求还可以指定 Store、授权模型 ID、一组临时关系元组、条件求值上下文和一致性偏好。它不是把文档内容交给 OpenFGA 检查；文档正文通常仍由应用自己的数据层管理，OpenFGA 处理的是授权关系。
+
+如果调用 HTTP API，请求先经过 gateway，再进入服务的 Check 实现；gRPC 调用则直接到同一个服务接口。入口完成请求校验并执行服务访问控制（若部署启用了它），之后才进入授权求值。开启访问控制时，服务可能先对访问控制 Store 执行一次额外的 Check；默认的 Noop authorizer 不会做这一步，所以不能把它当成每次请求必经的固定开销。
+
+可先把 Check 看成一个小型解释过程：读入问题，选定规则版本，把关系事实接入求值器，最后得到允许、拒绝或错误。它并不总是一次数据库查询，也不必然是一条从用户走到对象的单一路径。
+
+### 1.2 先确定模型版本
+
+请求可以显式指定 `authorization_model_id`，也可以省略。显式指定时，服务按 Store 和模型 ID 解析该版本；省略时，服务先查 Store 的最新模型，再按解析出的 ID 取回或构建对应的类型系统，或授权模型图。
+
+这里有一个重要区别：模型是不可变版本，发布新模型不会就地改写旧版本。显式带上模型 ID，等于让本次 Check 固定使用一版规则；省略 ID，则由服务解析当前最新版本。模型解析结果会被缓存，但缓存以 Store 和模型 ID 为键。发布新模型后，旧模型缓存并不会把新模型变成旧模型；省略 ID 的请求会先解析最新模型 ID，再查对应版本的缓存。
+
+这也解释了上一篇的模型切换结果：相同的 Alice 请求，显式使用旧模型时允许，使用新模型时拒绝；省略模型 ID 后，因为 Store 最新模型已经变化，结果跟随新版本。要控制迁移风险，重要调用可以显式固定模型版本，并在切换前用已有关系数据回归允许与拒绝用例。
+
+这条调用链分成两层来看更清楚：上半部是服务选择 v1 或 weighted-graph v2 并产生主结果；下半部才是 v1 成功路径上可能启动的异步对照。图中把成功返回、终止错误和可回退错误分开，也显示了 v2 回退到 v1 后仍可能触发 weighted-graph shadow。它是当前 checkout 的实现示意，不是运行时 trace。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/check-flow.svg"><img className="my-0 h-auto w-full" width={1200} height={1080} src="/static/images/2026-11-19-openfga-check-deep-dive/check-flow.svg" alt="一次 OpenFGA Check 的主路径与 shadow 路径" /></a>
+  <figcaption className="text-center">图 2：主路径决定客户端结果；两类 shadow 只记录对照结果，不替换主响应。</figcaption>
+</figure>
+
+## 2. 模型给出路径，tuple 提供事实
+
+### 2.1 授权模型不是一份权限清单
+
+在上一篇的例子中，模型规定：组织有 `member` 关系；项目的 `editor` 可以指向用户，也可以指向某个组织的 `member` 用户集合；文档的 `editor` 可以直接授予用户，也可以继承所属项目的 `editor`。这些定义描述的是哪些关系组合合法、如何得到目标关系，而不是当前谁已经获准访问。
+
+关系元组（tuple）则记录事实，例如：
+
+```text
+user:alice member organization:acme
+organization:acme#member editor project:launch
+project:launch project document:roadmap
+```
+
+把模型想成道路规则，把 tuple 想成路口和路段上当前存在的连接，会比较容易理解。模型说“可以沿哪些类型的关系继续查”，tuple 说“这次查询实际有哪些关系事实可用”。Alice 能否编辑 Roadmap，取决于模型有没有定义这条继承路径，以及三段 tuple 是否都存在并满足相应约束。模型本身不会因为定义了 `editor` 就自动授予任何人权限。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/model-tuple.svg"><img className="my-0 h-auto w-full" width={1200} height={520} src="/static/images/2026-11-19-openfga-check-deep-dive/model-tuple.svg" alt="授权模型与关系元组如何共同决定 Check 结果" /></a>
+  <figcaption className="text-center">图 3：模型声明可用的关系规则，tuple 记录当前关系事实；Check 将具体问题代入两者。</figcaption>
+</figure>
+
+### 2.2 条件在查询时结合上下文
+
+带条件的关系元组除了关系主体和对象，还带有条件名称及参数。Check 执行到该关系时，服务把 tuple 中保存的参数与请求 context 合并，求值条件表达式。对普通命名条件，如果两个 context 有同名字段，tuple 中的值覆盖请求中的值。比如限时授权可以把 `grant_time`、`grant_duration` 放在 tuple 里，把当前时间作为请求上下文，再判断：
+
+```text
+grant_time <= current_time < grant_time + grant_duration
+```
+
+条件表达式由 CEL 执行。条件结果为 false 时，这条关系不匹配；必需参数缺失或表达式执行出错时，Check 会返回条件求值错误，不会悄悄变成授权。OpenFGA 可以验证和执行条件，但上下文里“当前时间”或其他业务属性是否可信，仍由调用方负责。若客户端能随意提交授权所依赖的属性，就可能让条件失去安全意义。这里说的合并优先级适用于普通命名条件；`$expression` 有单独的上下文处理路径。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/condition-context.svg"><img className="my-0 h-auto w-full" width={1200} height={430} src="/static/images/2026-11-19-openfga-check-deep-dive/condition-context.svg" alt="条件关系如何合并 tuple 参数与请求上下文" /></a>
+  <figcaption className="text-center">图 4：tuple 参数与请求 context 合并后交由 CEL 求值；false 表示关系不匹配，求值错误不会被当成允许。</figcaption>
+</figure>
+
+源码为条件求值配置了成本跟踪、最大评估成本和中断检查频率。这些限制针对 CEL 表达式计算，不是整个 Check 的数据库查询次数上限，也不代表任意长的条件都可以无限运行。
+
+## 3. 关系图怎样产生结果
+
+### 3.1 一个 Check 会拆成若干子问题
+
+服务会把目标对象类型和关系对应到模型中的节点，再根据用户类型、关系定义和 tuple 读结果决定后续工作。直接关系可以尝试精确匹配 tuple；computed userset 会转到同一对象上的另一个关系；tuple-to-userset（常写作 TTU，例如 `editor from project`）先读取对象的 `project` tuple，再对子对象的 `editor` 关系继续 Check。
+
+所以，Alice 的授权路径不必对应一次完整的“图数据库遍历”。求值器可能并发尝试逻辑分支，可能沿 userset tuple 递归派生子问题，也可能使用专门的递归策略把部分路径合并处理。逻辑路径的长度、子问题数量、存储查询数量和查询返回的 tuple 数量彼此相关，但不是同一个指标。
+
+### 3.2 Union：任一分支成立即可
+
+模型中的 `or` 对应 union。假设 `viewer` 可以由直接 viewer、editor 或 owner 推出，求值器会检查这些可能的分支。只要一个分支返回 true，整个 union 就可以返回 true，其余分支不再改变结论。当前实现会并发调度部分分支，因此一个分支先得到允许结果后，会取消仍在进行的工作。
+
+这种短路能减少已经没有必要的计算，但不等于每次都只执行一个存储查询：在允许结果出现之前，其他分支可能已经开始运行，查询也可能已发给 datastore。v1 的 union 遇到分支错误后会继续找 true；如果最后没有 true，则返回一个遇到的分支错误，而不是把所有错误合并起来。weighted-graph v2 也采用允许结果短路，但它自己的错误归并逻辑和 v1 并不完全相同。
+
+### 3.3 Intersection 与 exclusion：所有条件都要对上
+
+Intersection 表示所有参与关系都必须成立。例如“既属于某组又满足额外约束”，任一必要分支为 false，整体就不能允许。求值器可以并行检查分支，收到足以确定结果的 false 时可以提前结束。v1 和 v2 对并发错误与 false 同时出现时的归并细节有差别，因此文章不把它们说成完全相同的执行流程。
+
+Exclusion（差集）可以读成“A 成立，但 B 不成立”。基础分支 A 为 false，或排除分支 B 为 true，整体就会被拒绝；只有 A 成立且 B 不成立才允许。v1 还有一条循环处理规则：base 或 subtract 分支报告 cycle 时，会按 false 短路。当前 weighted-graph v2 对某些 wildcard 与 exclusion、userset 与 exclusion 的组合有明确的拒绝或不可表示情形。主路径遇到这类 v2 特有错误时，服务会按回退规则尝试 v1，而不是假设所有模型形状都能被新求值器处理。
+
+这些操作解释了为什么“找一条授权路径”只适用于一部分模型。Union 是寻找一个成立分支；intersection 需要多个分支共同成立；exclusion 还必须确认排除项不成立。它们的证据要求不同，求值器也不能一律在第一次读到 tuple 后就结束。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/rewrite-evaluation.svg"><img className="my-0 h-auto w-full" width={1200} height={690} src="/static/images/2026-11-19-openfga-check-deep-dive/rewrite-evaluation.svg" alt="Union、intersection、exclusion 与递归子问题的求值关系" /></a>
+  <figcaption className="text-center">图 5：Union 寻找足以允许的分支，intersection 要求必要分支全部成立，exclusion 还要确认排除项不成立；递归会派生子问题。</figcaption>
+</figure>
+
+### 3.4 递归关系与循环保护
+
+userset 让关系可以指向一组用户，例如 `organization:acme#member`；TTU 让对象关系沿另一个对象继续求值。若模型允许父子对象层层继承，Check 就会派生新的子问题。v1 的默认 resolver 可以逐 tuple 派发子 Check；对一些适用形状，递归 fast path 会从对象侧和用户侧读取 userset，再按层扩展并用 visited 集合去重。weighted-graph v2 也有默认和递归策略，会把某些递归关系分解、合并或自底向上求解。
+
+这类优化改变的是“如何组织同一个逻辑求值”，不改变调用方提出的 Check 问题。层数增加可能带来更多子问题或读操作，但也可能因为分支短路、缓存、批量或递归策略而没有按层数同比增加 datastore 查询。因此仅凭前一篇深度 1、5、10 的三组单次延迟，不能拟合出普遍的深度成本公式。
+
+v1 有明确的解析深度与 breadth 配置；在检查的这个 weighted-graph v2 路径中，服务把 breadth limit 作为 resolver 并发限制传入，但没有把 v1 的显式最大解析深度参数传给同一个 resolver。两者的控制方式不能简单说成完全一致。模型能通过的合法性校验、请求超时、求值策略和实际图形状仍会共同影响一项请求。
+
+## 4. 存储访问与执行控制
+
+### 4.1 求值器到底向存储读什么
+
+在 v1 路径中，Check command 会先验证请求 tuple、contextual tuples 和 context，然后创建请求级存储 wrapper，把 typesystem 与 tuple reader 放入求值上下文。不同关系形状可能触发不同读取：直接 tuple 查询可以走 `ReadUserTuple`；userset 查询会读某个对象和关系下的用户集合；TTU 会读取 tupleset 关系，再把读出的对象用于后续关系判断。
+
+v2 同样在 command/query 层建立带边界的 tuple reader，并可能在其外包一层 iterator cache。求值器读取什么取决于当前图边和策略，既可能按对象关系读取，也可能走 userset、TTU 或反向读取路径。用户提供的 contextual tuples 会并入本次请求的读取视图，不等同于永久写进 Store；同一请求里的上下文不同，求值结果也可能不同。
+
+存储适配器负责把这些逻辑读取落实到具体 datastore。OpenFGA 的 Check 层可以约束查询方式和并发，但 PostgreSQL、MySQL、memory datastore 的物理执行计划与延迟仍取决于各自实现和配置。看服务源码，不能代替检查目标数据库的索引、事务和查询计划。
+
+### 4.2 并发、深度、查询与超时不是同一个限制
+
+一次 Check 中可能有多个关系分支并发评估；resolver 的 breadth/concurrency 限制约束这种求值并发。另有 `MaxConcurrentReadsForCheck`，它限制单个 Check 对 datastore 发起的并发读取，不是整个服务的连接池大小，也不是所有请求共享的全局并发上限。默认配置值很大，实际压力还受服务并发、datastore 连接池和部署资源约束。
+
+v1 的解析节点深度上限、breadth limit、单 Check 存储并发读上限、API 请求 deadline、数据存储适配器自身的超时，以及 CEL 表达式成本限制，保护的是不同资源。把它们都称作“Check 最大复杂度”会掩盖真实差异。尤其是请求取消能否传播到 datastore，还取决于 `ContextPropagationToDatastore` 配置；不能只看到 API deadline，就断定底层数据库操作一定同时被取消。
+
+若开启 datastore throttling，超过配置阈值的读取可能额外等待；发生 deadline 时，服务会根据是否触发 throttle 将超时归类。它和 resolver 的并发限制也不是一回事。排查慢请求时，应把请求总时长、等待并发槽的时间、实际 datastore 操作和条件求值分别观察，而不是只看单个 p95。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/check-controls.svg"><img className="my-0 h-auto w-full" width={1200} height={570} src="/static/images/2026-11-19-openfga-check-deep-dive/check-controls.svg" alt="一次 Check 的控制点分别约束不同资源" /></a>
+  <figcaption className="text-center">图 6：请求 deadline、resolver 并发、单次 Check 的存储并发读和 CEL 成本限制不可互换；datastore 连接池与执行计划还要单独检查。</figcaption>
+</figure>
+
+### 4.3 缓存有不同对象，也有一致性代价
+
+“Check 缓存”不是只有一种。模型缓存与类型系统缓存保存已解析和校验过的授权模型；query cache 保存求值边或子问题的结果；iterator cache 保存关系读取结果。缓存的键与失效规则各不相同。尤其在 weighted-graph v2 中，query cache 可以按图上的单条 edge 评估缓存，而不只是缓存顶层的完整 Check 布尔值；请求模型、对象、用户、关系和上下文等信息会参与区分。
+
+`HIGHER_CONSISTENCY` 会绕过相关 Check 结果缓存和 iterator cache。上一篇的 HTTP 基准显式使用这一偏好，因此那几组数字不是“缓存开启时”的结果。但这句话也不能扩张为“它强制任何数据库都同步读到最新写入”：它说明 OpenFGA 相关缓存的处理方式，底层 datastore 的一致性保证仍取决于具体后端及其配置。
+
+当使用可缓存的一致性路径且启用了 cache controller 时，OpenFGA 会异步读取 changelog，并据此让已缓存的检查或 iterator 结果失效。cache miss 或失效检查进行期间，源码允许暂时使用缓存；更新水位按 TTL 刷新，因此近期写入可能不会立即反映在可缓存结果中。这是一种性能与写入可见性之间的取舍。并且相关 query cache、iterator cache 与 controller 在默认配置中关闭；讨论缓存行为时，必须先说明部署是否启用了它们。
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-19-openfga-check-deep-dive/cache-consistency.svg"><img className="my-0 h-auto w-full" width={1200} height={660} src="/static/images/2026-11-19-openfga-check-deep-dive/cache-consistency.svg" alt="模型缓存、结果缓存和 datastore 一致性各自处理什么" /></a>
+  <figcaption className="text-center">图 7：缓存键、开关和失效延迟与后端读语义需要分开核对，才能判断授权变更何时对 Check 可见。</figcaption>
+</figure>
+
+## 5. v1、weighted-graph v2 与 shadow check
+
+### 5.1 三个相似名字，三种不同流程
+
+检查这个 checkout 时，最容易混淆的是三种 feature flag：
+
+| 标记 | 主请求做什么 | 对用户返回什么 |
+| --- | --- | --- |
+| `weighted_graph_check` | 把主 Check 路由到 weighted-graph v2 | v2 成功则返回 v2 结果；符合条件的错误会回退 v1 |
+| `shadow_weighted_graph_check` | v1 路径成功返回后，后台运行 v2 对照；包括 v2 主路径回退到 v1 的情形 | 返回 v1 结果；v2 结果用于记录比较 |
+| `shadow_check` | v1 resolver 链先返回主结果，再后台运行另一套 v1 resolver 做比较 | 返回主 resolver 结果；shadow 不改变响应 |
+
+所以，“开启 shadow 就让请求同时用两套算法决定授权”是不准确的。shadow 的定位是对照和观察；主响应由主路径给出。v1 的 `ShadowResolver` 会先同步执行主 resolver，再在返回主结果前启动独立 goroutine 执行 shadow resolver；weighted-graph shadow 则在 v1 Check 成功返回前启动 goroutine，异步执行 v2，并记录结果是否匹配、耗时和 datastore 查询数、条目数。若 `weighted_graph_check` 开启且 v2 直接成功，服务会在 v2 分支返回，不进入 v1 收尾处的这段 shadow 代码；若 v2 遇到可回退错误、转由 v1 成功处理，则 v1 返回后仍可能按 `shadow_weighted_graph_check` 再启动一次异步 v2 对照。两类 shadow 都有独立超时或资源处理，失败会记录日志，不覆盖已经返回的主结果。
+
+### 5.2 主路径分流与回退
+
+当 `weighted_graph_check` 对某个 Store 启用时，服务先执行 v2 weighted-graph Check。v2 成功，就以它作为主结果。若 v2 返回被归类为 terminal 的错误，例如请求 deadline 或取消、节流导致的超时、datastore transaction throttling，以及确定性的请求校验错误，服务直接返回，不再重跑一遍 v1，以免对已经失败或过载的请求重复加压。这里的节流错误是明确分类的错误类型，不是所有等待过节流的读取。
+
+其余非 terminal v2 错误都会进入 v1 回退路径，包括模型形状或 weighted graph 构建问题，也可能包括其他非 terminal 错误。回退会记录告警；随后服务还可能检查模型是否属于已知的潜在差异形状并输出诊断日志。这些诊断帮助运营者发现迁移风险，不代表对每个请求都执行了一次 shadow Check。
+
+这个设计体现了迁移过程中的三个阶段：先用 shadow 收集新旧结果差异；再按 Store 开启新主路径，并保留适用的 v1 fallback；最后依据观测与模型兼容性决定是否继续扩大使用。它描述的是当前 checkout 的实现状态，不能直接写成所有 OpenFGA 版本都不变的承诺。
+
+## 6. 从前篇实验回看一致性与可观测性
+
+上一篇把并发从 1 提到 16 和 32 时，记录到整体 req/s 增加，同时 p50、p95 也变大。实现上，外层有多个 HTTP worker 请求并行进入服务，单个 Check 内部也可能并发评估逻辑分支；这意味着系统可以在更多工作同时进行时提升总完成量，同时让排队、资源争用或单请求分支完成时间影响时延。**这是与源码结构相容的一种解释，不是对那几次测量的因果证明。**前篇没有采集足以分离这些因素的服务端时间序列或 CPU profile。
+
+同样，前篇固定 Alice 的授权路径，只增加无关成员 tuple，观察到两点数据之间延迟分位数和速率有变化。源码中的读取按对象、关系和用户类型约束过滤，并不意味着每次 Check 都扫描整个 Store；但具体访问量、索引效果和查询计划要看 datastore。只有两个规模点、各一次运行，不能据此断言加关系必然造成某个方向或幅度的延迟变化。
+
+服务层会记录 Check duration、允许结果、datastore query/item 计数、节流状态和 trace。v1 还提供 dispatch count；v2 的这些 resolver 结果没有同一套 dispatch 计数，因此服务层按 dispatch 维度统计时会使用 0。v2 内部还可通过 spans 和 cache 指标观察 edge、策略与缓存行为。看指标时要注意版本和路径：一个 `datastore_query_count` 不能代表所有逻辑分支数，一个 dispatch count 也不能直接与 v2 的图边数等同。
+
+上一篇使用 `HIGHER_CONSISTENCY`，记录的是 Node HTTP 客户端从本机经过 Docker 转发观察到的墙钟时间。它适合回答“这个固定环境下请求整体花了多久”，不等于服务端 resolver 的纯计算时间，也没有覆盖 query cache 命中。把实验和源码放在一起读，能更清楚地知道测量经过哪些层；但不能反过来用源码故事填补实验没有采集的指标。
+
+## 7. Check 的答案是一条执行路径，不是一张性能标签
+
+一次 OpenFGA Check 从 `(user, relation, object)` 开始，解析一个不可变模型版本，再把模型定义的 rewrite 转为关系求值。tuple 提供关系事实，条件请求 context 补上本次计算所需的属性；求值器可能走直接读取、userset、TTU、递归策略或多个逻辑分支，最终把子结果按 union、intersection 或 exclusion 规则合并。
+
+这条执行路径受多类机制影响：主求值器版本、分支结构、递归策略、请求 deadline、单请求存储并发读上限、条件计算成本、datastore 读路径、缓存与一致性偏好。它们作用位置不同，不能压缩成“OpenFGA 快”或“Check 就是一条数据库查询”。
+
+如果要把本文的解释用于自己的部署，先确认实际版本与启用的 feature flags，再固定授权模型 ID，选取有代表性的允许、拒绝、递归和条件请求；同时观察服务端 trace、query/item 计数、缓存与 datastore 指标。涉及授权变更何时可见时，还要明确使用的 consistency preference、cache controller 配置和后端 datastore 的一致性语义。这样得到的结论才对应那条真实的请求路径。
+
+## 参考资料
+
+- OpenFGA 源码仓库：[GitHub](https://github.com/openfga/openfga)
+- OpenFGA [Check API](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization)、[建模概念](https://openfga.dev/docs/modeling)、[Conditions](https://openfga.dev/docs/modeling/conditions) 与 [Immutable Models](https://openfga.dev/docs/getting-started/immutable-models)
+- OpenFGA [Consistency](https://openfga.dev/docs/interacting/consistency) 与[服务配置、Telemetry、Metrics 和 Tracing](https://openfga.dev/docs/getting-started/setup-openfga/configure-openfga)
+- OpenFGA [weighted-graph 演进与迁移说明](https://openfga.dev/blog/weighted-graph-upcoming-changes)；本文的 v1/v2 分流、shadow 与 fallback 细节仍以所检查的本机源码 checkout 为准
+- 前篇实测材料：[模型、测试文件和 HTTP 基准复现包](https://apframework.com/static/files/2026-11-18-openfga-hands-on-reproduction.zip)
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　一次 OpenFGA Check 如何完成：从请求、关系图到存储查询 **（本文）**
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)

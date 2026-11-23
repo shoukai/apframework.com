@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 330" role="img" aria-labelledby="title desc">
+  <title id="title">权限过滤和业务分页的两种路线</title>
+  <desc id="desc">路线一由授权服务枚举可见文档 ID，业务库补齐字段并排序。路线二业务库取稳定排序的候选，再批量授权过滤。</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#748392"/></marker><style>
+    text{font-family:Arial,"Noto Sans CJK SC",sans-serif;fill:#263746}.title{font-size:19px;font-weight:700}.label{font-size:15px;font-weight:700}.body{font-size:13px}.small{font-size:12px}.box{fill:#fff;stroke:#cbd5dc;stroke-width:1.5}.auth{fill:#f1f5fb;stroke:#9db2cf}.db{fill:#edf5f6;stroke:#8bb7b4}.result{fill:#faf5e9;stroke:#d7c58f}.line{stroke:#748392;stroke-width:2;fill:none;marker-end:url(#arrow)}
+  </style></defs>
+  <rect width="680" height="330" fill="#fff"/><text x="28" y="36" class="title">授权决定可见集合，业务查询决定页面顺序</text>
+  <text x="32" y="79" class="label">A　先枚举可见 ID</text>
+  <rect x="32" y="98" width="170" height="72" rx="8" class="box auth"/><text x="117" y="126" text-anchor="middle" class="label">授权查询</text><text x="117" y="149" text-anchor="middle" class="small">ListObjects / LookupResources</text>
+  <path d="M202 134H250" class="line"/>
+  <rect x="256" y="98" width="168" height="72" rx="8" class="box db"/><text x="340" y="126" text-anchor="middle" class="label">业务库</text><text x="340" y="149" text-anchor="middle" class="small">补齐字段、筛选、排序</text>
+  <path d="M424 134H472" class="line"/>
+  <rect x="478" y="98" width="166" height="72" rx="8" class="box result"/><text x="561" y="126" text-anchor="middle" class="label">页面 + 游标</text><text x="561" y="149" text-anchor="middle" class="small">授权集合与业务顺序</text>
+  <line x1="32" y1="198" x2="644" y2="198" stroke="#dce3e8"/>
+  <text x="32" y="232" class="label">B　先取业务候选</text>
+  <rect x="32" y="250" width="170" height="58" rx="8" class="box db"/><text x="117" y="276" text-anchor="middle" class="label">业务库候选</text><text x="117" y="297" text-anchor="middle" class="small">稳定排序 + 批次</text>
+  <path d="M202 279H250" class="line"/>
+  <rect x="256" y="250" width="168" height="58" rx="8" class="box auth"/><text x="340" y="276" text-anchor="middle" class="label">批量权限检查</text><text x="340" y="297" text-anchor="middle" class="small">不足一页则继续扫描</text>
+  <path d="M424 279H472" class="line"/>
+  <rect x="478" y="250" width="166" height="58" rx="8" class="box result"/><text x="561" y="276" text-anchor="middle" class="label">可见候选 + 游标</text><text x="561" y="297" text-anchor="middle" class="small">游标追踪候选消费位置</text>
+</svg>

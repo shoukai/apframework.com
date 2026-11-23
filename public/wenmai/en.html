@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="File your sources locally, draft with Codex or Claude, and export a reviewed article with illustrations as PDF or offline HTML.">
+  <title>Wenmai | A local workspace for research and writing</title>
+  <link rel="alternate" hreflang="zh-CN" href="index.html">
+  <link rel="alternate" hreflang="en" href="en.html">
+  <link rel="canonical" href="https://apframework.com/wenmai/en.html">
+  <link rel="icon" href="assets/brand.png" type="image/png">
+  <script>
+    try {
+      if (localStorage.getItem("wenmai-landing-theme") === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      }
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="page.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <div class="topbar wrap">
+      <a class="brand" href="en.html">
+        <img src="assets/brand.png" alt="" width="34" height="34">
+        <span>Wenmai</span>
+      </a>
+      <nav class="topnav" aria-label="Page navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#examples">Examples</a>
+        <a href="#quick-start">Quick start</a>
+      </nav>
+      <div class="preferences">
+        <nav class="languages" aria-label="Language">
+          <a href="index.html" hreflang="zh-CN" lang="zh-CN">中文</a>
+          <a href="en.html" hreflang="en" lang="en" aria-current="page">English</a>
+        </nav>
+        <button class="theme-toggle" type="button" hidden aria-label="Switch to dark mode"
+          data-to-light="Switch to light mode" data-to-dark="Switch to dark mode"><span class="theme-icon" aria-hidden="true"></span></button>
+      </div>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner wrap">
+        <div class="hero-copy">
+          <p class="kicker">A local workspace for research and writing</p>
+          <h1 id="hero-title">From your sources <span>to your own words.</span></h1>
+          <p class="lead">File your sources in a knowledge base, then work with one or more of them in Codex or Claude. Review the draft and export the finished article with illustrations as PDF or offline HTML.</p>
+          <div class="actions">
+            <a class="button primary" href="#workflow">Explore the workflow</a>
+            <a class="button" href="https://github.com/apframework-studio/open-context-forge" target="_blank" rel="noopener noreferrer">GitHub repository ↗</a>
+          </div>
+        </div>
+        <figure class="stage glass">
+          <figcaption class="shot-bar"><strong>Writing workspace</strong><span>Neighborhood library walkthrough</span></figcaption>
+          <div class="hero-shot">
+            <img src="assets/en/03-writing.webp" alt="Wenmai writing workspace showing an English draft on the left and the Codex conversation with two attached sources on the right" width="1440" height="900" fetchpriority="high">
+          </div>
+        </figure>
+      </div>
+    </section>
+    <section class="section wrap" id="workflow" aria-labelledby="workflow-title">
+      <div class="section-intro">
+        <h2 id="workflow-title">From sources to finished work</h2>
+        <p>Start with a single source, or compare several to build an analysis of your own.</p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Workflow steps" hidden>
+          <button type="button" role="tab" id="tab-intake" aria-controls="panel-intake" aria-selected="true" tabindex="0">Collect and file</button>
+          <button type="button" role="tab" id="tab-writing" aria-controls="panel-writing" aria-selected="false" tabindex="-1">Draft and review</button>
+          <button type="button" role="tab" id="tab-delivery" aria-controls="panel-delivery" aria-selected="false" tabindex="-1">Finalize and export</button>
+      </div>
+        <section class="step-panel" id="panel-intake" role="tabpanel" aria-labelledby="tab-intake">
+          <figure class="step-shot">
+            <img src="assets/en/01-sources.webp" width="1440" height="900" alt="The English source list shows both library notes with Filed status" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>Keep your original sources together</h3>
+            <p>Import Markdown, HTML, plain text, or ZIP files. Open the knowledge base to check the saved source text and its details.</p>
+            <ul>
+                <li>Use the built-in knowledge base or connect an existing Obsidian folder.</li>
+                <li>File imports automatically and enable automatic maintenance for individual knowledge bases.</li>
+                <li>Generate a smart summary with references to the source text.</li>
+            </ul>
+            <a class="text-link" href="assets/en/01-sources.webp" target="_blank" rel="noopener">View full-size screenshot</a>
+          </div>
+        </section>
+        <section class="step-panel" id="panel-writing" role="tabpanel" aria-labelledby="tab-writing">
+          <figure class="step-shot">
+            <img src="assets/en/04-review.webp" width="1440" height="900" alt="The English review dialog shows the candidate article and the Replace article text action" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>Draft from the sources you select</h3>
+            <p>Bring one or more sources into the conversation. Discuss the outline and article with a local Codex or Claude CLI.</p>
+            <ul>
+                <li>Open the proposed outline or article and check which sources it draws on.</li>
+                <li>Review and adopt the proposal to update the working draft.</li>
+            </ul>
+            <a class="text-link" href="assets/en/04-review.webp" target="_blank" rel="noopener">View full-size screenshot</a>
+          </div>
+        </section>
+        <section class="step-panel" id="panel-delivery" role="tabpanel" aria-labelledby="tab-delivery">
+          <figure class="step-shot">
+            <img src="assets/en/06-export.webp" width="1440" height="900" alt="The English export page shows the finalized article, its selected illustration, and the HTML and PDF actions" loading="lazy">
+          </figure>
+          <div class="step-copy">
+            <h3>Share an article with illustrations</h3>
+            <p>Finalize your article and open the export preview. Pick an illustration from the image library if you want to include one.</p>
+            <ul>
+                <li>Download a standalone HTML file you can open offline.</li>
+                <li>Use the browser’s print dialog to save a PDF.</li>
+            </ul>
+            <a class="text-link" href="assets/en/06-export.webp" target="_blank" rel="noopener">View full-size screenshot</a>
+          </div>
+        </section>
+    </section>
+    <section class="section proof wrap" id="examples" aria-labelledby="examples-title">
+      <div class="proof-grid">
+        <div>
+          <h2 id="examples-title">Follow a real walkthrough</h2>
+          <p>Both walkthroughs start with two notes from a fictional neighborhood library and go through filing, review, and export with an illustration. Download the notes to follow along, then compare your version with the sample export.</p>
+          <p>The clean-workspace walkthrough uses the vault-maintainer revision documented in the README. If an import keeps waiting to be filed, the README lists the compatible revision and setup.</p>
+        </div>
+        <div class="sample" id="sample-outputs">
+          <div class="sample-top">
+            <h3>Keep Library Handovers on Track</h3>
+            <p>Neighborhood library example</p>
+          </div>
+          <div class="sample-row">
+            <strong>Source notes</strong>
+            <a class="text-link" href="assets/en/library-lending.md" download>Lending log</a>
+            <a class="text-link" href="assets/en/library-handover.md" download>Volunteer handover</a>
+          </div>
+          <div class="sample-row">
+            <strong>Exported article</strong>
+            <a class="text-link" href="assets/en/example.html" target="_blank" rel="noopener">Open HTML</a>
+            <a class="text-link" href="assets/en/example.pdf" target="_blank" rel="noopener">View PDF</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section start wrap" id="quick-start" aria-labelledby="start-title">
+      <div class="start-grid">
+        <div>
+          <h2 id="start-title">Start writing on your device</h2>
+          <p>Use Node.js 22.12 or later. Follow the setup guide to install the filing and writing skills, then sign in to Codex or Claude CLI before using AI Writing.</p>
+        </div>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/apframework-studio/open-context-forge/blob/main/README.md">Read the setup guide</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer wrap">
+    <span>Wenmai <span aria-hidden="true">/</span> Open Context Forge</span>
+    <div class="footnav"><a href="/projects/open-context-forge">Project details</a><a href="https://github.com/apframework-studio/open-context-forge">View on GitHub</a></div>
+  </footer>
+</body>
+</html>

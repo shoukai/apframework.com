@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="330" viewBox="0 0 680 330" role="img" aria-labelledby="title desc">
+<title id="title">27未知，为什么28不能先返回</title>
+<desc id="desc">同一教学文档池的编号资料26至29：26允许且已消费，27超时未知，28和29允许但未消费。停点在26，保留27及后续候选，下次从27重新检查。若越过27，它后来允许时就无法保留完整可见前缀。</desc>
+<defs><marker id="resume-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#65798a"/></marker></defs>
+<rect width="680" height="330" fill="#ffffff"/>
+<g font-family="PingFang SC,Microsoft YaHei,sans-serif" fill="#283e50" text-anchor="middle">
+<text x="340" y="29" font-size="16" font-weight="600">小周的候选流：27 未确定，不能先交出 28</text>
+<text x="340" y="56" font-size="15" fill="#627383">沿用第 2.2 节的编号资料，另设 27 超时；以下均为教学示意</text>
+<rect x="26" y="91" width="138" height="98" rx="8" fill="#eef7f2" stroke="#b4cebf"/>
+<rect x="190" y="91" width="138" height="98" rx="8" fill="#fff6e8" stroke="#d9bb83"/>
+<rect x="354" y="91" width="138" height="98" rx="8" fill="#f3f6f9" stroke="#c3ced7"/>
+<rect x="518" y="91" width="138" height="98" rx="8" fill="#f3f6f9" stroke="#c3ced7"/>
+<g font-size="16" font-weight="600"><text x="95" y="118">编号资料 26</text><text x="259" y="118">编号资料 27</text><text x="423" y="118">编号资料 28</text><text x="587" y="118">编号资料 29</text></g>
+<g font-size="15"><text x="95" y="148">允许</text><text x="259" y="148">超时 → 未知</text><text x="423" y="148">已知允许</text><text x="587" y="148">已知允许</text><text x="95" y="173">已消费</text><text x="259" y="173">未消费</text><text x="423" y="173">仍待消费</text><text x="587" y="173">仍待消费</text></g>
+<path d="M177 78V201" stroke="#b18a4b" stroke-width="2" stroke-dasharray="4 4" fill="none"/>
+<path d="M190 201V213H656V201" stroke="#91a6b6" stroke-width="1.5" fill="none"/>
+<text x="95" y="239" font-size="15">停点：26</text><text x="423" y="239" font-size="15">27 及后续都留在缓冲</text>
+<path d="M259 262V248" stroke="#65798a" stroke-width="1.5" fill="none" marker-end="url(#resume-arrow)"/>
+<text x="340" y="283" font-size="15">下次从 27 重新检查，不把未知当拒绝，也不沿用旧允许结果</text>
+<text x="340" y="312" font-size="15" fill="#627383">若 27 随后允许，它本应在 28 之前；越过它就会破坏完整前缀</text>
+</g></svg>

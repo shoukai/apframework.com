@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="460" viewBox="0 0 1120 460" role="img" aria-labelledby="title desc">
+<title id="title">关系事实与模型规则共同推导文档权限</title><desc id="desc">示例关系事实包括 Alice 是 Acme 成员，Acme 成员集合是 Launch 项目编辑者，Roadmap 文档关联 Launch 项目。模型规定文档从项目继承编辑关系，编辑者也是查看者，由此可推导 Alice 能编辑和查看文档。</desc>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#52657a"/></marker><style>text{font-family:"PingFang SC","Arial",sans-serif;fill:#17212b}.h{font-size:20px;font-weight:600}.s{font-size:14px;fill:#52657a}.b{font-size:16px}.code{font-size:14px;font-family:"Menlo","PingFang SC",monospace}</style></defs>
+<rect width="1120" height="460" rx="8" fill="#f7fafc"/>
+<text class="h" x="32" y="38">关系事实 + 模型规则 → 可推导的权限</text><text class="s" x="32" y="64">概念示例：关联到项目，不会自动获得权限；继承必须在模型中显式声明。</text>
+<rect x="30" y="94" width="450" height="294" rx="8" fill="#ffffff" stroke="#a3b3c3"/>
+<text class="h" x="50" y="126">① 关系事实（示例元组）</text>
+<text class="b" x="50" y="165">Alice 是 Acme 的成员</text><text class="code" x="50" y="191">user:alice → member → organization:acme</text>
+<text class="b" x="50" y="232">Acme 成员集合是项目编辑者</text><text class="code" x="50" y="258">organization:acme#member</text><text class="code" x="50" y="280">  → editor → project:launch</text>
+<text class="b" x="50" y="321">文档关联到 Launch 项目</text><text class="code" x="50" y="347">project:launch → project → document:roadmap</text>
+<rect x="520" y="94" width="568" height="166" rx="8" fill="#eef5ff" stroke="#8ca9c7"/>
+<text class="h" x="542" y="126">② 模型规则（document 类型）</text><text class="code" x="542" y="168">editor: [user] or editor from project</text><text class="code" x="542" y="198">viewer: [user] or editor or owner</text><text class="s" x="542" y="234">从关联项目继承编辑关系；编辑者也有查看关系</text>
+<rect x="520" y="298" width="568" height="90" rx="8" fill="#eff8f4" stroke="#80ac9b"/>
+<text class="h" x="542" y="330">③ 推导结果</text><text class="b" x="542" y="362">Alice 可以编辑、查看 document:roadmap</text>
+<path d="M480 210H520" fill="none" stroke="#52657a" stroke-width="2" marker-end="url(#a)"/><path d="M800 260V298" fill="none" stroke="#52657a" stroke-width="2" marker-end="url(#a)"/>
+<text class="s" x="32" y="425">左侧按 user → relation → object 阅读；右侧结果由事实与规则共同得到，无需逐条存储所有推导关系。</text>
+</svg>

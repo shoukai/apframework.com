@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="360" viewBox="0 0 680 360" role="img" aria-labelledby="title desc">
+<title id="title">有序扫描与未消费缓冲</title><desc id="desc">搜索预取到60，批量授权后按原顺序消费至49填满20条，保留50至60待下一页重新检查。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#4b6477"/></marker></defs>
+<rect width="680" height="360" fill="#fff"/>
+<g font-family="PingFang SC,Microsoft YaHei,sans-serif" text-anchor="middle" fill="#20384c">
+<text x="340" y="33" font-size="21" font-weight="600">批量预取，不等于整批消费</text>
+<rect x="24" y="63" width="190" height="80" rx="10" fill="#f3f7fb" stroke="#b9cbdc"/>
+<text x="119" y="94" font-size="18" font-weight="600">搜索稳定排序</text><text x="119" y="122" font-size="16">预取候选 41—60</text>
+<rect x="245" y="63" width="190" height="80" rx="10" fill="#f3f7fb" stroke="#b9cbdc"/>
+<text x="340" y="94" font-size="18" font-weight="600">BatchCheck</text><text x="340" y="122" font-size="16">按关联 ID 取回结果</text>
+<rect x="466" y="63" width="190" height="80" rx="10" fill="#edf7f3" stroke="#a3cbbd"/>
+<text x="561" y="94" font-size="18" font-weight="600">按候选原序消费</text><text x="561" y="122" font-size="16">允许 / 拒绝 / 未知</text>
+<g stroke="#4b6477" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M214 103H240"/><path d="M435 103H461"/><path d="M561 143V179"/></g>
+<rect x="24" y="184" width="632" height="87" rx="10" fill="#fff" stroke="#becbd4"/>
+<rect x="25" y="185" width="369" height="85" rx="9" fill="#edf7f3"/><path d="M394 185V270" stroke="#becbd4" stroke-dasharray="5 4"/>
+<text x="209" y="216" font-size="18" font-weight="600">已消费到 49：本页满 20 条</text><text x="209" y="246" font-size="16">游标承认已处理的候选前缀</text>
+<text x="525" y="216" font-size="18" font-weight="600">50—60 留在缓冲</text><text x="525" y="246" font-size="16">下一页先重新授权</text>
+<text x="340" y="306" font-size="16">未满页 → 继续扫描　　未知 → 原位停下，不作拒绝</text>
+<text x="340" y="335" font-size="15" fill="#627584">应用分页状态机示意，非 OpenFGA 内置搜索接口</text>
+</g></svg>

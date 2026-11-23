@@ -1,0 +1,249 @@
+---
+title: '把 OpenFGA 跑起来：模型、授权查询与性能观察'
+date: '2026-11-18'
+tags: ['OpenFGA', 'ReBAC', '细粒度授权', '访问控制', '权限系统', '性能测试', '系统架构']
+draft: false
+summary: '固定 OpenFGA v1.22.1 与 memory datastore，实际运行关系模型、Check、ListObjects、撤权、条件授权和模型切换，并记录单机并发、关系规模与继承深度实验。所有数据均注明实验条件与适用边界，不外推为生产性能结论。'
+images: ['/static/images/2026-11-18-openfga-hands-on/openfga-hands-on-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-18-openfga-hands-on/openfga-hands-on-cover.jpg"><img className="my-0" src="/static/images/2026-11-18-openfga-hands-on/openfga-hands-on-cover.jpg" alt="OpenFGA 文档协作授权路径：用户经由组织和项目关系访问文档" /></a>
+  <figcaption className="text-center">OpenFGA 将用户、组织、项目与文档之间的关系组合起来，回答具体的授权问题</figcaption>
+</figure>
+
+第一篇介绍了 OpenFGA 如何把授权模型和关系元组结合起来。本篇沿用同一个文档协作案例：Alice 是 Acme 成员，Acme 的成员集合可以编辑 Launch 项目，Roadmap 文档属于 Launch；Bob 被单独授予 Roadmap 的编辑权限；Carol 获得一条带有效期的查看关系。可以先把授权模型理解成规则说明，把关系元组理解成当前关系事实。OpenFGA 根据规则读取这些事实并回答权限问题；文档内容本身仍由应用自己的存储负责。
+
+整篇按四步展开：先交代实验环境并写好授权规则；再用测试文件和服务 API 验证允许、拒绝、撤权、条件关系与模型切换；随后观察并发、关系规模和继承深度变化时的本机数据；最后说明哪些结论不能从这组实验推出。这样读时可以沿着“规则和关系如何产生授权”进入“请求表现如何”，而不是把性能数字和模型行为混在一起。
+
+| 章节 | 读者会看到什么 | 这一部分回答的问题 |
+| --- | --- | --- |
+| 1. 环境与授权模型 | 固定版本、运行方式、模型和关系事实 | 这次实验具体跑的是什么？ |
+| 2. 验证授权行为 | Check、ListObjects、撤权、时间条件和模型切换 | 规则与关系如何决定允许或拒绝？ |
+| 3. 性能实验与观察 | 并发、关系数量、继承深度和查询方式的测量 | 在这台机器上实际测到了什么？ |
+| 4. 结果边界与复现 | 未覆盖的因素和可复现材料 | 哪些判断不能从这些数据推出？ |
+
+如果需要先了解 ReBAC、关系元组和授权查询，请阅读 [OpenFGA 概念与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)。
+
+## 1. 环境与授权模型
+
+### 1.1 固定版本、服务和实验范围
+
+本次用 Docker 运行 OpenFGA v1.22.1，并对照本机源码核对相关行为。实验运行在 ARM64 环境中。
+
+服务通过 Docker Desktop 单机运行，使用默认的 memory datastore，容器限制为 4 个 CPU 和 8 GiB 内存，HTTP 仅映射到本机回环地址。Docker 虚拟机报告 8 vCPU 和约 20 GiB 内存；宿主机是 Apple Silicon Mac，macOS 25.6，Node.js 22.22.2。OpenFGA Playground 已关闭，服务未启用认证和 TLS，因为它只监听本机测试端口。健康检查返回 `{"status":"SERVING"}`。
+
+OpenFGA 官方把 memory datastore 定位为本地快速试用方式：服务重启后数据会丢失。因此它适合验证模型和 API 调用，不适合拿来代表使用 PostgreSQL、MySQL 或多实例部署时的性能。本次的时延也包含了 HTTP 客户端、宿主机到 Docker 虚拟机的本地转发和服务处理时间，不是单独的服务端函数耗时。
+
+实验固定在这一个服务版本，覆盖直接关系、userset 继承、条件关系、撤权、模型版本切换、Check 与 ListObjects，以及有限范围的 HTTP Check 基准。没有做持久化数据库对照、跨主机网络、多副本、长时间稳定性或生产负载验证。Go 工具链未安装，因此没有运行仓库中的 Go benchmark；本文的性能数据来自明确列出的 HTTP 实验脚本，不引用源码基准或 README 中的性能描述。
+
+### 1.2 用模型文件把案例写下来
+
+最小模型放在 `examples/model.fga`。它先定义用户、组织、项目和文档，再描述这些对象之间允许有哪些关系、如何组合出权限。组织的 `member` 关系指向具体用户；项目的 `editor` 可以指向用户，也可以指向 `organization#member` 这样的用户集合；文档的 `editor` 可以直接授予用户，也可以沿所属项目的关系继承。`viewer` 则由直接查看者、编辑者和所有者组成。模型写出的是可用规则，本身不会自动给任何人授权；实际关系还要由 Store 中的元组提供。条件查看关系单独使用 `valid_window`，不混入普通的 `viewer` 查询。
+
+```fga
+model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define member: [user]
+
+type project
+  relations
+    define editor: [user, organization#member]
+
+type document
+  relations
+    define project: [project]
+    define owner: [user]
+    define editor: [user] or editor from project
+    define viewer: [user] or editor or owner
+    define timed_viewer: [user with valid_window]
+
+condition valid_window(current_time: timestamp, grant_time: timestamp, grant_duration: duration) {
+  current_time >= grant_time && current_time < grant_time + grant_duration
+}
+```
+
+`organization:acme#member` 可以读作“Acme 组织中所有具有 member 关系的用户”。模型允许项目把这个集合整体设为编辑者，但它不会仅凭“Acme 和 Launch 有业务关联”就推导出任何授权。为让 Alice 真正获得 Roadmap 的编辑权限，Store 中还必须分别保存三条关系事实：Alice 是 Acme 成员、Acme 的 member 集合是 Launch 的编辑者、Roadmap 属于 Launch。模型规定哪些关系可以组成授权路径，元组则说明这条路径上的事实当前是否存在。Bob 的直接授权是另一条独立事实。
+
+限时关系把固定信息和每次查询的信息分开保存：元组记录授权开始时间和时长，Check 请求提供本次判断所用的当前时间。模型要求当前时间满足 `grant_time <= current_time < grant_time + grant_duration`，也就是从开始时刻起允许，到截止时刻立即失效。实验使用固定时间值检查开始前、有效期内和到期后的结果，避免机器时钟让测试结果随运行时间变化。生产调用仍需要由可信应用生成请求上下文。
+
+模型和 tuple 测试写在 `examples/store.fga.yaml`，运行方式如下。需要 Docker Desktop 已启动；项目的 examples 目录挂载进 CLI 容器，并通过宿主网络访问本地服务：
+
+```bash
+docker run --rm --network host \
+  -v "$PWD/examples:/work" -w /work \
+  openfga/cli model test --tests store.fga.yaml
+```
+
+在本次环境中，CLI 镜像 `openfga/cli:latest` 报告版本 `v0.9.0`。命令输出为：
+
+```text
+# Test Summary #
+Tests 2/2 passing
+Checks 9/9 passing
+ListObjects 2/2 passing
+```
+
+测试文件把模型、关系元组和预期结果放在一起运行。直接授权、继承授权、未授权主体、ListObjects 和条件关系都通过了断言。以后调整模型时，可以重跑同一组允许与拒绝用例，确认权限行为有没有随之改变。
+
+## 2. 验证授权行为
+
+### 2.1 通过服务 API 查看授权结果
+
+通过离线模型测试后，再连接本机服务创建 Store、写入模型和 tuples。Store 是关系数据和授权模型的容器；Store ID 与模型 ID 由服务生成，本次使用的 ID 如下：
+
+```text
+Store ID: 01M7MWY9490VXBB1W7MVC7P0Y0
+Model v1: 01M7MX3RYNCKCBYYDPS73B6C75
+```
+
+`Check` 是单项权限查询：给定一个用户、一种关系和一个对象，询问这三者是否匹配模型与关系数据。Alice 的请求是 `Check(user:alice, editor, document:roadmap)`，服务返回 `allowed: true`。她没有直接连到文档的 `editor` 元组；OpenFGA 沿下面的关系链找到授权依据：
+
+```text
+user:alice
+  -> member
+organization:acme
+  -> editor (userset: organization:acme#member)
+project:launch
+  -> project
+document:roadmap
+```
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-18-openfga-hands-on/authorization-path.svg"><img className="my-0" src="/static/images/2026-11-18-openfga-hands-on/authorization-path.svg" alt="Alice 通过 Acme 成员、Launch 项目编辑者和 Roadmap 文档所属关系，获得编辑权限" /></a>
+  <figcaption className="text-center">图 1：模型定义可继承的规则，三条关系事实共同组成 Alice 编辑 Roadmap 的授权路径</figcaption>
+</figure>
+
+可以把这张图看成一次逐段核对：Alice 确实是 Acme 成员；Acme 的 member 集合确实被授予 Launch 的 editor；Roadmap 确实属于 Launch。三条关系都成立，模型才沿路径得出允许结果。少一条关系，或者模型不允许其中某种关系类型，结果就可能不同。
+
+Bob 的授权更直接：Store 里有一条 `user:bob editor document:roadmap` 元组，所以同一项 Check 返回 `allowed: true`。Mallory 没有对应关系，结果为 `allowed: false`。无论授权来自一条直接元组，还是沿多段关系继承，调用方都可以用同一个 Check 问题来查询。
+
+如果问题不是“Alice 能不能编辑这份文档”，而是“她能编辑哪些文档”，就可以调用 `ListObjects`。它接收用户、关系和对象类型，返回匹配的对象集合。本次小 Store 里只有一个符合条件的文档：
+
+```json
+{"objects":["document:roadmap"]}
+```
+
+Check 可以单独判断 `document:roadmap` 这一份文档；ListObjects 则列出某种对象类型中所有符合条件的对象。本例只返回一份文档，不能据此推断两种接口在其他数据规模或模型下的调用成本。
+
+删除 Bob 对 Roadmap 的直接 `editor` 元组后，再次执行 Check，Bob 得到 `allowed: false`，Alice 仍是 `allowed: true`。这次只删除 Bob 的关系事实；模型、Acme 成员关系和项目继承路径都没有改变。
+
+### 2.2 条件关系和模型版本也要放进测试
+
+Carol 的 `timed_viewer` tuple 保存了 `grant_time = 2026-11-17T12:00:00Z` 和 `grant_duration = 2h`。服务的 Check 请求分别携带两个 `current_time` 值。输出如下：
+
+```text
+current_time = 2026-11-17T11:00:00Z -> {"allowed":false,"resolution":""}
+current_time = 2026-11-17T13:00:00Z -> {"allowed":true,"resolution":""}
+current_time = 2026-11-17T15:00:00Z -> {"allowed":false,"resolution":""}
+```
+
+模型把授权窗口定义为包含开始时刻、但不包含截止时刻。测试了开始前、窗口内和到期后的时间点；请求里的时间固定，因此结果可重复。生产环境应由可信的应用逻辑生成授权上下文，不能让不可信客户端自行指定用于授权的时间或属性。
+
+之后写入第二版模型。v2 仍允许 `user` 直接成为项目编辑者，但移除了 `organization#member` 这一 userset 类型限制。这个变化不删除旧 tuples，却改变了模型能够沿哪些关系解释授权。对 Alice 使用显式模型 ID 查询，结果如下：
+
+```text
+authorization_model_id = v1 -> {"allowed":true,"resolution":""}
+authorization_model_id = v2 -> {"allowed":false,"resolution":""}
+省略 authorization_model_id -> {"allowed":false,"resolution":""}
+```
+
+本次服务在请求省略模型 ID 时使用 Store 中最新创建的模型，因此结果与显式指定 v2 相同。显式传入模型 ID，就像为这次查询固定一版规则；不传时，Store 发布新模型后，同一请求可能得到不同结果。切换模型前，应拿现有关系数据检查允许和拒绝的案例，而不只确认模型文件能否写入。
+
+## 3. 性能实验与观察
+
+### 3.1 怎么测
+
+基准脚本 `examples/http-benchmark.js` 使用 Node.js 内置 HTTP 客户端，向 Store 的 Check API 发送 `POST` 请求。每个 worker 顺序发送请求，连接使用 keep-alive。测量前执行并丢弃预热请求，再为每个真实响应记录客户端墙钟时延；脚本汇总最小值、平均值、p50、p95、p99、最大值、完整运行时间、完成请求速率、错误数和意外拒绝数。
+
+请求固定为 Alice 检查 Roadmap 的 editor 关系，显式指定 v1 模型 ID。默认使用 `HIGHER_CONSISTENCY`，以避免把缓存命中混入主要对照；另有一组只切换为 `MINIMIZE_LATENCY` 的单次对照。以下结果都是该 Mac、Docker Desktop、ARM64 镜像、memory datastore 和 4 CPU/8 GiB 容器限制下的本机 HTTP 数据，不能直接套用到其他机器。
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-18-openfga-hands-on/benchmark-map.svg"><img className="my-0" src="/static/images/2026-11-18-openfga-hands-on/benchmark-map.svg" alt="OpenFGA 本机基准实验固定环境，改变并发、关系数量和继承深度，记录延迟、速率和错误并标明结论边界" /></a>
+  <figcaption className="text-center">图 2：实验固定服务和查询，只改变列出的维度；数据描述本机单次测量，不代表生产容量</figcaption>
+</figure>
+
+这张图也给出读表顺序：先看环境是否与你的场景接近，再看这轮只改变了哪个变量，最后同时检查延迟、速率和错误数。由于每个条件只测了一次，数值适合描述本次运行，不适合用来制定通用容量指标。
+
+| 场景 | 请求数/并发 | 一致性偏好 | p50 (ms) | p95 (ms) | p99 (ms) | 速率 (req/s) | 错误/拒绝 |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 基线 | 2,000 / 1 | HIGHER_CONSISTENCY | 0.421 | 0.590 | 0.845 | 2,208.75 | 0 / 0 |
+| Check | 4,000 / 16 | HIGHER_CONSISTENCY | 0.965 | 2.320 | 3.113 | 14,023.48 | 0 / 0 |
+| Check | 4,000 / 32 | HIGHER_CONSISTENCY | 1.684 | 3.559 | 4.385 | 16,500.35 | 0 / 0 |
+| Check | 4,000 / 16 | MINIMIZE_LATENCY | 0.983 | 2.266 | 2.938 | 14,086.54 | 0 / 0 |
+
+并发从 1 提高到 16 和 32 时，这几次运行的请求完成速率增加，单个请求的 p50 和 p95 也变大。并发指同时在途的请求数；总速率提高不等于单个请求变快，也不能据这三次结果认定 32 是最佳设置。两种一致性偏好的结果各只测了一次，无法据此判断哪一种稳定地更快。
+
+### 3.2 关系数量变化
+
+关系规模测试保持 Alice 的授权路径不变，只增加与本次查询无关的 Acme 成员元组。换句话说，待判断的 Alice 关系、项目编辑授权和文档归属都不动，只让 Store 中其他成员记录变多。每个设置使用 16 并发、2,000 个测量请求和 100 个预热请求：
+
+| Store 关系元组数 | p50 | p95 | p99 | 运行速率 | 错误 / 意外拒绝 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,003 | 1.019 ms | 2.307 ms | 2.778 ms | 13,573.11 req/s | 0 / 0 |
+| 10,003 | 1.437 ms | 2.854 ms | 3.833 ms | 10,022.81 req/s | 0 / 0 |
+
+基线共四条关系：Alice 是 Acme 成员、Acme 成员集合是 Launch 的项目编辑者、Roadmap 属于 Launch，以及 Carol 的条件查看关系。撤权实验已经删除 Bob 的直接授权。第一组再加 999 条其他成员关系，第二组累计增加 9,999 条，所以 Store 总数分别为 1,003 和 10,003。
+
+这一次测试中，成员元组增加后 p50、p95 上升，完成速率下降。不过新增关系只是同一组织上的其他成员记录，数据集规模有限，运行顺序和虚拟化环境也可能影响结果。两个单次测量只能作为后续测试的线索，不能据此推断其他关系规模下的性能变化，更不能据两个点估算容量曲线。
+
+### 3.3 关系继承深度
+
+继承深度测试使用另一个 Store。根文件夹直接给 Alice `viewer` 关系，文档沿 `parent` 关系指向上一级文件夹；查询文档权限时，OpenFGA 顺着这条链向上查找。测试分别构造 1、5、10 层路径，在每个目标文档上执行 Check，使用同一模型、16 并发、每组 2,000 个请求和 100 个预热请求：
+
+| 继承深度 | p50 | p95 | p99 | 错误 / 意外拒绝 |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 0.980 ms | 1.826 ms | 2.460 ms | 0 / 0 |
+| 5 | 1.094 ms | 2.333 ms | 3.155 ms | 0 / 0 |
+| 10 | 1.102 ms | 2.483 ms | 3.069 ms | 0 / 0 |
+
+这组数据显示，深度 1 到 5 的延迟分位数上升；5 到 10 并未继续按相同比例上升。由于每个点只跑了一次，且没有统计波动、缓存和 CPU 采样记录，合适的结论只是“该数据集里测到了这些数值”，不应把它写成深度与时延之间的通用函数。
+
+### 3.4 Check 与 ListObjects 的单次对照
+
+最后，在深度 10 的同一 Store 上，用 4 并发、1,000 个测量请求和 50 个预热请求，分别请求一个文档的 Check 和 ListObjects。两者都使用 HIGHER_CONSISTENCY，错误数为 0；ListObjects 返回包含目标文档的对象列表。Check 的 p50/p95/p99 为 0.590/0.945/1.141 ms，ListObjects 为 0.583/1.067/1.530 ms。完成速率分别为 6,276.02 和 6,065.24 req/s。
+
+这组数据只比较了本例中“确认一份文档的权限”和“列出一份符合条件的文档”。ListObjects 需要返回对象集合；结果数量增加、模型规则变化或关系读取变多时，工作量也可能随之变化。因此这次 p50 接近，不代表两种接口成本相同。实际应先按业务问题选择接口，再用目标模型和对象规模测量。
+
+## 4. 结果边界与复现
+
+### 4.1 这些数字没有测到什么
+
+OpenFGA 服务端在启动日志中报告了 memory datastore，Check query cache 与 Check iterator cache 均未启用；测量请求也明确携带一致性偏好。容器在实验前的一次资源快照约为 22.61 MiB，实验后的快照约为 52.48 MiB，CPU 快照为 0.04%。这些只是采样瞬间的容器观测，不是每轮基准期间的峰值、时间序列或端点级资源使用。Prometheus 端口没有映射到宿主机，因此本文没有服务端指标曲线。
+
+实验还没有覆盖 PostgreSQL/MySQL、批量写入策略变化、不同业务对象结构、远程网络、多实例、认证和 TLS、持续运行、峰值 CPU 和内存、重复实验与置信区间。仓库自身有 Go benchmark，覆盖内存和数据库 datastore 的 Check、ListObjects 等场景；但这台环境没有 Go 工具链，本次没有运行它们，也没有把仓库基准代码误写成实测结果。
+
+因此，本次性能观察只能回答一个窄问题：在一个固定版本的本地 ARM64 单实例、内存存储和小型合成关系图里，典型授权请求能否跑通，以及请求并发、关系条目和继承路径变化时，客户端观测到什么数据。它不能回答生产集群需要几台实例、数据库选型如何影响延迟、何种吞吐可以作为 SLA，也不能证明某一套关系模型在真实业务数据下足够快。要做生产决策，还需要使用目标数据库、真实关系分布和实际应用网络重复实验，并收集服务端延迟、数据库读取、CPU、内存和错误率的时间序列。
+
+### 4.2 可复现材料与参考资料
+
+本文配套的模型、tuple、测试文件、数据集生成器、HTTP 基准脚本和完整验证日志已打包，见[复现实验材料](https://apframework.com/static/files/2026-11-18-openfga-hands-on-reproduction.zip)。压缩包内的 `README.txt` 说明目录内容与重新运行步骤；基准结果仍只代表本文记录的本机单次实验。本地 memory Store 会随着服务退出而丢失；若重新启动服务，应重新创建 Store、模型和 tuples，再重新运行功能测试与基准。
+
+- OpenFGA 源码仓库：[GitHub](https://github.com/openfga/openfga)
+- OpenFGA [Store File Format](https://openfga.dev/docs/modeling/store-file-format) 与[模型测试](https://openfga.dev/docs/modeling/testing)
+- OpenFGA [Check API](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization) 与 [ListObjects API](https://openfga.dev/docs/api/service/relationship-queries/list-objects)
+- OpenFGA [Conditions](https://openfga.dev/docs/modeling/conditions)、[Immutable Models](https://openfga.dev/docs/getting-started/immutable-models) 与[查询一致性](https://openfga.dev/docs/interacting/consistency)
+- OpenFGA CLI：[GitHub](https://github.com/openfga/cli)
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　把 OpenFGA 跑起来：模型、授权查询与性能观察 **（本文）**
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)

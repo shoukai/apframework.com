@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380" role="img" aria-labelledby="title desc">
+<title id="title">索引滞后与RAG上下文边界</title><desc id="desc">内容同步可能留下旧片段，权限派生索引可能残留撤权或漏掉新增。检索片段携带doc ID，在实际进入上下文之前做读取授权。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#4b6477"/></marker></defs>
+<rect width="680" height="380" fill="#fff"/>
+<g font-family="PingFang SC,Microsoft YaHei,sans-serif" text-anchor="middle" fill="#20384c">
+<text x="340" y="32" font-size="21" font-weight="600">片段被召回，还不能直接交给模型</text>
+<rect x="24" y="56" width="178" height="56" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="113" y="90" font-size="18">内容源 → 内容索引</text>
+<rect x="240" y="56" width="416" height="56" rx="8" fill="#fff8ed" stroke="#dfc69d"/><text x="448" y="80" font-size="17">内容滞后：旧片段、旧版本或已删除内容</text><text x="448" y="101" font-size="15">读取权通过，不代表旧内容仍有效</text>
+<rect x="24" y="129" width="178" height="56" rx="8" fill="#f3f7fb" stroke="#b9cbdc"/><text x="113" y="163" font-size="18">关系源 → 派生索引</text>
+<rect x="240" y="129" width="416" height="56" rx="8" fill="#fff8ed" stroke="#dfc69d"/><text x="448" y="153" font-size="17">权限滞后：撤权残留、新增授权漏召回</text><text x="448" y="174" font-size="15">最终复核可以剔除，不能凭空补回候选</text>
+<g stroke="#4b6477" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M202 84H235"/><path d="M202 157H235"/></g>
+<rect x="24" y="222" width="192" height="75" rx="9" fill="#f3f7fb" stroke="#b9cbdc"/><text x="120" y="251" font-size="18" font-weight="600">最终候选片段</text><text x="120" y="278" font-size="16">携带可信 doc ID / 版本</text>
+<rect x="246" y="222" width="188" height="75" rx="9" fill="#edf7f3" stroke="#a3cbbd"/><text x="340" y="251" font-size="18" font-weight="600">入上下文前授权</text><text x="340" y="278" font-size="16">仅允许项通过</text>
+<rect x="464" y="222" width="192" height="75" rx="9" fill="#f3f7fb" stroke="#b9cbdc"/><text x="560" y="251" font-size="18" font-weight="600">模型实际上下文</text><text x="560" y="278" font-size="16">按最终 doc IDs 验证</text>
+<g stroke="#4b6477" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M216 259H241"/><path d="M434 259H459"/></g>
+<text x="340" y="329" font-size="16">重排与扩展新增的文档也要检查；未知项不得进入上下文</text>
+<text x="340" y="358" font-size="15" fill="#627584">概念示意；后续检查不能撤回已经输出给用户的文字</text>
+</g></svg>

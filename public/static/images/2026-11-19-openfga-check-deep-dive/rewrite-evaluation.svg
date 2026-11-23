@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 690" role="img" aria-labelledby="title desc">
+  <title id="title">OpenFGA 关系 rewrite 的分支逻辑与递归子问题</title>
+  <desc id="desc">Union 在任一分支为真时允许；intersection 要求全部必要分支为真；exclusion 要求基础分支成立且排除分支不成立。userset 和 tuple-to-userset 可派生子问题，子结果沿层级返回并按父对象 rewrite 合并。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#53666b"/></marker>
+    <style>
+      .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.head{font:700 21px Arial,'Noto Sans CJK SC',sans-serif}.label{font:700 18px Arial,'Noto Sans CJK SC',sans-serif;fill:#263a3e}.body{font:16px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:15px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.box{stroke-width:2}.line{fill:none;stroke:#53666b;stroke-width:2.2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="690" fill="#fff"/>
+  <text class="title" x="60" y="52">不同 rewrite，需要不同的“足够证据”</text>
+  <text class="sub" x="60" y="82">分支可能并发；结果足够确定时，仍在运行的工作可被取消</text>
+
+  <rect class="box" x="55" y="120" width="340" height="250" rx="8" fill="#edf4f7" stroke="#6d98a7"/>
+  <text class="head" x="80" y="158" fill="#315c6b">Union · 或</text><text class="body" x="80" y="192">A OR B OR C</text>
+  <rect x="80" y="220" width="110" height="52" rx="5" fill="#fff" stroke="#8eabb5"/><text class="label" x="135" y="253" text-anchor="middle">A</text>
+  <rect x="205" y="220" width="110" height="52" rx="5" fill="#fff" stroke="#8eabb5"/><text class="label" x="260" y="253" text-anchor="middle">B</text>
+  <rect x="80" y="286" width="110" height="52" rx="5" fill="#fff" stroke="#8eabb5"/><text class="label" x="135" y="319" text-anchor="middle">C</text>
+  <text class="small" x="80" y="357">任一 true → 整体 true</text>
+
+  <rect class="box" x="430" y="120" width="340" height="250" rx="8" fill="#f3f0e6" stroke="#b39b63"/>
+  <text class="head" x="455" y="158" fill="#735f31">Intersection · 且</text><text class="body" x="455" y="192">A AND B AND C</text>
+  <rect x="455" y="220" width="110" height="52" rx="5" fill="#fff" stroke="#d2c69f"/><text class="label" x="510" y="253" text-anchor="middle">A</text>
+  <rect x="580" y="220" width="110" height="52" rx="5" fill="#fff" stroke="#d2c69f"/><text class="label" x="635" y="253" text-anchor="middle">B</text>
+  <rect x="455" y="286" width="110" height="52" rx="5" fill="#fff" stroke="#d2c69f"/><text class="label" x="510" y="319" text-anchor="middle">C</text>
+  <text class="small" x="455" y="357">全部 true 才是整体 true</text>
+
+  <rect class="box" x="805" y="120" width="340" height="250" rx="8" fill="#f7eeeb" stroke="#bd8574"/>
+  <text class="head" x="830" y="158" fill="#824b3b">Exclusion · 差集</text><text class="body" x="830" y="192">A BUT NOT B</text>
+  <rect x="830" y="220" width="120" height="52" rx="5" fill="#fff" stroke="#c99b8e"/><text class="label" x="890" y="253" text-anchor="middle">基础 A</text>
+  <rect x="970" y="220" width="120" height="52" rx="5" fill="#fff" stroke="#c99b8e"/><text class="label" x="1030" y="253" text-anchor="middle">排除 B</text>
+  <text class="small" x="830" y="330">A true 且 B false 才允许</text><text class="small" x="830" y="355">还须确认排除项没有成立</text>
+
+  <path class="line" d="M225 370 V405 H470 V425"/><path class="line" d="M600 370 V425"/><path class="line" d="M975 370 V405 H730 V425"/>
+  <rect class="box" x="390" y="427" width="420" height="74" rx="8" fill="#edf4ef" stroke="#719887"/>
+  <text class="head" x="600" y="459" text-anchor="middle" fill="#3d6d5e">父对象的 rewrite 合并分支结果</text><text class="small" x="600" y="484" text-anchor="middle">错误与布尔结果的归并还受实现版本影响</text>
+
+  <text class="head" x="60" y="548" fill="#3d6d5e">关系递归：子问题下行，结果逐层返回</text>
+  <rect class="box" x="65" y="570" width="300" height="70" rx="8" fill="#eef2f2" stroke="#829195"/><text class="label" x="215" y="600" text-anchor="middle">父对象 rewrite</text><text class="small" x="215" y="625" text-anchor="middle">派生 userset / TTU 子问题</text>
+  <path class="line" d="M365 590 H445"/>
+  <rect class="box" x="450" y="570" width="300" height="70" rx="8" fill="#e8f0f3" stroke="#6d98a7"/><text class="label" x="600" y="600" text-anchor="middle">关联对象 / userset</text><text class="small" x="600" y="625" text-anchor="middle">继续执行子 Check</text>
+  <path class="line" d="M750 590 H830"/>
+  <rect class="box" x="835" y="570" width="300" height="70" rx="8" fill="#f4f1e8" stroke="#b39b63"/><text class="label" x="985" y="600" text-anchor="middle">子结果</text><text class="small" x="985" y="625" text-anchor="middle">返回并交给父 rewrite 汇总</text>
+  <path d="M985 640 V665 H215 V643" fill="none" stroke="#53666b" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>

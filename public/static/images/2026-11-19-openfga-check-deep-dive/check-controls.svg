@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 570" role="img" aria-labelledby="title desc">
+  <title id="title">一次 Check 的控制点分别保护不同资源</title>
+  <desc id="desc">一次 Check 请求可能受整体 deadline、resolver 并发、单 Check datastore 并发读、CEL 条件成本和 datastore 自身配置影响。这些是并列控制维度，不是一个接一个的执行阶段。</desc>
+  <defs>
+    <style>
+      .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.head{font:700 19px Arial,'Noto Sans CJK SC',sans-serif}.label{font:700 16px Arial,'Noto Sans CJK SC',sans-serif;fill:#263a3e}.body{font:15px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:14px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.box{stroke-width:2}
+    </style>
+  </defs>
+  <rect width="1200" height="570" fill="#fff"/>
+  <text class="title" x="60" y="52">多道控制并列生效，不是单一“复杂度上限”</text>
+  <text class="sub" x="60" y="82">它们约束的资源不同，不能互相替代</text>
+
+  <rect class="box" x="445" y="115" width="310" height="70" rx="8" fill="#eef2f2" stroke="#829195"/>
+  <text class="head" x="600" y="145" text-anchor="middle" fill="#34484c">一次 Check 请求</text>
+  <text class="small" x="600" y="170" text-anchor="middle">下面是并列控制维度，不是执行顺序</text>
+  <path d="M600 185 V218 H175 M600 218 H1015" fill="none" stroke="#53666b" stroke-width="2.2"/>
+  <path d="M175 218 V250 M455 218 V250 M735 218 V250 M1015 218 V250" fill="none" stroke="#53666b" stroke-width="2.2"/>
+
+  <rect class="box" x="45" y="252" width="260" height="190" rx="8" fill="#edf4f7" stroke="#6d98a7"/>
+  <text class="head" x="175" y="287" text-anchor="middle" fill="#315c6b">请求 deadline</text><text class="label" x="175" y="326" text-anchor="middle">整体时限</text><text class="body" x="175" y="359" text-anchor="middle">约束请求总时长</text><text class="small" x="175" y="402" text-anchor="middle">下游取消看 context 传播配置</text>
+  <rect class="box" x="325" y="252" width="260" height="190" rx="8" fill="#f4f1e8" stroke="#b39b63"/>
+  <text class="head" x="455" y="287" text-anchor="middle" fill="#735f31">Resolver 并发</text><text class="label" x="455" y="326" text-anchor="middle">分支与子问题</text><text class="body" x="455" y="359" text-anchor="middle">约束并行求值规模</text><text class="small" x="455" y="402" text-anchor="middle">不是存储连接池大小</text>
+  <rect class="box" x="605" y="252" width="260" height="190" rx="8" fill="#eaf2e9" stroke="#719887"/>
+  <text class="head" x="735" y="287" text-anchor="middle" fill="#3d6d5e">存储并发读</text><text class="label" x="735" y="326" text-anchor="middle" font-size="15">MaxConcurrentReadsForCheck</text><text class="body" x="735" y="359" text-anchor="middle">约束单个 Check 的并发读</text><text class="small" x="735" y="402" text-anchor="middle">不是全服务总并发上限</text>
+  <rect class="box" x="885" y="252" width="260" height="190" rx="8" fill="#f7eeeb" stroke="#bd8574"/>
+  <text class="head" x="1015" y="287" text-anchor="middle" fill="#824b3b">CEL 成本与后端</text><text class="label" x="1015" y="326" text-anchor="middle">条件求值 / datastore</text><text class="body" x="1015" y="359" text-anchor="middle">CEL 限制表达式成本</text><text class="small" x="1015" y="402" text-anchor="middle">连接池与查询计划由后端决定</text>
+
+  <rect x="130" y="475" width="940" height="58" rx="8" fill="#f1f4f5" stroke="#a2afb2"/>
+  <text class="label" x="600" y="511" text-anchor="middle">排查慢请求：分开看总时长、等待并发、存储操作、条件计算和后端资源</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 360" role="img" aria-labelledby="title desc">
+  <title id="title">ReBAC：从关系事实推导访问权限</title>
+  <desc id="desc">小陈是研发组成员，研发组可读取研发资料，路线图属于该文件夹。显式继承规则推导小陈可读取路线图。小周通过直接分享读取。</desc>
+  <defs><marker id="solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#718ba5"/></marker><marker id="derived" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#9c8a5c"/></marker><style>text{font-family:Arial,'Noto Sans CJK SC',sans-serif;fill:#26364a}.title{font-size:21px;font-weight:700}.label{font-size:14px;font-weight:600}.small{font-size:12px;fill:#687b90}.node{fill:#fff;stroke:#d8e1eb;stroke-width:1.5}</style></defs>
+  <rect width="680" height="360" rx="16" fill="#fff"/>
+  <text x="32" y="40" class="title">ReBAC：关系事实要经过规则才能成为权限</text>
+  <text x="32" y="64" class="small">实线表示已记录关系；虚线表示模型推导，单纯“连通”不等于允许</text>
+  <rect x="32" y="103" width="122" height="58" rx="11" class="node"/><circle cx="55" cy="126" r="10" fill="#eaf2fa"/><circle cx="55" cy="123" r="3.5" fill="#6483a5"/><path d="M49 135c1-6 11-6 12 0" fill="none" stroke="#6483a5" stroke-width="1.5"/><text x="75" y="129" class="label">小陈</text><text x="75" y="148" class="small">用户</text>
+  <rect x="236" y="93" width="150" height="58" rx="11" fill="#f5f8fb" stroke="#d3dee9" stroke-width="1.5"/><circle cx="258" cy="122" r="10" fill="#eaf2fa"/><circle cx="254" cy="120" r="3" fill="#718ba5"/><circle cx="262" cy="120" r="3" fill="#718ba5"/><path d="M250 128c1-5 7-5 8 0m0 0c1-5 7-5 8 0" fill="none" stroke="#718ba5" stroke-width="1.2"/><text x="278" y="118" class="label">研发组</text><text x="278" y="137" class="small">用户集合</text>
+  <rect x="236" y="185" width="150" height="58" rx="11" fill="#f7f6fb" stroke="#ddd9eb" stroke-width="1.5"/><path d="M251 207h13l4 4h13v18h-30z" fill="#efedf7" stroke="#9990b8" stroke-width="1.3"/><text x="290" y="211" class="label">研发资料</text><text x="290" y="230" class="small">文件夹</text>
+  <rect x="498" y="143" width="150" height="62" rx="11" fill="#f5f8fb" stroke="#d3dee9" stroke-width="1.5"/><path d="M516 158h16l6 6v24h-22z" fill="#eef4fa" stroke="#91a8bf" stroke-width="1.2"/><path d="M532 158v7h6" fill="none" stroke="#91a8bf"/><text x="546" y="171" class="label">项目路线图</text><text x="546" y="190" class="small">文档</text>
+  <path d="M155 132H226" fill="none" stroke="#718ba5" stroke-width="2" marker-end="url(#solid)"/><text x="190" y="119" text-anchor="middle" class="small">成员</text>
+  <path d="M311 152v24" fill="none" stroke="#718ba5" stroke-width="2" marker-end="url(#solid)"/><text x="350" y="170" class="small">可读</text>
+  <path d="M387 214h101" fill="none" stroke="#718ba5" stroke-width="2" marker-end="url(#solid)"/><text x="438" y="202" text-anchor="middle" class="small">父文件夹</text>
+  <path d="M93 162v126h405v-79" fill="none" stroke="#9c8a5c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#derived)"/><rect x="198" y="265" width="270" height="34" rx="9" fill="#fbfaf6" stroke="#e8e2d2"/><text x="333" y="287" text-anchor="middle" class="small">显式继承规则 ⇒ 小陈可读路线图</text>
+  <rect x="32" y="312" width="122" height="32" rx="9" class="node"/><text x="93" y="333" text-anchor="middle" class="label">小周</text><path d="M155 328h300" fill="none" stroke="#718ba5" stroke-width="2" marker-end="url(#solid)"/><text x="305" y="318" text-anchor="middle" class="small">对路线图直接分享</text>
+  <text x="498" y="333" class="small">独立授权路径</text>
+</svg>

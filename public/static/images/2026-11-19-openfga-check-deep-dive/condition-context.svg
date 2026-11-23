@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">OpenFGA 条件如何合并 tuple 参数与请求上下文</title>
+  <desc id="desc">普通命名条件从 tuple 取得授权参数，从本次 Check 请求取得上下文属性。同名字段由 tuple 值覆盖请求值，合并上下文交给 CEL 表达式求值，结果为 false 则关系不匹配，缺参或执行错误返回条件求值错误。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#53666b"/></marker>
+    <style>
+      .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.head{font:700 20px Arial,'Noto Sans CJK SC',sans-serif}.label{font:700 18px Arial,'Noto Sans CJK SC',sans-serif;fill:#263a3e}.body{font:16px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:15px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.box{stroke-width:2}.line{fill:none;stroke:#53666b;stroke-width:2.2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="430" fill="#fff"/>
+  <text class="title" x="60" y="52">条件关系：固定授权参数 + 本次请求上下文</text>
+  <text class="sub" x="60" y="82">普通命名条件的字段冲突由 tuple context 覆盖 request context</text>
+
+  <rect class="box" x="60" y="135" width="300" height="150" rx="8" fill="#f4f1e8" stroke="#b39b63"/>
+  <text class="head" x="210" y="173" text-anchor="middle" fill="#735f31">Tuple condition context</text>
+  <text class="body" x="210" y="213" text-anchor="middle">grant_time</text><text class="body" x="210" y="241" text-anchor="middle">grant_duration</text><text class="small" x="210" y="270" text-anchor="middle">关系写入时保存的参数</text>
+
+  <rect class="box" x="60" y="315" width="300" height="78" rx="8" fill="#edf4f7" stroke="#6d98a7"/>
+  <text class="head" x="210" y="347" text-anchor="middle" fill="#315c6b">Check request context</text><text class="small" x="210" y="375" text-anchor="middle">current_time 等本次判断属性</text>
+
+  <path class="line" d="M360 205 H435 V245 H475"/><path class="line" d="M360 354 H435 V275 H475"/>
+  <rect class="box" x="480" y="190" width="260" height="140" rx="8" fill="#eef2f2" stroke="#829195"/>
+  <text class="head" x="610" y="230" text-anchor="middle" fill="#34484c">合并上下文</text><text class="body" x="610" y="268" text-anchor="middle">同名字段：tuple 优先</text><text class="small" x="610" y="300" text-anchor="middle">缺少必需参数会报求值错误</text>
+  <path class="line" d="M740 260 H810"/>
+  <rect class="box" x="815" y="190" width="180" height="140" rx="8" fill="#eaf2e9" stroke="#719887"/>
+  <text class="head" x="905" y="230" text-anchor="middle" fill="#3d6d5e">CEL</text><text class="body" x="905" y="268" text-anchor="middle">计算条件表达式</text><text class="small" x="905" y="300" text-anchor="middle">受成本限制</text>
+  <path class="line" d="M995 260 H1035"/>
+  <rect class="box" x="1040" y="190" width="130" height="140" rx="8" fill="#f7eeeb" stroke="#bd8574"/>
+  <text class="head" x="1105" y="230" text-anchor="middle" fill="#824b3b">结果</text><text class="small" x="1105" y="267" text-anchor="middle">true / false</text><text class="small" x="1105" y="296" text-anchor="middle">或错误</text>
+  <text class="small" x="600" y="410" text-anchor="middle">false 表示这条关系不匹配；表达式缺参或求值失败不会自动变成授权</text>
+</svg>

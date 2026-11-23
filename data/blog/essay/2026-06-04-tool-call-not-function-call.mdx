@@ -31,7 +31,7 @@ images:
 
 <TOCInline toc={props.toc} exclude="概述" toHeading={3} />
 
-> 本文是「[AI Agent 安全最佳实践 2026](/blog/2026-05-23-agent-security-2026)」的续篇，聚焦一个核心判断的深度展开。
+> 本文是「[AI Agent 安全最佳实践 2026](/blog/essay/2026-05-23-agent-security-2026)」的续篇，聚焦一个核心判断的深度展开。
 
 我在上一篇「AI Agent 安全最佳实践 2026」里写过一句话：**Agent 的每一次 tool call，本质上是一次资源授权请求，不是一个 function call。** 写的时候就知道，这句话可以单独展开成一篇文章。
 
@@ -168,6 +168,8 @@ Schema 能保证用户 ID 是一个字符串，不能保证这个用户 ID 不�
 维度越多，开销越大。低风险工具可以简化检查——比如查天气只需要 User + Agent + Tool 就够。但一旦涉及写操作、外部发送或生产数据，六个维度一个都不能少。策略粒度也需要平衡：Context 维度从 `sessionId` + `riskLevel` 两个子维度起步，按需扩展。太细会导致策略爆炸，太粗会失去六元组的意义。
 
 **"Agent 能不能用这个工具"是设计时的配置问题。"这一次、这个资源、这个动作、这个上下文是否允许"是运行时的授权问题。** 前者是 Tool Registry 的职责，后者是 Policy Engine 的职责。两者必须分开——把运行时授权折叠成设计时配置，就是在把安全交给一个永远不会更新的静态白名单。
+
+当工具操作具体文档、项目等资源，且访问权限来自团队成员关系、资源继承或单独分享时，可参考 [OpenFGA 的关系授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)。
 
 ## 六、工程架构：Tool Gateway 是唯一入口
 

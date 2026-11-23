@@ -1,0 +1,211 @@
+---
+title: 'OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界'
+date: '2026-11-17'
+tags: ['OpenFGA', 'ReBAC', '细粒度授权', '访问控制', '权限系统', 'Zanzibar', 'RAG', '系统架构']
+draft: false
+summary: 'OpenFGA 是什么？本文以文档协作为例，解释 ReBAC 细粒度授权如何通过授权模型、关系元组和 Store 表达继承与共享，并对比 Check、ListObjects、ListUsers 的查询边界；同时讨论 Contextual Tuples、条件关系、一致性、RAG 授权过滤，以及它与业务数据系统的职责边界。'
+images: ['/static/images/2026-11-17-openfga-relationship-authorization-overview/openfga-authorization-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-17-openfga-relationship-authorization-overview/openfga-authorization-cover.jpg"><img className="my-0" src="/static/images/2026-11-17-openfga-relationship-authorization-overview/openfga-authorization-cover.jpg" alt="用户、组织、项目与文档之间的关系共同形成授权判断" /></a>
+  <figcaption className="text-center">OpenFGA 用关系模型表达用户、团队与资源之间的权限关系</figcaption>
+</figure>
+
+OpenFGA 是什么？它是一个受 Google Zanzibar 启发的开源细粒度授权系统，以 **基于关系的访问控制（Relationship-Based Access Control，ReBAC）** 为核心，用关系模型表达用户、团队与资源之间的权限关系。[项目 README](https://github.com/openfga/openfga/blob/798149843737e264e64b8660baadb946528c02f0/README.md) 将它描述为“a high-performance, flexible authorization/permission engine”；这是项目定位，实际性能仍需结合模型和负载验证。
+
+理解 OpenFGA，可以先抓住一个问题：用户为什么能访问这份文档？答案可能来自直接分享、团队成员身份，也可能沿项目或文件夹层级继承。系统以授权模型描述哪些关系可以成立，以关系元组记录具体关系事实，再将规则与事实结合起来回答授权查询。
+
+本文是系列第一篇，以文档协作系统为例，介绍 OpenFGA 的基本概念、查询方式和应用边界。性能结论留待下一篇实测后讨论；求值图、源码路径和实现策略则放在第三篇。
+
+> **先给结论**
+> - **授权模型**规定关系如何声明、组合和继承；**关系元组**记录实际关系事实，二者缺一不可。
+> - **Check**回答一个主体能否访问一个对象；**ListObjects** 与 **ListUsers** 面向对象或主体的枚举，不能替代业务搜索。
+> - OpenFGA 可以承接关系授权、部分基于上下文或条件的授权，以及 RAG 的前置权限过滤，但不自动拥有用户资料、资源内容、搜索字段或跨系统事务。
+
+从官方文档列出的能力范围看，OpenFGA 并不只服务一种授权模型：它以 ReBAC 为核心，也可以通过关系组合、Contextual Tuples 和 Conditional Relationships 覆盖部分 RBAC 与 ABAC 场景；同时提供 HTTP/gRPC API、主流语言 SDK 和 CLI。[官方介绍](https://openfga.dev/docs/fga)中的“支持”描述的是产品能力边界，并不意味着所有属性策略都应迁移到 OpenFGA，实际模型仍要根据关系和上下文的稳定性来设计。
+
+## 角色之外，权限还沿关系传播
+
+传统的基于角色的访问控制（RBAC）通常从“用户拥有什么角色”开始，再把角色映射到一组操作权限。例如，组织管理员可以管理成员，组织成员可以查看组织信息。这类规则清楚、稳定时，RBAC 足以覆盖不少应用。
+
+复杂度常出现在资源级共享和继承：某位用户被单独加入一份文档；一个小组被授予项目权限；文件夹中的文档继承文件夹访问权；外部协作者只获得一个资源的访问权，却不是整个租户的成员。此时系统需要同时回答“用户属于哪个组”“组具有什么关系”“资源属于哪个父级”“权限是否沿父子关系传递”等问题。
+
+Google 在 2019 年发表的 Zanzibar 论文将这一类问题放在统一授权系统中讨论。论文指出，统一的数据模型和配置语言能够服务不同产品的 ACL（访问控制列表）需求；它还强调，授权系统必须同时面对正确性、灵活性、低延迟、可用性和大规模部署等目标。论文摘要报告了 Zanzibar 自身的生产规模与运行指标，但那些数字属于 Google 的 Zanzibar，**不能当作 OpenFGA 的性能数据**。
+
+OpenFGA 借鉴 Zanzibar 式的关系授权思路。关系本身不一定就是最终权限：模型可以把多个关系组合起来，或沿着资源层级推导出新的关系。因此，与“给用户分配一个能访问所有文档的角色”相比，系统可以描述用户、团队、项目和单份文档之间更细致的关联。
+
+## 一套模型，加上一组关系事实
+
+OpenFGA 的[官方概念文档](https://openfga.dev/docs/concepts)把 type（类型）解释为“定义具有相似特征的一类对象”的字符串，例如 `user`、`organization`、`project` 和 `document`。对象则是类型与标识符的组合，例如 `document:roadmap`。类型告诉系统“这是什么类别”，标识符指出“具体是哪一个”。
+
+**关系（relation）** 是在授权模型中声明的名称，表示某类主体与某类对象之间可能存在的联系。例如，用户可以是文档的 `editor`，也可以是组织的 `member`；文档则可以属于某个项目。类型定义规定了允许哪些关系，以及这些关系可以连接什么类型的主体。
+
+一个简化的模型可以写成这样：
+
+```fga
+model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define member: [user]
+    define admin: [user]
+
+type project
+  relations
+    define organization: [organization]
+    define editor: [user, organization#member]
+
+type document
+  relations
+    define project: [project]
+    define owner: [user]
+    define editor: [user] or editor from project
+    define viewer: [user] or editor or owner
+```
+
+这段 DSL（领域专用语言）允许组织声明成员和管理员关系，允许项目关联组织，也允许文档关联项目。项目编辑者可以是具体用户，也可以是组织的成员集合；文档编辑者则可以直接指定用户，或从已关联项目的编辑关系中推导。文档所有者和编辑者也具有查看关系。这里声明的是允许的关系和推导规则，并未要求每份文档必须关联项目，也未要求每个项目必须关联组织。
+
+还要区分两条独立关系：项目的 `organization` 关系只记录组织关联；把 `organization:acme#member` 授予项目的 `editor`，才表示该组织成员拥有项目编辑权限。当前模型没有把这两条关系自动绑定。这只是用于解释概念的简化例子，尚未运行验证。真实模型需要根据产品语义补全关系限制、继承规则和测试，不能仅凭这段代码直接作为生产配置。
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-17-openfga-relationship-authorization-overview/d1-relationship-model.svg"><img className="my-0" src="/static/images/2026-11-17-openfga-relationship-authorization-overview/d1-relationship-model.svg" alt="关系事实与模型规则共同推导 Alice 对文档的编辑和查看权限" /></a>
+  <figcaption className="text-center">图 1：示例元组记录成员关系、项目编辑关系与文档归属；模型显式声明继承规则后，才能推导出文档权限。</figcaption>
+</figure>
+
+模型定义关系规则，具体的关系事实则由 **关系元组（relationship tuple）** 记录；声明规则并不代表事实已经存在。OpenFGA 将其核心形式表示为 `user`、`relation`、`object` 三元组；在 JSON API 中常见形式如下：
+
+```json
+{
+  "user": "user:alice",
+  "relation": "editor",
+  "object": "document:roadmap"
+}
+```
+
+这条记录表示 Alice 与 `document:roadmap` 之间存在 `editor` 关系。若再写入：
+
+```json
+{
+  "user": "organization:acme#member",
+  "relation": "editor",
+  "object": "project:launch"
+}
+```
+
+就表示 Acme 组织的成员集合与该项目的 `editor` 关系相连。这里的 `organization:acme#member` 称为 **userset（用户集合）**，指向与该组织具有成员关系的主体集合，而非某个具体用户。元组中的 `user` 字段也可以承载对象或 userset，不限于自然人用户；允许哪些形式由模型约束。具体用户是否因此能编辑项目，取决于模型如何定义这条路径，以及相应的成员关系是否存在。
+
+图 1 展示的是另一条继承路径：假设 Alice 是 Acme 成员、Acme 成员集合是 Launch 项目编辑者，且 Roadmap 文档关联 Launch 项目，模型便可推导 Alice 具有文档的编辑和查看关系。这条路径不依赖前一条直接授予 Alice 文档编辑权限的元组。
+
+因此，**元组不是权限规则本身，模型也不是全部权限数据**。元组提供可存储的关系事实；模型规定这些事实如何被解释和组合。模型允许 `organization#member` 作为 `project#editor` 的主体，也不意味着某个组织成员关系已经自动写入。模型和元组必须对得上，查询才能得出符合预期的结果。
+
+模型中的方括号还承担一个容易被忽略的约束：它不只是说明“这个关系可以指向哪些主体”，也决定哪些直接关系元组允许写入。例如，`[user, organization#member]` 允许直接用户和组织成员 userset 成为某关系的主体；如果关系定义没有直接关系类型限制，则该关系不能直接写入这类主体，只能通过其他关系推导。`or` 表示多个集合中的任意一个满足即可；`and` 和 `but not` 则分别表达交集和排除。这样一来，模型不仅描述授权路径，也在一定程度上约束关系数据的形状。详见[官方配置语言文档](https://openfga.dev/docs/configuration-language)。
+
+## Store：组织授权模型和关系数据
+
+OpenFGA 用 **Store** 组织授权检查所需的数据。官方文档说明，一个 Store 可以包含多个授权模型版本及相关关系元组；不同 Store 的数据不会共享。Store 可以用于区分不同应用、环境或授权数据边界，但“Store 数据不共享”本身不等于数据库层面的物理隔离，也不能替代应用对调用身份和租户边界的设计。
+
+授权模型写入后不可修改；再次写入会创建新版本并返回新的模型 ID。[官方不可变模型指南](https://openfga.dev/docs/getting-started/immutable-models)指出，部分与关系元组相关的端点（包括 Check、ListObjects、ListUsers、Expand 和 Write）接受 `authorization_model_id`，并强烈建议生产环境传入。对这些端点，省略该 ID 时 OpenFGA 使用该 Store 最近创建的模型；因此，模型更新前要评估调用方是否已准备好接受新规则。关系数据如何迁移、模型如何逐步切换、变更影响如何验证，都属于模型演进问题，本文先不展开。
+
+官方概念文档概括了授权判断的核心：**“Together with relationship tuples, the authorization model determines whether a relationship exists between a user and an object.”** 换言之，授权结果需要把模型规则与关系事实结合起来，不能只看某一张角色表或某一条元组。
+
+## Check：询问某个主体能否访问某个对象
+
+最常见的授权问题是：**“Alice 能编辑这份文档吗？”** 这对应 OpenFGA 的 `Check` 查询。[官方 Check API 文档](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization) 将其描述为：检查给定用户在给定 Store 中，是否与给定对象存在指定关系。请求可以概念化为：
+
+```text
+Check(user= user:alice, relation= editor, object= document:roadmap)
+```
+
+上述写法只是概念表达，并非可直接发送的 HTTP 请求；实际调用还需指定 Store，生产环境建议固定授权模型 ID。求值成功时，OpenFGA 返回类似 `allowed: true` 或 `allowed: false` 的结果。请求校验失败、超时或服务错误应由应用单独处理，不能当作一次正常的否定授权结果。假设模型规定文档所有者也是查看者，或者项目编辑者可以通过文档所属项目继承文档编辑权限，Check 就会沿模型定义的关系规则，结合相关事实作出判断。
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-17-openfga-relationship-authorization-overview/d2-check-flow.svg"><img className="my-0" src="/static/images/2026-11-17-openfga-relationship-authorization-overview/d2-check-flow.svg" alt="OpenFGA Check 概念流程：请求、模型规则与关系事实共同形成授权结果" /></a>
+  <figcaption className="text-center">图 2：Check 的概念流程示意；未展开缓存、存储查询顺序或内部算法。</figcaption>
+</figure>
+
+OpenFGA 把关系表达与关系求值集中在授权服务中，业务代码不必再逐层查询“用户属于哪个组织、组织拥有哪些项目、文档属于哪个项目”，然后手工拼接权限判断。不过，应用仍需决定何时发起检查、如何处理检查失败，并确保只有授权通过后才执行受保护操作。授权服务不会替代应用的身份认证和业务流程。
+
+除了持久化的关系元组，部分查询还可以携带 **Contextual Tuples（上下文关系元组）**。按照[官方 Contextual Tuples 文档](https://openfga.dev/docs/interacting/contextual-tuples)的说明，当前请求已知的关系信息可以随授权查询一并传入，无需先写入 Store。这些元组只在当前请求内有效，不会持久化，也必须通过与存储元组相同的模型规则校验。它适合请求本身已经掌握相关信息的场景；但如果每次检查前都要额外查询许多数据，再拼成上下文，调用方就要承担相应的数据收集复杂度和延迟。因此，官方采用建议也讨论了混合方式：先同步稳定、易维护的关系，其余暂时作为请求上下文提供，再根据系统成熟度调整。
+
+还要区分 Contextual Tuples 与条件关系。条件关系把条件绑定到持久化元组上，例如“这次授权在某个时间窗口内有效”；请求调用时再提供 `current_time` 等上下文进行求值。Contextual Tuple 则是把一条临时关系事实直接带入当前请求。前者适合表达关系本身带有属性约束的授权，后者适合调用方已经掌握、但不希望先写入 Store 的关系事实。[官方 Conditions 文档](https://openfga.dev/docs/modeling/conditions)同时说明，这类能力只覆盖部分 ABAC 场景，不应据此把 OpenFGA 当作任意属性策略引擎。
+
+## Check 与 List：判断和枚举不是一回事
+
+`Check` 面向一个具体授权问题：某主体对某个对象是否有某种关系。应用界面还经常需要反向查询，例如“列出 Alice 可以查看的所有文档”。OpenFGA 提供 `ListObjects` 一类枚举查询，根据用户、关系和对象类型查找满足条件的对象；`ListUsers` 则在给定对象和关系下，按指定的主体类型或 userset 过滤并列出匹配主体。
+
+| 查询 | 输入重点 | 回答的问题 |
+| --- | --- | --- |
+| `Check` | 主体、关系、具体对象 | Alice 能查看 Roadmap 文档吗？ |
+| `ListObjects` | 主体、关系、对象类型 | Alice 能查看哪些文档？ |
+| `ListUsers` | 对象、关系、主体类型或 userset 过滤条件 | 哪些指定类型的主体能查看 Roadmap 文档？ |
+
+Check 判断指定对象上的关系是否成立，List 则查找满足条件的一组对象或用户。官方源码文档解释，复杂的 `ListObjects` 模型可能先沿关系图反向扩展候选对象，再对候选对象执行 Check，确认它们是否满足交集或排除等规则。因此，List 并不是简单地从一张表里筛出“所有有权限的对象”。
+
+因此，授权引擎不能当作通用搜索引擎。实际系统通常仍由业务数据库负责搜索、排序、分页和业务字段过滤，再对适当范围的资源执行授权检查。官方在 RAG 授权场景中也给出类似模式：先通过关键词、向量或混合检索得到候选文档，再用 OpenFGA 的 `Check` 或 `ListObjects` 过滤，只有授权通过的内容才能进入模型上下文。[官方 RAG 授权指南](https://openfga.dev/docs/use-cases/rag-authorization)说明了这一点。对普通业务系统而言，这意味着授权过滤应尽可能发生在敏感数据交给下游服务之前，而不是只在页面展示阶段隐藏按钮。具体的查询策略、关系规模与性能表现，仍需要结合真实模型和数据集验证；下一篇实测会专门处理这些问题。
+
+## OpenFGA 存什么，业务系统仍需存什么
+
+引入集中授权服务时，需要明确用户、资源、组织层级和分享关系分别由谁维护。如果文档服务把文档保存在自己的数据库，同时把文档与组织、用户之间的关系写入 OpenFGA，应用架构就需要协调两边的写入。OpenFGA 官方采用指南提醒，集中存放授权数据可以减少各业务服务自行收集授权信息的负担，但也会增加关系同步工作，应用需要确保授权数据持续更新。
+
+官方的 source-of-truth 指南给出了一个有用的划分：用户资料通常由身份系统维护；项目、文件夹和文档等实体层级，以及搜索、过滤所需的数据，通常仍由应用数据库维护。反过来，如果产品允许用户直接分享单个资源，而应用数据库不需要保存这份授权记录，OpenFGA 可以成为这类细粒度权限关系的事实来源。若系统没有其他角色管理服务，角色成员关系也可以放在 OpenFGA；但角色的名称、描述等元数据仍需要由应用侧的数据结构承载。
+
+这类划分没有适用于所有项目的固定规则，关键是明确数据所有权：**哪些数据由哪个系统负责创建、更新、查询和修复？** 如果同一关系可以在多个系统中修改，团队还要设计同步、重试和不一致时的处理方式。OpenFGA 负责根据其 Store 中的模型与关系数据执行授权判断，不能据此推断它与任意业务数据库之间存在分布式原子事务。
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-17-openfga-relationship-authorization-overview/d3-data-boundary.svg"><img className="my-0" src="/static/images/2026-11-17-openfga-relationship-authorization-overview/d3-data-boundary.svg" alt="业务应用与 OpenFGA 的数据边界示意" /></a>
+  <figcaption className="text-center">图 3：常见的数据职责划分示意；关系同步和跨系统一致性仍由应用架构负责。</figcaption>
+</figure>
+
+## 如何判断它值得进一步评估
+
+如果权限主要由少数固定角色构成、规则平坦，且只在服务内部使用，现有 RBAC 方案可能已经足够。若应用需要表达团队成员身份、资源层级继承、单对象分享，或需要根据用户反向查找可访问资源，关系模型会提供更直接的表达方式。OpenFGA 官方采用指南也建议，团队可以从现有的粗粒度权限模型开始，再逐步把检查下沉到具体资源，为后续细化权限留下空间。
+
+这并不意味着每个系统都应该把所有数据和规则迁入 OpenFGA。是否适合，还取决于关系数据的更新频率、业务系统的事实来源、写后读一致性要求、查询规模、租户隔离方式和团队运维能力。对于完全依赖请求属性作判断的场景，应具体比较关系模型的条件能力与其他策略引擎，而不是仅凭“细粒度”这个标签作选择。
+
+一致性也需要单独评估。OpenFGA 的查询一致性参数区分 `MINIMIZE_LATENCY` 和 `HIGHER_CONSISTENCY`：前者在启用缓存时可能读取缓存结果，后者会跳过缓存直接查询数据库，但会牺牲部分延迟和性能。官方文档特别提醒，写入关系元组后立即发起检查时，如果使用前者，刚写入的变化可能尚未反映在结果中；因此，分享后立即访问、撤销后立即阻断等场景，要明确哪些请求需要更高一致性。这个机制是 OpenFGA 的查询一致性偏好，不能直接等同于 Zanzibar 论文中的 zookie 一致性令牌。[官方一致性文档](https://openfga.dev/docs/interacting/consistency)
+
+模型和关系数据也应该像代码一样测试。官方的 Store File Format 支持把模型、元组和 `Check`、`ListObjects`、`ListUsers` 的正负断言放在同一个可版本控制的测试文件中；条件关系还应分别覆盖条件满足和不满足的情况。[官方 Store File Format 文档](https://openfga.dev/docs/modeling/store-file-format)给出的方向很明确：模型变更不仅要看“能否通过语法校验”，还要验证典型授权路径和拒绝路径是否仍符合产品语义。
+
+OpenFGA 借鉴 Zanzibar 的关系授权思路，用授权模型描述关系规则、用关系元组保存具体事实，并通过 `Check`、`ListObjects` 和 `ListUsers` 等 API 支持授权查询。它适合需要表达团队成员关系、资源继承、单对象分享或在检索结果进入下游模型前做权限过滤的场景，但不替代业务系统的用户资料、资源层级、搜索数据及跨系统同步设计。是否采用仍需结合关系更新频率、查询一致性、查询规模、租户隔离方式、模型测试覆盖和团队运维能力评估。
+
+下一篇[OpenFGA 授权查询与性能实测](/blog/essay/2026-11-18-openfga-hands-on)在可复现的本地环境中搭建文档协作模型，并验证授权行为与性能。性能数字只会在实验环境、数据规模和方法明确后报告；第三篇再沿着一次 Check 深入源码，解释关系图求值和实现策略。
+
+## 参考资料
+
+- OpenFGA, [OpenFGA repository](https://github.com/openfga/openfga), 检查版本：`v1.22.1-15-g79814984`，commit `798149843737e264e64b8660baadb946528c02f0`。
+- OpenFGA, [Concepts](https://openfga.dev/docs/concepts)，访问日期：2026-11-17。
+- OpenFGA, [Check user authorization](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization)，访问日期：2026-11-17。
+- OpenFGA, [Immutable Authorization Models](https://openfga.dev/docs/getting-started/immutable-models)，访问日期：2026-11-17。
+- OpenFGA, [Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)，访问日期：2026-11-17。
+- OpenFGA, [OpenFGA Adoption Patterns](https://openfga.dev/docs/best-practices/adoption-patterns)，访问日期：2026-11-17。
+- OpenFGA, [When to use OpenFGA as the 'source of truth' for authorization data](https://openfga.dev/docs/best-practices/source-of-truth)，访问日期：2026-11-17。
+- OpenFGA, [Configuration Language](https://openfga.dev/docs/configuration-language)，访问日期：2026-11-17。
+- OpenFGA, [Conditions](https://openfga.dev/docs/modeling/conditions)，访问日期：2026-11-17。
+- OpenFGA, [Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)，访问日期：2026-11-17。
+- OpenFGA, [Store File Format](https://openfga.dev/docs/modeling/store-file-format)，访问日期：2026-11-17。
+- OpenFGA, [RAG Authorization](https://openfga.dev/docs/use-cases/rag-authorization)，访问日期：2026-11-17。
+- OpenFGA, [Check Implementation](https://github.com/openfga/openfga/blob/798149843737e264e64b8660baadb946528c02f0/docs/check/README.md)；[ListObjects with intersection or exclusion implementation](https://github.com/openfga/openfga/blob/798149843737e264e64b8660baadb946528c02f0/docs/list_objects/example_with_intersection_or_exclusion/example.md)。
+- Ruoming Pang et al., [“Zanzibar: Google's Consistent, Global Authorization System”](https://www.usenix.org/system/files/atc19-pang.pdf), USENIX ATC 2019。
+- Google Search Central, [AI 功能和您的网站](https://developers.google.com/search/docs/appearance/ai-features?hl=zh-cn)，访问日期：2026-11-17。
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界 **（本文）**
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)

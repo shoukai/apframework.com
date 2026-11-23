@@ -1,5 +1,6 @@
 export interface Project {
   kind: 'tool' | 'skill'
+  featured?: boolean
   slug: string
   title: string
   subtitle: string
@@ -8,6 +9,20 @@ export interface Project {
   image: string
   imageAlt: string
   githubUrl: string
+}
+
+export const openContextForge: Project = {
+  kind: 'tool',
+  featured: true,
+  slug: 'open-context-forge',
+  title: 'Open Context Forge',
+  subtitle: '文脉引擎',
+  category: '本地优先 · 知识创作',
+  description:
+    '把资料、知识库与文章写作放在同一个本机工作台。选取来源，与本机智能体讨论和审稿，再将定稿导出为 PDF 或离线 HTML。',
+  image: '/static/images/projects/open-context-forge/03-writing.webp',
+  imageAlt: '文脉引擎的文章工作台，左侧阅读资料与正文，右侧与本机智能体协作写作',
+  githubUrl: 'https://github.com/apframework-studio/open-context-forge',
 }
 
 export const openContextClipper: Project = {
@@ -87,6 +102,7 @@ export const openContextForgeArticlePublisher: Project = {
 }
 
 const projectsData: Project[] = [
+  openContextForge,
   openContextClipper,
   openContextArticleReader,
   openContextBookReader,

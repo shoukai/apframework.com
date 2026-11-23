@@ -1,0 +1,403 @@
+---
+title: 'OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页'
+date: '2026-11-22'
+tags: ['OpenFGA', 'ReBAC', '权限感知搜索', 'BatchCheck', 'RAG', '授权系统']
+images: ['/static/images/2026-11-22-openfga-permission-aware-search/openfga-permission-aware-search-cover.jpg']
+draft: false
+summary: '从前 20 个搜索候选只剩 3 条讲起，说明 OpenFGA BatchCheck 如何按相关性补齐可见一页、保留未消费尾部并处理未知结果；对比 ListObjects 前置过滤、派生授权索引与 RAG 入上下文前授权。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-22-openfga-permission-aware-search/openfga-permission-aware-search-cover.jpg"><img className="my-0 h-auto w-full" width={1536} height={1024} src="/static/images/2026-11-22-openfga-permission-aware-search/openfga-permission-aware-search-cover.jpg" alt="有序文档候选经过授权关卡进入搜索结果，未消费卡片留待继续处理的插画" /></a>
+  <figcaption className="w-full text-center">搜索负责相关性，授权决定可见性，应用组织有序补页。头图由 OpenAI GPT Image 生成。</figcaption>
+</figure>
+
+搜索引擎按相关性返回了 20 份文档。经过权限检查，小周只能看其中 3 份。页面应该只显示 3 条，还是继续向后找？如果继续，下一页又从哪里开始？
+
+**要返回一页 20 条可见结果，可以把搜索结果当作有序候选流：取一批候选，交给 OpenFGA BatchCheck，按搜索原顺序消费，再继续扫描，直到满页、候选耗尽、预算用完或遇到无法确定的授权结果。** 搜索负责相关性，授权负责判断能否展示，应用负责把两者组织成可继续的分页。
+
+这里最容易出错的不是少取了一批，而是把「已经预取」当成「已经消费」。整批候选已经做完权限检查，页面却可能在批次中间填满。此时必须留下未消费的尾部，不能把下一页游标直接推到批尾。
+
+先沿着前两篇的文档协作案例把这条路线走通，再比较两种替代方案：先用 ListObjects 取得可见 ID，以及维护本地派生授权索引。最后把同一问题放进 RAG：片段可以被检索出来，但只有经过授权的内容才能进入模型上下文。
+
+## 1. 问题从哪里来：相关性前 20 条，不是可见前 20 条
+
+文档池仍属于甲组织，保留《项目路线图》《研发预算》《产品计划》，以及研发资料、产品资料两个文件夹。林岚是组织管理员；小陈通过所在组继承文件夹的读取权限；小周依靠单份文档的直接分享。文档移动保留 ID 和直接分享，撤销分享只切断相应路径，不会自动删除另一条有效的继承权限。
+
+本篇让小周搜索「项目计划」。搜索排序只回答哪些文档更相关，并不知道其中哪些文档分享给了他。《研发预算》可能比《项目路线图》得分更高，但没有读取权限就不能展示。本文沿用业务关系名 `read`，不照搬官方示例里的 `viewer`。
+
+把所有匹配项按稳定顺序写成候选序列 `C`，再按读取权限过滤，目标是得到这个序列的**可见子序列**的前 20 项。允许的项保持原相对顺序，拒绝的项被移除。前 20 个候选只剩 3 项，仅说明这一段的可见密度低，不说明整个查询只有 3 个可见结果。
+
+OpenFGA 的 [Search With Permissions](https://openfga.dev/docs/interacting/search-with-permissions) 明确区分了这几项工作：业务数据库或搜索系统做筛选与排序，OpenFGA 做授权。它不保存文档标题、更新时间等搜索元数据，也不会替应用完成相关性分页。
+
+因此，「先取 20 条，过滤后原样返回」并非一定错误。如果产品允许每页数量不定，它可以是一个明确的接口约定。但若页面承诺尽量给足 20 条，就需要继续扫描，并说明什么情况下会停在不足 20 条。
+
+接下来按三条路线展开：
+
+- 第 2 章：先搜索，再 BatchCheck，按原序补齐一页。
+- 第 3 章：先 ListObjects，再按可见 ID 搜索。
+- 第 4 章：维护派生授权索引，再复核候选。
+
+## 2. 路线一：先搜索，再 BatchCheck，按原序补齐
+
+### 2.1 批量鉴权：检查结果如何映射回搜索顺序
+
+**BatchCheck 可以合并一批授权请求，但不会接管搜索排序。** 应用应保留有序候选数组，再把每个检查结果映射回对应候选。
+
+例如，检查小周能否读取《项目路线图》，原生 HTTP 请求体中的一项可以写成：
+
+```json
+{
+  "checks": [
+    {
+      "tuple_key": {
+        "user": "user:zhou",
+        "relation": "read",
+        "object": "document:roadmap"
+      },
+      "correlation_id": "candidate-2"
+    }
+  ]
+}
+```
+
+请求还应显式选择应用正在使用的 `authorization_model_id`。上面是原生 API 字段，不是某个语言 SDK 的调用代码。SDK 可能使用 `correlationId` 等包装字段，也可能替应用拆批。
+
+[BatchCheck 接口说明](https://openfga.dev/docs/api/service/relationship-queries/check-multiple-authorizations-in-a-single-request)规定，每项使用批次内唯一的 `correlation_id`，响应的 `result` 是按这些 ID 关联的映射。不要遍历映射就直接输出，也不要按并发检查的完成顺序输出。先建立结果映射，再从候选数组的第一项向后走，相关性顺序才不会改变。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/ordered-pagination.svg" alt="有序候选经过批量授权后按原序消费，满页时保留未消费尾部" />
+  <figcaption className="w-full text-center">图 1　有序扫描结构示意：预取可以成批，消费只能推进到实际处理过的位置。</figcaption>
+</figure>
+
+这里的「消费」有一个具体含义：候选已经被纳入本次分页决定。允许时把它加入结果，拒绝时略过，随后才能推进已消费位置。**未知结果不能按拒绝消费。** 这个限制会影响失败时如何续页。
+
+下面是应用层伪代码，省略 SDK、状态持久化和重试细节。`buffer` 保存候选，不把旧的允许结果当作跨页通行证；每次请求消费缓冲时，按当次新鲜度要求重新授权。
+
+```text
+page = []
+
+while len(page) < 20:
+    if buffer 为空且搜索源已结束:
+        return page, 候选耗尽
+    if 本次扫描量或调用量或时间预算已用完:
+        return page, 预算耗尽
+    if buffer 为空:
+        batch = 搜索系统按稳定顺序读取下一批
+        buffer = batch.items
+        fetch_after = batch.next_position
+        source_done = batch.exhausted
+        if buffer 为空:
+            continue
+
+    window = buffer 中本次预算允许检查的前缀
+    decisions = BatchCheck(window)
+    if 整次调用失败:
+        return page, 异常
+
+    for candidate in window 的原顺序:
+        decision = 按 correlation_id 取回并规范化结果
+        if decision 是未知:
+            return page, 异常
+        if decision 是允许:
+            page.append(candidate)
+        consumed_after = candidate.position
+        从 buffer 移除 candidate
+        if len(page) == 20:
+            return page, 满页
+```
+
+每次读取和检查的规模都要受剩余预算限制；一批超过服务允许的大小时，需要拆分。当前官方配置表中，`maxChecksPerBatchCheck` 的默认值为 50，但这是可配置值，不是「任意 SDK 一次只能传 50 个对象」的普遍限制，也不是应该固定采用的搜索批大小。[配置说明](https://openfga.dev/docs/getting-started/setup-openfga/configuration)
+
+### 2.2 分页推演：用同一文档池看两页
+
+以下序列是**为讲解而构造的教学数据，不是搜索引擎或 OpenFGA 的实测结果**。在原有三份文档之外，补入同一文档池中的编号资料，组成 60 个候选。编号表示固定搜索快照里的相关性名次，不是文档 ID，也不是得分。
+
+为了单独观察分页算法，先假设这一轮浏览期间排序与授权结果都不变化，没有超时或调用错误。每次预取 20 个候选，页面目标也是 20 条。
+
+<div className="w-full overflow-x-auto">
+  <table>
+    <thead>
+      <tr><th scope="col" style={{whiteSpace: 'nowrap'}}>候选位置</th><th scope="col" style={{whiteSpace: 'nowrap'}}>教学设定</th><th scope="col" style={{whiteSpace: 'nowrap'}}>小周可以读的位置</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1—20</td><td>1 是《研发预算》，2 是《项目路线图》，3 是《产品计划》，其余为编号资料</td><td>2、7、18，共 3 项</td></tr>
+      <tr><td>21—40</td><td>同一池中的后续候选</td><td>21—30，共 10 项</td></tr>
+      <tr><td>41—60</td><td>同一池中的后续候选</td><td>41—45、47、49、50、53、56、60，共 11 项</td></tr>
+    </tbody>
+  </table>
+</div>
+
+小周在这里仍拿着《项目路线图》的直接分享；另外两份原有文档没有授予他读取权。编号资料的允许位置只是显式给定的算法输入，不宣称已经写入了相应关系元组。
+
+首屏扫描过程如下：
+
+<div className="w-full overflow-x-auto">
+  <table>
+    <thead>
+      <tr><th scope="col" style={{whiteSpace: 'nowrap'}}>这一步</th><th scope="col" style={{whiteSpace: 'nowrap'}}>已预取到哪里</th><th scope="col" style={{whiteSpace: 'nowrap'}}>本页累计结果</th><th scope="col" style={{whiteSpace: 'nowrap'}}>已消费位置</th><th scope="col" style={{whiteSpace: 'nowrap'}}>留下什么</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>检查并消费 1—20</td><td>20</td><td>3</td><td>20</td><td>无尾部，继续取候选</td></tr>
+      <tr><td>检查并消费 21—40</td><td>40</td><td>13</td><td>40</td><td>无尾部，继续取候选</td></tr>
+      <tr><td>检查 41—60，消费到 45</td><td>60</td><td>18</td><td>45</td><td>仍未满，继续消费同一缓冲</td></tr>
+      <tr><td>消费 46—49</td><td>60</td><td>20</td><td>49</td><td>50—60 尚未消费</td></tr>
+    </tbody>
+  </table>
+</div>
+
+前两批有 13 条。第三批的 41—45 增加 5 条，累计 18；46 被拒绝，47 增加第 19 条，48 被拒绝，49 才是第 20 条。于是首屏应该停在 **49**，不是停在 45，也不是跳到 60。
+
+第一屏返回的位置依次是：
+
+```text
+2, 7, 18,
+21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+41, 42, 43, 44, 45, 47, 49
+```
+
+下一页先处理缓冲里的 50—60，依次得到 `50、53、56、60`。搜索源已结束且缓冲也被消费完，这一页以「候选耗尽」结束，只有 4 条。它不是因为授权错误而变短，也不是因为到了扫描预算。
+
+如果首屏把第三批的搜索续读位置直接当作用户下一页的位置，就会从 60 之后开始，漏掉这 4 条。虽然应用已经拿到了它们的授权结果，但**做过检查不等于已经把它们交给了某一页**。
+
+同样，不能因为第三批检查完发现共有 11 条允许，就先把它们都加入结果，再简单截成 20 条。截掉的那些项仍需要保存为待消费状态；否则代码只是把丢尾部的问题换了一个位置。
+
+### 2.3 分页状态：为什么停、下一次接哪里
+
+先把两个问题分开：**本页已经决定到哪里？搜索已经取到哪里？** 它们分别对应两个位置：
+
+- **已消费位置 `consumed_after`**：最靠后的已完成分页决定的候选。本例首屏是 49。
+- **预取位置 `fetch_after` 与未消费缓冲**：搜索已经取到 60，缓冲中仍有 50—60。下次先消费缓冲，再用 `fetch_after` 向搜索源续读。
+
+这两者是同一份状态的不同部分，不能只保存一个批尾游标。图 1 中的 49 是本页停点，60 是搜索续读点，中间的尾部必须有地方保存。
+
+也可以不保存缓冲，而是让搜索系统从 `consumed_after` 重新获取剩余候选；前提是它支持在同一稳定排序快照上准确续读。只有整批续读 token、无法恢复批中位置的后端，更需要保存批尾缓冲。
+
+#### 2.3.1 允许、拒绝、未知，分别处理
+
+授权结果在应用边界上至少规范化成三态：
+
+<div className="w-full overflow-x-auto">
+  <table>
+    <thead>
+      <tr><th scope="col" style={{whiteSpace: 'nowrap'}}>状态</th><th scope="col" style={{whiteSpace: 'nowrap'}}>含义</th><th scope="col" style={{whiteSpace: 'nowrap'}}>是否返回内容</th><th scope="col" style={{whiteSpace: 'nowrap'}}>能否推进已消费位置</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>允许</td><td>这次检查成功，结果允许读取</td><td>可以，限本次操作要求</td><td>可以</td></tr>
+      <tr><td>拒绝</td><td>这次检查成功，结果明确不允许</td><td>不可以</td><td>可以</td></tr>
+      <tr><td>未知</td><td>超时、网络失败、单项求值错误、结果缺失等</td><td>不可以</td><td>本文方案不推进</td></tr>
+    </tbody>
+  </table>
+</div>
+
+OpenFGA 的批次结果可以包含单项错误。解析时应先按所用 API 或 SDK 的成功／错误分支识别状态，不能用 `allowed` 的默认布尔值把错误压成拒绝；也不能仅凭文档示例里展示了一个空 `error` 对象就认定失败。
+
+在第 2.2 节的教学序列中，另看一次失败情形：候选 27 的权限检查超时，28 已知允许，其余设定不变。本文选择停在 27 之前：已消费位置只到 26，27 及其后的候选都留在缓冲，下次从 27 重新检查。
+
+**28 虽然已知允许，也不能越过 27 先返回。** 因为后来若确认 27 也允许，它本应排在 28 前面；越过去后，就无法再声称自己返回了完整的可见前缀。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/unknown-prefix-blocking.svg" alt="编号资料27授权未知时，消费停在26，已知允许的28和29也留在缓冲" />
+  <figcaption className="w-full text-center">图 2　未知阻塞教学示意：不是把 28 判成拒绝，而是暂不越过尚未确定的 27。</figcaption>
+</figure>
+
+这是为了不漏项而选择的失败策略，不是所有产品唯一可选的行为。业务可以接受明确标注的缺项结果，但不能静默把超时当拒绝，然后向用户声称前面已经检查完整。无论采用哪种策略，未知都不能被放行。
+
+#### 2.3.2 四种停止原因不能合并成一个空列表
+
+「满页」说明这次已经找到 20 条；「候选耗尽」说明固定搜索源和缓冲都处理完了；「预算耗尽」说明还可能有结果，只是本次不再继续；「异常」说明某一段没有可靠结论。
+
+建议让响应包含 `stop_reason`，并按需要分别表达 `has_more_candidates` 与「是否还有可见项」。有未消费候选，不代表其中一定有人可见；没有在预算内找到更多可见项，也不代表查询已结束。出现异常时，可以拒绝整页，也可以返回已确认的安全前缀并显式标成未完成。
+
+若返回部分结果，需要原子保存「已返回前缀对应的消费位置」和缓冲状态，避免响应重试造成不明的重复或丢失。若整页失败且没有返回数据，则不提交本页消费进度。本文的纯算法测试不覆盖这种持久化和网络响应事务。
+
+#### 2.3.3 游标不是可以相信的客户端权限声明
+
+游标应绑定登录用户、租户、查询与筛选摘要、排序规则、搜索快照或会话、授权模型 ID、必要的条件上下文范围，以及过期时间。服务端还要验证这些绑定仍与当前请求一致，不能用客户端传回的用户 ID 替代真实登录身份。
+
+可以返回一个不透明句柄，让服务端保存上述状态；也可以使用经过认证保护的状态令牌，并处理保密、大小及撤销问题。只把 JSON 做 Base64 编码不够。预取缓冲中可能含不可见文档的 ID、标题或摘要，不能把这些明文塞进游标交给用户。
+
+搜索排序需要稳定的平局规则，例如 `score DESC, document_id ASC`。当搜索引擎支持时间点快照或搜索会话时，可以用它稳定候选顺序；快照过期就应明确要求重启查询。若只有有限 top-K 返回且不支持继续遍历，重复扩大 K 后去重也不天然等价于稳定的下一页，必须另行验证。
+
+**稳定搜索快照不等于固定授权快照。** 显式模型 ID 固定的是规则版本，不是不断变化的关系数据。[Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)把 `HIGHER_CONSISTENCY` 定义为跳过缓存直接查数据库，不能由此承诺多批 BatchCheck 或前后页处在同一授权快照。
+
+所以，跨页缓冲保存候选，不长期保存「已允许」的结论。下一页应按当次授权新鲜度要求重新检查；这可能让某项从允许变成拒绝。整个浏览过程便不再是某个时刻固定可见集合的切片。详情、下载以及后续生成也要执行各自的授权检查，不能拿先前列表的允许结果替代。
+
+### 2.4 扫描成本：可见密度与预算
+
+用 `p` 表示候选可见的概率。若每个候选都独立、可见概率稳定为 `p`，其中 `0 < p ≤ 1`，候选流足够长且没有检查错误，那么找到 20 个允许项所需候选数的期望是：
+
+```text
+E[候选扫描量] = 20 / p
+```
+
+它来自等待 20 次成功的概率模型。若假设 `p = 0.15`，期望约为 133.3 个候选；这不是说扫描 134 个就一定能填满。真实相关性排序里的文档权限可能成片聚集，越往后密度也可能变化；前 20 项恰有 3 项可见，更不足以证明后续一直满足独立稳定的 15%。
+
+一次查询还可能根本没有 20 个可见项。此时再高的预取倍数也不能补齐。官方 RAG 指南提出多取一些候选来抵消过滤损失，可以作为起步策略，但任何固定倍数都不是满页或延迟保证。
+
+因此，扫描预算应独立设置：最多读取多少候选、发起多少授权检查、进行多少轮搜索，以及整次请求的时间上限。预算用完可以返回不足 20 条的结果，但要保留可继续的状态，并与「已没有更多候选」区分。
+
+值得记录的也不只是一条 Check 的耗时。应同时观察候选读取量、实际检查量、允许与拒绝数量、未知数量、搜索轮数、满页比例、停止原因和整页延迟。这里列的是建议观测项，本文没有相应线上测量值。
+
+## 3. 路线二：先 ListObjects，再按可见 ID 搜索
+
+**当用户的可见集合足够小，而且能完整取得时，可以先列 ID，再搜索。** 例如小周只被分享了少量文档，应用先调用 ListObjects，查询 `user:zhou` 对哪些 `document` 具有 `read`，再把这些 ID 作为搜索约束。它的关键不是「把 IDs 塞进查询」这么简单，而是搜索端能否在这组候选上，仍正确完成过滤、排序和分页。
+
+### 3.1 搜索端需要具备什么能力
+
+先用一个小例子看清最关键的顺序。仍让小周搜索「项目计划」，但**为单独比较过滤顺序，另构造 6 个候选、只取前三项（K=3）的教学设定，不沿用第 2.2 节的允许位置**：固定相关性顺序为 1—6，小周可见 2、4、6，其中 2 仍是《项目路线图》。
+
+若先取全库前三项 `1、2、3` 再过滤，只剩 2；若先把候选限制为 `2、4、6`，再按同一顺序取前三项，就能得到三条。差别不在 ListObjects 有没有列全，而在截断是否过早。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/filter-before-topk.svg" alt="固定六候选中可见2、4、6，先取全库前三再过滤仅得2，先过滤再取前三得到2、4、6" />
+  <figcaption className="w-full text-center">图 3　固定排序教学示意：完整 ID 集合，也救不回被全库 top-K 过早截掉的候选；非实测。</figcaption>
+</figure>
+
+图中只比较固定排序下的集合过滤与截断，不表示某个引擎的物理索引执行计划，也不主张过滤会使相关性打分必然改变。实际搜索系统需要验证以下目标语义。
+
+**先确认结果是否正确：**
+
+- **精确的集合过滤。** 搜索必须只允许指定 ID 命中，并与租户、文档状态、业务过滤条件取交集；不能把 ID 列表当作加权项或召回提示。目标是可见集合的 top-K，而非全库 top-K 的可见部分。
+- **在受限集合内排序。** 应在通过 ID 与业务条件的候选集合中，按相关性及明确的平局规则排序。若产品要求全局最相关的可见结果，分片或多索引搜索还必须能合并各分片结果，而不是简单拼接各自的局部 top-K。
+- **完整性与部分结果信号。** 接口能说明查询是否完成、是否超时或被截断。若目标是精确的「可见集合 top 20」，未完成的过滤搜索不能当成完整 top 20；若产品愿意展示近似结果，应明确标注这是另一种语义。
+
+**再确认能否稳定地用于分页：**
+
+- **稳定续页。** 支持 `search_after`、查询会话、点时快照或其他能稳定续读的位置；排序键要有唯一平局项，例如 `score DESC, document_id ASC`。如果只有页码分页且数据变化会使排名漂移，就可能跨页重复或漏项。具体选择取决于搜索产品，需按它实际保证验证，不能把某个参数名称当成快照承诺。
+- **可控的 ID 集合规模。** 能表达这类精确过滤，并有已知的 ID 数量、过滤子句、请求体和查询复杂度上限；当集合过大时，应用能识别拒绝、超时或部分执行，而不是把失败误认为「没有更多结果」。
+- **需要时提供一致的聚合语义。** 搜索结果总数、分面统计和「还有下一页」都必须基于同一 ID 过滤条件；若只是估算值或受截断影响，就不要把它们用于证明可见集合已耗尽。
+
+### 3.2 ID 集合的工程约束
+
+ID 集合应在服务端传递，并始终与当前登录主体、租户和授权关系对应；不要接受客户端任意提交一组文档 ID 就当作权限过滤器。搜索端的过滤大小、请求体大小、缓存键和查询执行限制都要核对，不能把可见集合无限塞进一个表达式。
+
+如果可见 ID 多到超过搜索系统的单次过滤能力，不要未经验证就把集合切成多份分别搜索后拼接。每个分片都能各自返回 top 20，并不代表拼起来就是全局 top 20；要么在全局排序下合并足够的候选并证明续读正确，要么退回路线一的候选扫描，或评估路线三的派生索引。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/search-three-routes.svg" alt="候选先行、可见ID先行和派生索引先行三条权限搜索路线" />
+  <figcaption className="w-full text-center">图 4　三条路线结构示意：入口不同，业务排序与授权边界仍要分别处理。</figcaption>
+</figure>
+
+### 3.3 ListObjects 返回成功，不等于集合完整
+
+搜索端能正确过滤，还要确认交给它的可见 ID 是否完整。这条路线的前提是「完整集合」，不是「某次请求成功返回了一批 ID」。
+
+截至 2026-11-21 核对的 [ListObjects 官方接口](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to)，返回对象没有业务排序，结果受 `listObjectsDeadline` 和 `listObjectsMaxResults` 限制。当前配置表的默认值分别是 3 秒和 1000 个；它们是服务配置，不是实测耗时，也不是不可更改的硬限制。
+
+当前核对的请求／响应 schema 没有供应用继续枚举的 `continuation_token`。不能照着泛化的「分页取得所有 ID」写一个重复调用循环，假设每次会给下一批。接口还说明相同调用可能返回不同集合；这不是可复用的相关性分页。
+
+尤其不能用「返回数量少于上限」判断完整。执行期限也可能让结果停在更少的数量；HTTP 成功与业务上的完整可见集合不是同一回事。流式 ListObjects 在本地核对的实现里不受非流式结果数参数限制，但仍受执行期限约束，也不能仅凭拿到一串 ID 就宣称枚举完成。
+
+如果漏掉的恰好是《项目路线图》，搜索系统根本没有机会把它排进可见结果。对一个不完整 ID 子集算出的 top 20，不一定是全部可见文档的 top 20。完整性需要结合实际部署版本、配置、错误语义、集合规模及可验证的终止依据确认；没有可靠依据，就不要让这一条路线承担精确全量过滤的承诺。
+
+### 3.4 ID 集合的新鲜度与续页
+
+即便 ID 集合在当次枚举时完整，后续关系仍可能变化。长时间复用 ID 集合会面临撤权与新增授权的滞后；需要新鲜度要求、失效策略，以及必要的返回前复核。前置过滤优化了候选来源，不会冻结权限。
+
+这里要分别问：搜索能否沿原排序继续，手中的可见 ID 是否仍适用？第 3.1 节的稳定续页解决前一个问题，不能替后一个问题作保证。
+
+## 4. 路线三：维护派生授权索引，再复核
+
+用户可见的文档很多，但只占整个文档池很小一部分时，候选先行可能不断丢弃结果，ID 先行又难以拿全。官方搜索指南提供第三种思路：消费关系变更，在本地建立便于搜索求交集的授权索引，再对候选做检查。
+
+这里维护的是**从关系和规则推导出来的索引**，不是把元组抄进搜索引擎就完成了。小陈加入产品组，可能让他同时获得产品资料夹中许多文档的读取权；一次成员变化对应的可见集合变化，不只是一条文档记录。
+
+[ReadChanges](https://openfga.dev/docs/api/service/relationship-tuples/get-all-tuple-changes)返回按时间升序排列的元组新增与删除，带用于继续读取的 token。没有新变化时会返回相同 token，应保存它供以后续读，不能把它理解成永久结束。
+
+但 [tuple changes 指南](https://openfga.dev/docs/interacting/read-tuple-changes)也明确说明：响应不展开用户集合，不包含授权模型更新等其他变化。如果按 `document` 类型订阅，研发组的成员元组变化可能根本不在这条过滤后的流里，而它恰好会影响文档读取权限。
+
+所以，ReadChanges 不是「所有有效权限变化」的现成 delta。应用需要识别依赖：成员变化影响哪些文件夹和文档，文档移动需要移除哪些旧继承并增加哪些新继承，某条直接分享删除后是否还存在其他路径。条件元组的删除事件不带原条件，也会影响消费者如何保留旧状态以完成反向更新。
+
+规则切换同样要纳入索引版本管理。原先允许「组织成员可读」，后来收窄成「项目组成员可读」，即使没有写入任何元组，可见集合也会变化。属性值、可信请求上下文、时间条件到期，都可能改变实际结果。不能预先精确物化的条件，需要在查询时补算；可以预先物化的，也需要失效或重建触发器。
+
+### 4.1 撤权残留与新增漏召回，不是同一种问题
+
+先看这份文档**还在候选里，还是根本没进候选**。这决定了后置检查有没有机会处理它。
+
+设本地索引还没看到小周对《项目路线图》的分享被撤销。它仍把路线图召回，返回前的当次 Check 若已看到撤权，就能将其剔除。这是「旧的允许项残留」：后置检查可以做安全收窄。
+
+反过来，林岚刚把《产品计划》分享给小周，但索引还没更新。搜索只在旧的可见集合中执行，《产品计划》从未进入候选。**后置 Check 无法补回这份新可见文档，因为过滤只能移除输入项，不能检查一个从未出现的 ID。**
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/authorization-index-lag.svg" alt="项目路线图撤权后仍被召回，Check已看到撤权才能剔除；产品计划新授权未被召回，Check无法补回" />
+  <figcaption className="w-full text-center">图 5　索引滞后案例示意：撤权残留可在复核已看到变化时剔除，新授权漏召回不能靠 Check 补回。</figcaption>
+</figure>
+
+因此，返回前复核可以降低撤权残留造成的越权风险，却不能修复新增授权带来的漏召回；而且复核本身也要满足所需新鲜度。
+
+若复核剔除了候选，应用仍需补页，不能认为前面有授权索引就不会出现短页。
+
+### 4.2 维护索引，还需要恢复与切换方案
+
+一次可运行的索引维护链路至少要明确：初始全量状态如何与后续变更衔接，重复消费如何幂等，索引更新与 checkpoint 如何一致提交，失败后从哪里重放，以及怎样对账或重建。开启新的模型版本时，还需要知道哪一版索引已经追到可切换的位置。
+
+索引水位可以说明消费进度，但单独一个 ReadChanges token 不证明业务源权限已经全部同步到 OpenFGA，也不证明属性、规则和时间条件已经进入派生状态。应用对用户承诺的搜索新鲜度，应覆盖整条链路，而不只是最后一次检查。
+
+## 5. RAG 延伸：片段进入模型上下文前授权
+
+**RAG 中的授权边界在模型输入之前，不在答案生成之后。** 如果未经授权的《研发预算》已经进入上下文，即使最后删掉引用链接，模型也可能使用了其中的内容。
+
+[OpenFGA 的 RAG Authorization 指南](https://openfga.dev/docs/modeling/agents/rag-authorization)给出两种框架无关的接法：检索候选后用 BatchCheck 过滤，或者先用 ListObjects 的文档 ID 限制向量检索。前者可能需要继续补充候选；后者仍依赖可见 ID 集合的完整性与新鲜度。
+
+文档被切成片段以后，每个片段都应携带可信的 `document_id`，通常还需要租户、内容版本和片段 ID。以文档级权限建模时，可以对同一文档的多个片段合并一次读取检查，再把允许结果映射回片段，维持片段的检索顺序。不能从用户输入或不可信片段文本里临时猜一个文档 ID。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-22-openfga-permission-aware-search/rag-index-boundaries.svg" alt="内容索引与派生权限索引分别滞后，候选片段须带文档ID并在上下文组装前检查" />
+  <figcaption className="w-full text-center">图 6　RAG 边界示意：两类索引各有滞后，授权关卡必须位于模型上下文之前。</figcaption>
+</figure>
+
+目标数量也要说清楚。「20 个片段」和「20 份文档」不是同一个问题。前者可能全部来自一份允许读取的路线图，后者则要在文档去重之后继续扫描。若存在重排、相邻片段扩展或正文补全，这些步骤新增的文档也必须纳入授权集合，不能只检查最初召回的 IDs。
+
+这里有两种独立的滞后：
+
+- **内容索引滞后**：搜索还没有新版正文，或者保留已删除内容的旧片段。用户获准读取文档，不代表这段内容版本仍适合返回；要结合内容版本、删除标记及业务有效性处理。
+- **权限链路滞后**：业务分享变化尚未同步到 OpenFGA，或 OpenFGA 的变化尚未进入派生索引。后者可能由返回前检查收窄，前者则不是再查一次同样滞后的授权服务就能修复。
+
+缓存也要经过这个边界。不能把甲用户生成过的答案或上下文，无条件复用给乙用户。复用时既要核对所依赖文档的当前读取资格，也要检查缓存内容与版本是否仍适用；按用户划分缓存能减少混用，不能自动处理同一用户后来被撤权。
+
+验证 RAG 时，记录的应是**最终实际进入上下文的文档 ID 集合**，而不只是检索器最初返回的集合。对最终集合逐项核对当次允许结果，并确认未知项没有进入。日志可记录 ID、内容版本和检查状态，不必为了审计额外复制整段敏感正文。
+
+授权检查和生成之间仍存在时间窗口。若生成期间发生撤权，已经输出给用户的文字无法由后续 Check 撤回；重新检查只能影响后续尚未发送的内容。长任务或流式生成需要明确再检查和中止策略，不能承诺「调用过一次 BatchCheck，整个生成过程便永久安全」。
+
+## 6. 验证与选择：检查完整一页，而不只是一次鉴权
+
+回到开头，小周看到 3 条之后能否继续补到 20 条，先取决于候选流是否可继续，再取决于应用有没有保留正确的消费状态。BatchCheck 解决批量授权，不会替它决定下一页从哪里接。
+
+这条链路可以先用有限数据验证几个不变量：输出相对顺序不变；拼接各页后没有无故漏项或重复；满页在批中停止时保留尾部；遇到未知不越过；预算耗尽不冒充候选耗尽。然后再接入真实搜索和授权服务，验证快照、错误解码、撤权与响应重试。
+
+本文对第 2.2 节的教学序列及有限组合执行了纯算法检查，检查范围是有序过滤、续页和停止状态。它不连接搜索引擎或 OpenFGA，不证明真实服务的吞吐、延迟、召回质量或多次权限检查的一致性。实际接入时，还需要用部署中的版本和配置补齐这些验证。
+
+选择路线时，可以从维护责任出发：可见密度足够高、搜索能有效缩小候选，就先做有序扫描；可见 ID 集合小且能可靠拿全，就评估 ListObjects 前置过滤；集合大而稀疏，再考虑承担派生授权索引的更新、补偿与重建。
+
+无论用哪条路线，最终都要回答同一组问题：**这一页为何在这里停下，尚未消费的候选在哪里，下一次检查用的是什么授权状态？** 到了 RAG，再加一句：实际交给模型的每一份文档，是否都经过了相应的读取授权？把这些答案写进接口和验证用例，才算把「搜索结果带权限」落实到了可运行的应用流程里。
+
+## 参考资料
+
+以下官方资料核对于 2026-11-21。示例文档、候选名次与分页数据为教学构造；本文不提供真实服务性能测量。
+
+1. [Search With Permissions](https://openfga.dev/docs/interacting/search-with-permissions)：三类搜索与授权组合方式，以及本地派生索引的基本思路。
+2. [Check multiple authorizations in a single request](https://openfga.dev/docs/api/service/relationship-queries/check-multiple-authorizations-in-a-single-request)：BatchCheck 原生 API、correlation ID 与结果映射。
+3. [List objects a user is related to](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to)：ListObjects 当前接口、无序结果、执行期限与数量限制。
+4. [OpenFGA Configuration Options](https://openfga.dev/docs/getting-started/setup-openfga/configuration)：批大小、ListObjects 执行期限与结果数量配置。
+5. [Get all tuple changes](https://openfga.dev/docs/api/service/relationship-tuples/get-all-tuple-changes) 与 [How to get tuple changes](https://openfga.dev/docs/interacting/read-tuple-changes)：变更顺序、续读 token、类型过滤及不展开元组的边界。
+6. [Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)：缓存与直接查库的区别，不能据此推定跨请求固定授权快照。
+7. [RAG Authorization](https://openfga.dev/docs/modeling/agents/rag-authorization)：以文档 ID 过滤检索结果，以及在文档进入模型之前执行授权。
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页 **（本文）**
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)

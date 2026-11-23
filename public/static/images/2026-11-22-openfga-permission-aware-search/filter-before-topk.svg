@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="420" viewBox="0 0 680 420" role="img" aria-labelledby="title desc">
+<title id="title">先过滤与先截断的差别</title>
+<desc id="desc">独立教学设定：小周搜索项目计划，固定顺序为1至6，可见2、4、6。2是项目路线图。先从全库取前三1、2、3，再过滤只剩2；先按完整可见ID集合过滤，再取前三得到2、4、6。非实测，不表示引擎物理执行计划或打分变化。</desc>
+<defs><marker id="order-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#60788b"/></marker></defs>
+<rect width="680" height="420" fill="#ffffff"/>
+<g font-family="PingFang SC,Microsoft YaHei,sans-serif" fill="#283e50">
+<g text-anchor="middle"><text x="340" y="29" font-size="16" font-weight="600">小周搜索「项目计划」：完整可见 ID 为 2、4、6</text><text x="340" y="56" font-size="15" fill="#627383">独立教学设定，K=3；编号是名次，2 为《项目路线图》</text></g>
+<text x="24" y="101" font-size="15">固定排序</text>
+<g text-anchor="middle" font-size="16">
+<rect x="122" y="77" width="70" height="38" rx="6" fill="#f3f5f7" stroke="#ccd5dc"/><text x="157" y="102">1</text>
+<rect x="208" y="77" width="70" height="38" rx="6" fill="#edf7f1" stroke="#a7cbb5"/><text x="243" y="102">2</text>
+<rect x="294" y="77" width="70" height="38" rx="6" fill="#f3f5f7" stroke="#ccd5dc"/><text x="329" y="102">3</text>
+<rect x="380" y="77" width="70" height="38" rx="6" fill="#edf7f1" stroke="#a7cbb5"/><text x="415" y="102">4</text>
+<rect x="466" y="77" width="70" height="38" rx="6" fill="#f3f5f7" stroke="#ccd5dc"/><text x="501" y="102">5</text>
+<rect x="552" y="77" width="70" height="38" rx="6" fill="#edf7f1" stroke="#a7cbb5"/><text x="587" y="102">6</text>
+</g>
+<text x="340" y="143" text-anchor="middle" font-size="15" fill="#627383">浅绿为可见；两条路径始终使用同一排序</text>
+<path d="M24 159H656" stroke="#e3e9ee" fill="none"/>
+<text x="24" y="187" font-size="16" font-weight="600">先取全库前三，再过滤</text>
+<text x="125" y="222" text-anchor="middle" font-size="16">1、2、3</text>
+<path d="M200 217H278" stroke="#60788b" stroke-width="1.5" fill="none" marker-end="url(#order-arrow)"/>
+<text x="352" y="222" text-anchor="middle" font-size="15">与可见 ID 求交集</text>
+<path d="M438 217H504" stroke="#60788b" stroke-width="1.5" fill="none" marker-end="url(#order-arrow)"/>
+<rect x="520" y="196" width="136" height="40" rx="6" fill="#fff5e7" stroke="#dfc59a"/>
+<text x="588" y="222" text-anchor="middle" font-size="16">仅剩 2</text>
+<text x="24" y="254" font-size="15" fill="#8b6a36">4 和 6 已在全库前三之外，后过滤找不回来</text>
+<path d="M24 273H656" stroke="#e3e9ee" fill="none"/>
+<text x="24" y="301" font-size="16" font-weight="600">先按可见 ID 过滤，再取前三</text>
+<text x="125" y="336" text-anchor="middle" font-size="16">2、4、6</text>
+<path d="M200 331H278" stroke="#60788b" stroke-width="1.5" fill="none" marker-end="url(#order-arrow)"/>
+<text x="352" y="336" text-anchor="middle" font-size="15">按同一排序取前三</text>
+<path d="M438 331H504" stroke="#60788b" stroke-width="1.5" fill="none" marker-end="url(#order-arrow)"/>
+<rect x="520" y="310" width="136" height="40" rx="6" fill="#edf7f1" stroke="#a7cbb5"/>
+<text x="588" y="336" text-anchor="middle" font-size="16">2、4、6</text>
+<g text-anchor="middle" font-size="15" fill="#627383"><text x="340" y="383">只比较固定排序下的过滤与截断，非实测</text><text x="340" y="407">不代表引擎物理执行计划，也不表示过滤必然改变打分</text></g>
+</g></svg>

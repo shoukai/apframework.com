@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="410" viewBox="0 0 1120 410" role="img" aria-labelledby="title desc">
+  <title id="title">OpenFGA Check 概念流程</title>
+  <desc id="desc">应用提交用户、关系、对象、Store 和模型版本。OpenFGA 将授权模型规则与关系元组事实组合，得到允许或拒绝结果。图中不表示内部执行顺序。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#52657a"/></marker>
+    <style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#17212b}.title{font-size:21px;font-weight:650}.label{font-size:16px;font-weight:650}.body{font-size:13px;fill:#435264}.note{font-size:12px;fill:#566473}</style>
+  </defs>
+  <rect width="1120" height="410" rx="8" fill="#f7fafc"/>
+  <text class="title" x="36" y="40">Check：把一个授权问题交给模型和关系事实</text>
+  <text class="note" x="36" y="65">概念流程示意；不表示缓存、数据库访问或内部算法的具体执行顺序</text>
+
+  <g stroke-width="1.4">
+    <rect x="42" y="137" width="260" height="170" rx="7" fill="#ffffff" stroke="#8ba0b4"/>
+    <rect x="386" y="111" width="310" height="94" rx="7" fill="#eef5ff" stroke="#5079a8"/>
+    <rect x="386" y="231" width="310" height="94" rx="7" fill="#eff8f4" stroke="#4d987f"/>
+    <rect x="808" y="160" width="260" height="124" rx="7" fill="#fff8e9" stroke="#d1a342"/>
+  </g>
+  <text class="label" x="66" y="170">应用请求</text>
+  <text class="body" x="66" y="201">user:alice</text><text class="body" x="66" y="224">relation: editor</text><text class="body" x="66" y="247">object: document:roadmap</text><text class="body" x="66" y="270">Store + model ID</text>
+  <text class="label" x="410" y="146">授权模型</text><text class="body" x="410" y="175">声明可用关系、主体类型与推导规则</text>
+  <text class="label" x="410" y="266">关系元组</text><text class="body" x="410" y="295">记录用户、关系、对象之间的事实</text>
+  <text class="label" x="834" y="202">授权结果</text><text class="body" x="834" y="234">allowed: true / false</text><text class="note" x="834" y="258">应用据此决定是否继续操作</text>
+  <path d="M302 190H386" stroke="#52657a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M302 254H386" stroke="#52657a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M696 158C747 158 755 190 808 196" stroke="#52657a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M696 278C747 278 755 247 808 242" stroke="#52657a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text class="note" x="362" y="366">模型提供解释规则 · 元组提供关系事实 · Check 回答指定对象上的指定关系</text>
+</svg>

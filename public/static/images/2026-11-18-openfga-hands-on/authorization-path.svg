@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">OpenFGA Check authorization path</title>
+  <desc id="desc">Three relationship tuples connect Alice to the Acme member set, the member set to the Launch project editor relation, and the Roadmap document to the Launch project. The model evaluates Alice as an editor of Roadmap.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#397c80" />
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="1198" height="498" rx="10" fill="#ffffff" stroke="#d9e3e5" stroke-width="2" />
+  <text x="42" y="48" fill="#1f2933" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="27" font-weight="650">Check：Alice 能否编辑 Roadmap？</text>
+  <rect x="42" y="68" width="1116" height="54" rx="6" fill="#eef5f4" />
+  <text x="62" y="102" fill="#245e62" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="20">模型规则：文档 editor 可以直接授予用户，也可以继承所属项目的 editor</text>
+  <text x="42" y="158" fill="#53616a" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="18">三条 tuple 事实：user + relation + object。连线表示关系；下方箭头表示 Check 求值结果。</text>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <rect x="42" y="178" width="350" height="176" rx="8" fill="#f5f9f8" stroke="#cbdcda" stroke-width="2" />
+    <circle cx="70" cy="207" r="16" fill="#397c80" />
+    <text x="70" y="213" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">1</text>
+    <text x="98" y="213" fill="#53616a" font-size="17">用户属于组织成员集合</text>
+    <text x="64" y="260" fill="#1f2933" font-size="19" font-weight="600">user:alice</text>
+    <line x1="178" y1="254" x2="247" y2="254" stroke="#397c80" stroke-width="3" />
+    <text x="212" y="244" fill="#397c80" font-size="15" text-anchor="middle">member</text>
+    <text x="250" y="260" fill="#1f2933" font-size="16" font-weight="600">organization:acme</text>
+    <text x="64" y="314" fill="#53616a" font-size="16">Alice 是 Acme 的 member</text>
+
+    <rect x="425" y="178" width="350" height="176" rx="8" fill="#f8f7f1" stroke="#e5ddc7" stroke-width="2" />
+    <circle cx="453" cy="207" r="16" fill="#aa7734" />
+    <text x="453" y="213" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">2</text>
+    <text x="481" y="213" fill="#53616a" font-size="17">成员集合获得项目编辑权</text>
+    <text x="447" y="260" fill="#1f2933" font-size="18" font-weight="600">organization:acme#member</text>
+    <line x1="632" y1="282" x2="701" y2="282" stroke="#aa7734" stroke-width="3" />
+    <text x="666" y="272" fill="#8b642e" font-size="15" text-anchor="middle">editor</text>
+    <text x="447" y="317" fill="#1f2933" font-size="19" font-weight="600">project:launch</text>
+
+    <rect x="808" y="178" width="350" height="176" rx="8" fill="#f4f7fb" stroke="#d2ddec" stroke-width="2" />
+    <circle cx="836" cy="207" r="16" fill="#5679a8" />
+    <text x="836" y="213" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">3</text>
+    <text x="864" y="213" fill="#53616a" font-size="17">文档关联到所属项目</text>
+    <text x="830" y="260" fill="#1f2933" font-size="16" font-weight="600">project:launch</text>
+    <line x1="964" y1="254" x2="1000" y2="254" stroke="#5679a8" stroke-width="3" />
+    <text x="982" y="244" fill="#5679a8" font-size="15" text-anchor="middle">project</text>
+    <text x="1008" y="260" fill="#1f2933" font-size="16" font-weight="600">document:roadmap</text>
+    <text x="830" y="310" fill="#53616a" font-size="15">（Launch 的 project 关系指向 Roadmap）</text>
+  </g>
+    <rect x="42" y="382" width="1116" height="76" rx="8" fill="#edf6f1" stroke="#c8dfd2" stroke-width="2" />
+  <text x="64" y="414" fill="#245e62" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="18" font-weight="600">Check 问题</text>
+  <text x="64" y="441" fill="#1f2933" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="18">user:alice + editor + document:roadmap</text>
+  <text x="565" y="431" fill="#53616a" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="17">模型沿关系求值</text>
+  <line x1="737" y1="420" x2="785" y2="420" stroke="#397c80" stroke-width="3" marker-end="url(#arrow)" />
+  <text x="820" y="431" fill="#28734e" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="25" font-weight="700">allowed: true</text>
+</svg>

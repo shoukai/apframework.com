@@ -1,16 +1,17 @@
 import Image from '@/components/Image'
 import Link from '@/components/Link'
 import projectsData from '@/data/projectsData'
+import { openContextForge } from '@/data/projectsData'
 import type { Project } from '@/data/projectsData'
 import siteMetadata from '@/data/siteMetadata'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '项目',
-  description: 'Shoukai 正在构建的工具与 Agent 技能',
+  description: '文脉引擎、本地工具与 Agent 技能',
   openGraph: {
     title: '项目',
-    description: 'Shoukai 正在构建的工具与 Agent 技能',
+    description: '文脉引擎、本地工具与 Agent 技能',
     url: `${siteMetadata.siteUrl}/projects`,
     siteName: siteMetadata.title,
     locale: siteMetadata.locale,
@@ -146,6 +147,64 @@ export default function Projects() {
         </div>
       </header>
 
+      <section aria-labelledby="workspace-heading" className="pt-10">
+        <div className="border-b border-gray-200 pb-7 dark:border-gray-700">
+          <h2
+            id="workspace-heading"
+            className="text-2xl font-semibold text-gray-900 dark:text-gray-100"
+          >
+            创作工作台
+          </h2>
+          <p className="mt-3 max-w-xl leading-7 text-gray-600 dark:text-gray-400">
+            从收集资料到审阅成稿，在一个本机工作台里完成。
+          </p>
+        </div>
+        <article className="mt-8 overflow-hidden rounded-lg border border-primary-200 bg-white dark:border-primary-900 dark:bg-gray-900 lg:grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <div className="flex flex-col justify-center p-6 sm:p-9">
+            <p className="text-sm font-medium text-primary-600 dark:text-primary-400">
+              {openContextForge.category}
+            </p>
+            <h3 className="mt-3 text-3xl font-semibold text-gray-900 dark:text-gray-100">
+              <Link
+                href={`/projects/${openContextForge.slug}`}
+                className="hover:text-primary-600 dark:hover:text-primary-400"
+              >
+                {openContextForge.title}
+              </Link>
+            </h3>
+            <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
+              {openContextForge.subtitle}
+            </p>
+            <p className="mt-5 leading-7 text-gray-600 dark:text-gray-300">
+              {openContextForge.description}
+            </p>
+            <p className="mt-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
+              资料入库 · 知识库核对 · 智能体写作 · 定稿导出
+            </p>
+            <Link
+              href={`/projects/${openContextForge.slug}`}
+              className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400"
+            >
+              了解文脉引擎 <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          <Link
+            href={`/projects/${openContextForge.slug}`}
+            aria-label="了解 Open Context Forge"
+            className="flex items-center bg-slate-100 p-4 dark:bg-slate-800 sm:p-6"
+          >
+            <Image
+              src={openContextForge.image}
+              alt={openContextForge.imageAlt}
+              width={1440}
+              height={900}
+              sizes="(max-width: 1024px) 100vw, 55vw"
+              className="w-full rounded-md border border-slate-200 shadow-sm dark:border-slate-700"
+            />
+          </Link>
+        </article>
+      </section>
+
       {sections.map((section) => (
         <section key={section.kind} aria-labelledby={section.id} className="pt-10">
           <div className="border-b border-gray-200 pb-7 dark:border-gray-700">
@@ -162,7 +221,7 @@ export default function Projects() {
             }
           >
             {projectsData
-              .filter((project) => project.kind === section.kind)
+              .filter((project) => project.kind === section.kind && !project.featured)
               .map((project, index, group) => {
                 const wide =
                   section.kind === 'skill' && group.length % 2 === 1 && index === group.length - 1

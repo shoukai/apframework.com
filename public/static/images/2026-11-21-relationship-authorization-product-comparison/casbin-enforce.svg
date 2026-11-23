@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 320" role="img" aria-labelledby="title desc">
+  <title id="title">Casbin 应用内授权判断</title>
+  <desc id="desc">应用把主体、资源和操作传给 Enforcer。Enforcer 使用模型和已加载策略计算允许或拒绝。Adapter 连接策略存储。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#718096"/></marker>
+    <style>
+      text{font-family:Arial,"Noto Sans CJK SC",sans-serif;fill:#263746}
+      .title{font-size:19px;font-weight:700}.label{font-size:15px;font-weight:700}.body{font-size:13px}.small{font-size:12px}
+      .box{fill:#fff;stroke:#cbd5dc;stroke-width:1.5}.app{fill:#edf5f6;stroke:#8bb7b4}.engine{fill:#f1f5fb;stroke:#9db2cf}.model{fill:#faf5e9;stroke:#d7c58f}.store{fill:#f5f1f8;stroke:#b9a6c9}.line{stroke:#718096;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="680" height="320" fill="#fff"/>
+  <text x="28" y="36" class="title">一次 Enforce：在当前应用进程内完成求值</text>
+  <rect x="28" y="92" width="155" height="96" rx="8" class="box app"/>
+  <text x="105" y="123" text-anchor="middle" class="label">应用请求</text>
+  <text x="105" y="149" text-anchor="middle" class="body">zhou · roadmap</text>
+  <text x="105" y="169" text-anchor="middle" class="body">read</text>
+  <path d="M183 140H245" class="line"/>
+  <rect x="250" y="78" width="190" height="124" rx="8" class="box engine"/>
+  <text x="345" y="111" text-anchor="middle" class="label">Enforcer</text>
+  <text x="345" y="139" text-anchor="middle" class="body">加载模型与策略</text>
+  <text x="345" y="163" text-anchor="middle" class="body">匹配请求，合并效果</text>
+  <path d="M440 140H498" class="line"/>
+  <rect x="504" y="98" width="148" height="82" rx="8" class="box app"/>
+  <text x="578" y="129" text-anchor="middle" class="label">允许 / 拒绝</text>
+  <text x="578" y="153" text-anchor="middle" class="small">由应用执行后续动作</text>
+  <rect x="250" y="232" width="190" height="62" rx="8" class="box model"/>
+  <text x="345" y="257" text-anchor="middle" class="label">模型 + 内存策略</text>
+  <text x="345" y="278" text-anchor="middle" class="small">PERM：请求、策略、效果、匹配器</text>
+  <path d="M345 232V205" class="line"/>
+  <rect x="28" y="232" width="155" height="62" rx="8" class="box store"/>
+  <text x="105" y="257" text-anchor="middle" class="label">策略存储</text>
+  <text x="105" y="278" text-anchor="middle" class="small">文件或数据库</text>
+  <path d="M183 263H245" class="line"/>
+  <text x="465" y="278" class="small">Adapter 负责存储接入；策略何时加载由应用配置</text>
+</svg>

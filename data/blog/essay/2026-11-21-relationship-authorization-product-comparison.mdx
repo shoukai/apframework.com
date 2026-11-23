@@ -1,0 +1,209 @@
+---
+title: 'OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起'
+date: '2026-11-21'
+tags: ['OpenFGA', 'Casbin', 'SpiceDB', 'ReBAC', '授权系统']
+images: ['/static/images/2026-11-21-relationship-authorization-product-comparison/relationship-authorization-comparison-cover.jpg']
+draft: false
+summary: '用同一份协作文档理解 Casbin 的应用内授权与 OpenFGA、SpiceDB 的关系授权，比较建模、规则迁移、可见列表分页和撤权后的查询。'
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a className="block w-full" href="/static/images/2026-11-21-relationship-authorization-product-comparison/relationship-authorization-comparison-cover.jpg"><img className="my-0 h-auto w-full" width={1536} height={1024} src="/static/images/2026-11-21-relationship-authorization-product-comparison/relationship-authorization-comparison-cover.jpg" alt="策略清单、组织关系与授权服务围绕同一份项目文档的插画" /></a>
+  <figcaption className="w-full text-center">用同一份项目文档比较三种授权实现。头图由 OpenAI GPT Image 生成。</figcaption>
+</figure>
+
+撤销小周对《项目路线图》的分享后，文档马上更新了一版。她刷新详情页，访问被拒绝。可如果下一次请求落到另一台应用实例，或者她打开「我的文档」，结果会一样吗？
+
+**选择这三种方案，先看授权在哪里执行，再看应用怎样拿到所需的权限结果。** Casbin 通常在应用进程内求值，应用需要决定如何加载和分发策略。OpenFGA 和 SpiceDB 通常作为独立服务运行，应用把关系事实写给服务，再通过 API 查询。选定这个边界后，真正拉开差异的是三件事：怎样上线新规则、怎样给可见文档分页、怎样让下一次查询看到撤权。
+
+第一次接触 Casbin 和 SpiceDB，可以从前两节读起。已经熟悉两者，可以直接从第 3 节的文档协作案例开始。文中的代码是最小模型示例，权限表列的是按规则推导的预期，本篇未运行三套引擎或做性能测试。
+
+## 1. Casbin 如何在应用内做一次授权判断
+
+**Casbin 是一个授权库。应用把「谁、对什么、做什么」交给 `Enforce()`，Enforcer 按已加载的模型和策略求值。** 对文档接口来说，就是把当前登录用户、文档 ID 和 `read` 作为参数交进去，再根据结果决定是否返回内容。
+
+先只考虑直接分享。假设策略里有一行 `p, zhou, roadmap, read`。这个配置说明 Casbin 如何解释和匹配它：
+
+```ini
+[request_definition]
+r = sub, obj, act
+
+[policy_definition]
+p = sub, obj, act
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = r.sub == p.sub && r.obj == p.obj && r.act == p.act
+```
+
+这里是 Casbin 的 **PERM** 模型。请求（Request）定义调用参数，策略（Policy）定义每条策略的字段，匹配器（Matchers）判断一条策略是否命中，效果（Effect）负责合并命中的结果。本例只要命中一条允许策略就放行，因此 `Enforce("zhou", "roadmap", "read")` 预期允许，改问 `manage` 则预期拒绝。两条结果来自同一份配置和同一行策略。[Casbin Model Syntax](https://casbin.org/docs/syntax-for-models/)
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-21-relationship-authorization-product-comparison/casbin-enforce.svg" alt="Casbin 应用内授权，Enforcer 依据模型和加载后的策略匹配请求，Adapter 连接策略存储" />
+  <figcaption className="w-full text-center">图 1：应用调用 Enforce，Enforcer 按模型和已加载的策略做判断。</figcaption>
+</figure>
+
+上面的例子对应一张直接授权清单，也就是 ACL。把匹配条件换成「请求者是否拥有某角色」，并添加角色定义和成员关系，就可以表达 RBAC。匹配器也能使用属性或资源关系。Casbin 官方 ReBAC 示例使用「用户在特定资源上有什么角色」和「资源属于什么类型」组合判断。同一份文档再加上文件夹继承时，还要把层级和组织边界明确写进模型或应用提供的求值逻辑。[Casbin ReBAC](https://casbin.org/docs/rebac/)
+
+有了策略存储之后，**持久化和执行仍是两个环节**。Adapter 负责衔接策略存储，典型部署里 Enforcer 使用加载到进程内的策略。应用 A 删掉一条分享时，应用 B 什么时候开始使用新策略，取决于它接收更新或重载的过程。这个区别会在第 7 节的撤权场景中出现。[Casbin Watchers](https://casbin.org/docs/watchers/)
+
+## 2. SpiceDB 如何沿着关系推导权限
+
+**SpiceDB 是 Zanzibar 风格的关系授权服务。应用写入关系，再问服务某个主体是否拥有指定权限。** Schema 里的 `relation` 定义可以存储哪些关系，`permission` 则从关系算出哪些主体有权限。[SpiceDB Schema](https://authzed.com/docs/spicedb/concepts/schema)
+
+把视角换到小陈。她没有在《项目路线图》上被直接分享，但她是研发组成员，研发组可以读文档所在的文件夹。这个最小 schema 只保留直接分享和文件夹继承两个入口：
+
+```zed
+definition user {}
+
+definition group {
+    relation member: user
+}
+
+definition folder {
+    relation reader: group#member
+    permission read = reader
+}
+
+definition document {
+    relation parent: folder
+    relation direct_reader: user
+    permission read = direct_reader + parent->read
+}
+```
+
+还需要写入四条事实，下面用便于阅读的关系记法表示：
+
+```text
+group:engineering#member@user:chen
+folder:research#reader@group:engineering#member
+document:roadmap#parent@folder:research
+document:roadmap#direct_reader@user:zhou
+```
+
+换成白话，`+` 表示两条路径满足任意一条即可。`parent->read` 表示先找到文档关联的父文件夹，再判断用户对该文件夹有没有 `read`。文件夹上的 `group:engineering#member` 是研发组的成员集合，所以小陈通过父文件夹继承，小周则通过 `direct_reader` 直接获得读取权限。应用调用 `CheckPermission` 时提供用户、文档和 `read`，这两条路径由 SpiceDB 按 schema 求值。[SpiceDB Schema](https://authzed.com/docs/spicedb/concepts/schema) · [SpiceDB Querying Data](https://authzed.com/docs/spicedb/concepts/querying-data)
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-21-relationship-authorization-product-comparison/spicedb-permission.svg" alt="SpiceDB 的 document.read 可以沿直接分享或父文件夹读取权限两条路径求值" />
+  <figcaption className="w-full text-center">图 2：小周走直接分享路径，小陈通过父文件夹和研发组成员关系读取同一份文档。</figcaption>
+</figure>
+
+这个模型解释了换组为何会影响权限。只要小陈离开研发组，文件夹读者集合就随之改变，《项目路线图》本身无需补写一条针对小陈的授权记录。业务系统负责维护成员变更并把它写到 SpiceDB。服务按指定的查询一致性要求读取关系，计算当次权限。
+
+## 3. 先用同一份文档对齐权限结果
+
+把第 04 篇的案例补完整。《项目路线图》属于甲组织，初始放在研发资料夹。林岚是甲组织管理员，本例规定管理者也能读取。小陈通过研发组继承读取，小周通过直接分享读取。移动文档保留原 ID、组织归属和直接分享。
+
+| 业务状态 | 林岚 | 小陈 | 小周 |
+| --- | --- | --- | --- |
+| 初始在研发资料夹 | 可读、可管理 | 可读 | 可读 |
+| 小陈换到产品组 | 可读、可管理 | 不可读 | 可读 |
+| 路线图移到产品资料夹 | 可读、可管理 | 可读 | 可读 |
+| 撤销小周的直接分享 | 可读、可管理 | 可读 | 不可读 |
+
+表里每一行反映的是该阶段的最新业务事实。小陈和小周始终没有管理权。再加两个反例：乙组织管理员无法访问甲组织文档。如果小周另外通过产品资料夹获得读取权，删掉直接分享后仍能读取。
+
+三套实现以同一份预期作为验收标准。先写入和删除直接分享，再逐阶段检查读取与管理权限。给数据集加上《研发预算》和《产品计划》后，还要核对每个人可见的完整文档集合。最后才让请求跨实例，观察撤权何时反映到详情和列表。权限拒绝、查询超时和系统错误应分别记录，否则连「结果一致」都无法判断。
+
+## 4. 同一个业务规则，责任落在哪里
+
+**Casbin 把求值留在应用进程。OpenFGA 与 SpiceDB 提供独立的关系写入和查询接口。** 这会改变你写哪些配置、维护哪些数据、排查哪一段链路。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-21-relationship-authorization-product-comparison/deployment-boundary.svg" alt="Casbin 在各应用实例内求值，OpenFGA 或 SpiceDB 由多个应用实例经 API 共用" />
+  <figcaption className="w-full text-center">图 3：应用内求值与独立关系授权服务的请求路径。</figcaption>
+</figure>
+
+| 方案 | 怎样表达本案例 | 应用仍要处理什么 |
+| --- | --- | --- |
+| Casbin | 用模型和策略表达直接分享及组织范围，再明确组成员和文件夹继承怎样进入匹配逻辑 | 选择成员与层级事实的来源，更新策略，管理多个 Enforcer 的加载和同步 |
+| OpenFGA | 用类型与元组记录关系，计算关系组合管理员、直接分享和父文件夹读者 | 把业务变更同步到元组，选择模型 ID，处理调用失败与重试 |
+| SpiceDB | 用 `relation` 记录事实，用 `permission` 合并读取路径 | 把业务变更同步到关系存储，演进 schema，按需保存和传递 ZedToken |
+
+例如 Casbin 可以先采用一种容易核对的实现：服务端从可信业务数据里取出文档所属组织与父文件夹，再用请求属性和分组策略判断这次读取。若在应用侧解析父文件夹，这条读取就包含一次业务数据访问。也可以选用自定义关系解析或预计算。实现应公开选择，因为换组、移动文档时的更新量和查询成本会随之变化。
+
+在 OpenFGA 模型里，可以将父文件夹和直接读者分别表示为 `parent` 和 `direct_reader`，用 `define read: org_admin or direct_reader or read from parent` 组合。如果 `org_admin` 关系已由组织成员规则定义，则这条规则包含表里的三条读取路径。SpiceDB 对应把组织管理员接入 `manage`，在第 2 节的 `read` 上增补管理路径。两者都要建模文档所属的组织。禁止跨组织移动、确保文档只有一个父文件夹等业务约束，仍要在关系写入流程中维护。[OpenFGA Parent-Child Objects](https://openfga.dev/docs/modeling/parent-child) · [SpiceDB Schema](https://authzed.com/docs/spicedb/concepts/schema)
+
+## 5. 发布新规则时，应用能固定什么
+
+把内部关系 `viewer` 改名为 `direct_viewer`，外部接口仍检查 `read`。这次迁移会碰到三件不同的事：部署哪版规则、背后有哪批关系数据、应用当前正在使用什么状态。
+
+- **Casbin**。模型配置和策略行要兼容。应用滚动发布期间，如果新配置要求新的策略格式，就要考虑旧实例能否继续读取，以及新实例何时切换。应用可以为配置标记版本，再按实例控制加载。
+- **OpenFGA**。授权模型不可变，新模型有独立的 `authorization_model_id`，受支持的请求可显式指定模型。旧调用方和新调用方可以在迁移中选择各自的模型。两个模型背后的 tuple 仍会变化，保留旧模型也要给旧路径留足兼容时间。[OpenFGA Immutable Authorization Models](https://openfga.dev/docs/getting-started/immutable-models)
+- **SpiceDB**。可以先添加 `direct_viewer`，在过渡期维护两份关系，再回填历史数据，切换 `read` 的计算，最后清理旧关系。ZedToken 约束的是查询所用数据的修订点。OpenFGA 的模型 ID 回答的是请求选择哪份授权规则，两者用途不同。[SpiceDB Migrating a Schema](https://authzed.com/docs/spicedb/modeling/migrating-schema) · [SpiceDB Consistency](https://authzed.com/docs/spicedb/concepts/consistency)
+
+更适合做手工验收的是迁移中间态。旧实例仍在服务时，新写入的小周分享能否被它读到？两套关系并存时，撤权是否同时更新了两条路径？最后一次清理之前，应核对这些结果。
+
+## 6. 给「我的文档」分页，要同时处理权限和排序
+
+**授权引擎回答「哪些 ID 可见」，业务库负责「满足筛选条件的文档按什么顺序展示」。** 小陈想看最近更新的 20 份文档，页面还要知道下一页从哪里开始。用一次成功的 `Check` 无法得出这些结果。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-21-relationship-authorization-product-comparison/document-pagination.svg" alt="可见文档分页的两条路径，分别从授权侧枚举和从业务库取候选" />
+  <figcaption className="w-full text-center">图 4：可见集合较小时可先枚举 ID，有业务筛选与排序时也可先取候选，再批量检查。</figcaption>
+</figure>
+
+**先枚举可见 ID。** OpenFGA 的 `ListObjects` 和 SpiceDB 的 `LookupResources` 都可以作为入口。得到可见文档 ID 后，业务库再筛选和排序。OpenFGA 的流式接口会随结果产生而返回，并受执行期限约束。SpiceDB 的官方文档说明 `LookupResources` 支持游标。顺序、超时、完整性和续页约束要按实际接口和配置核对。对 Casbin，需要看所选语言和模型是否有合适的隐式权限查询，直接分享的策略行通常不足以列出所有继承而来的文档。[OpenFGA ListObjects](https://openfga.dev/docs/getting-started/perform-list-objects) · [SpiceDB Querying Data](https://authzed.com/docs/spicedb/concepts/querying-data) · [Casbin RBAC API](https://casbin.org/docs/rbac-api/)
+
+**先拿业务候选。** 应用按 `updated_at` 和文档 ID 稳定排序，取一批候选，再做批量权限检查。前 30 条只有 8 条可见，就继续扫描，而不是把剩下的 12 条当作系统里没有。分页游标应记录已消费的候选位置。批次中尚未消费的记录应在后续页面继续处理，避免因为批量预取而跳过可见项。Casbin 在应用内也可以采用这条路线，批量能力则取决于所用语言及版本。
+
+还要先和产品约定翻页时遇到撤权的行为。在固定快照中浏览，前后页更容易保持连贯，但快照之后发生的撤权不会反映在那份授权快照里。要求新请求看到撤权时，集合就可能在翻页之间变化。SpiceDB 的 `at_least_as_fresh` 提供下界，前后页可以选择不同的修订点。`at_exact_snapshot` 可固定授权快照，但受快照保留窗口限制，业务字段和排序的快照仍需另行处理。打开详情或发起下载时，应按当前操作要求重新授权。[SpiceDB Consistency](https://authzed.com/docs/spicedb/concepts/consistency)
+
+## 7. 撤权写成功，下一次查询凭什么看到它
+
+假设撤销发生在应用 A，随后写入新内容，查看详情和列表的请求落在应用 B。此时需要给「看到撤权」一个能检查的含义：**对新内容执行授权时，使用的关系或策略状态须包含这次撤权。**
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-21-relationship-authorization-product-comparison/revocation-freshness.svg" alt="对照 Casbin 实例刷新、OpenFGA 跳缓存查库和 SpiceDB 使用撤权 ZedToken" />
+  <figcaption className="w-full text-center">图 5：同一次撤权分别经过策略同步、数据库读取或修订点约束。</figcaption>
+</figure>
+
+**Casbin 先看应用 B 的 Enforcer。** 持久化删除已经成功，B 仍可能持有变更前加载的策略。Watcher 可以通知其他实例重载或更新内存状态。实际经历多久、通知或重载失败如何恢复，要看所用 Adapter、Watcher 和应用实现。业务要求查询必须看到撤权时，应用可以为请求增加已加载策略版本的校验，并在版本不足时刷新或拒绝服务。[Casbin Watchers](https://casbin.org/docs/watchers/)
+
+**OpenFGA 先看查询读取哪里。** 官方文档将 `HIGHER_CONSISTENCY` 描述为跳过相关缓存并直接查询数据库。它能避开缓存命中旧结果的路径。真正确认查询是否能看到刚提交的变更，还要结合授权写入顺序和实际数据库读取配置。在应用准备提供新内容时，应先确认相应关系修改已经成功。[OpenFGA Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)
+
+**SpiceDB 可以把撤权的修订点带进下一次查询。** 保存撤权操作返回的 ZedToken，后续支持一致性参数的查询用 `at_least_as_fresh` 带回它，服务须使用该修订点或更新的数据。撤权之前拿到的 token 只能要求不早于先前的修订点，可能读到更新状态，但无法要求包含后来的撤权。将 token 与内容版本一起保存是应用可以采用的做法。组成员变更可能同时影响多个文件夹和文档，需要把这层依赖一起纳入设计。[SpiceDB Consistency](https://authzed.com/docs/spicedb/concepts/consistency)
+
+用这个场景验证时，先让详情和列表都得到允许结果，再撤权并等到写入成功。随后分别从 A、B 发起查询，对照各自的默认设置及相应的新鲜度措施。记下变更时间、使用的策略版本或令牌、结果和错误。页面已缓存的数据、搜索索引和已签发的下载链接还要走各自的失效流程。
+
+## 8. 性能应该按一次完整业务操作比较
+
+单次 `Enforce()` 反映进程内求值成本，远程 `Check` 包含网络和服务端开销。两者可以并列展示各自的调用开销。要决定哪种方案适合文档系统，需要再量一次完整操作：读取一份文档、填满一页可见列表、撤权后从另一个实例查询新内容。
+
+这三项各有主要成本。详情页关心调用与必要的数据读取。列表要记录候选扫描量、授权调用数、填满一页的耗时与结果完整性。撤权则要计入策略同步、跳缓存查库、令牌传递或失败重试，直到查询满足约定的数据新鲜度。
+
+实际测试时，应固定产品和 SDK 版本、数据库配置、CPU 与内存、缓存设置、关系深度与扇出，并区分直接分享和继承请求。先跑完第 3 节的预期矩阵，再对相同业务保证下的请求记录 p50、p95、p99、吞吐、错误率和资源消耗。客户端协议或默认一致性无法对齐时，说明剩余差别。这样读者才知道性能差异来自哪里。
+
+## 9. 按应用愿意承担的责任来选
+
+如果判断主要发生在一个应用里，团队愿意自己管理策略和同步，先用 **Casbin** 验证最复杂的那条路径，例如「换组后，在另一台实例翻到的文档列表也要变化」。这个用例比单实例上的直接分享更接近后续的维护成本。
+
+如果多个服务要共用一套关系和权限接口，**OpenFGA 和 SpiceDB** 都值得评估。关注 OpenFGA 的请求级模型选择是否适合规则迁移，以及应用怎样接入 `ListObjects`。评估 SpiceDB 时，拿真实业务流程验证 schema 迁移、`LookupResources` 和 ZedToken 能否接进现有的数据链路。
+
+回到开头的小周，最有区分度的问题是：**分享撤销后，应用 B 怎样确认自己用的授权状态已经更新，详情和列表分别要付出多少成本？** 把这条路径走通，比比较三个 `Check` 的耗时更能帮助团队选型。
+
+## 参考资料
+
+- Casbin：[Overview](https://casbin.org/docs/overview/)、[Model Syntax](https://casbin.org/docs/syntax-for-models/)、[ReBAC](https://casbin.org/docs/rebac/)、[Watchers](https://casbin.org/docs/watchers/)、[RBAC API](https://casbin.org/docs/rbac-api/)。
+- OpenFGA：[Parent-Child Objects](https://openfga.dev/docs/modeling/parent-child)、[Immutable Authorization Models](https://openfga.dev/docs/getting-started/immutable-models)、[ListObjects](https://openfga.dev/docs/getting-started/perform-list-objects)、[Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)。
+- SpiceDB：[Schema](https://authzed.com/docs/spicedb/concepts/schema)、[Querying Data](https://authzed.com/docs/spicedb/concepts/querying-data)、[Migrating a Schema](https://authzed.com/docs/spicedb/modeling/migrating-schema)、[Consistency](https://authzed.com/docs/spicedb/concepts/consistency)。
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起 **（本文）**
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)

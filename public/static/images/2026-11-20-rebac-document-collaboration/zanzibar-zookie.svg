@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" role="img" aria-labelledby="title desc">
+  <title id="title">Zookie：为后续权限检查设定快照时间下界</title>
+  <desc id="desc">先撤销分享；随后执行内容变更检查，成功后取得 Zookie；应用原子保存新内容版本和 Zookie；读取该版本时携带令牌检查权限。检查使用的快照不早于令牌时间，但令牌本身不授予权限。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8098af"/></marker>
+    <style>text{font-family:Arial,'Noto Sans CJK SC',sans-serif;fill:#26364a}.title{font-size:20px;font-weight:700}.label{font-size:14px;font-weight:600}.body{font-size:13px}.small{font-size:12px;fill:#687b90}.card{fill:#fff;stroke:#d8e1eb;stroke-width:1.4}.link{fill:none;stroke:#8098af;stroke-width:1.6;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="680" height="460" rx="16" fill="#fff"/>
+  <text x="32" y="38" class="title">Zookie：新内容不能用过旧的权限快照判断</text>
+  <text x="32" y="62" class="small">一次内容更新如何把新鲜度要求带到后续读取</text>
+  <rect x="32" y="87" width="616" height="42" rx="10" fill="#fcf9f9" stroke="#e7dcdc"/>
+  <text x="50" y="113" class="body">前置事件：林岚先撤销小周的分享，随后更新文档内容。</text>
+  <rect x="32" y="155" width="184" height="106" rx="11" class="card"/>
+  <circle cx="54" cy="178" r="11" fill="#edf3f9"/><text x="54" y="182" text-anchor="middle" class="small">1</text>
+  <text x="124" y="207" text-anchor="middle" class="label">内容变更检查</text>
+  <text x="124" y="232" text-anchor="middle" class="body">成功后取得 Zookie</text>
+  <rect x="248" y="155" width="184" height="106" rx="11" class="card"/>
+  <circle cx="270" cy="178" r="11" fill="#edf3f9"/><text x="270" y="182" text-anchor="middle" class="small">2</text>
+  <text x="340" y="207" text-anchor="middle" class="label">原子保存</text>
+  <text x="340" y="232" text-anchor="middle" class="body">新内容版本 + Zookie</text>
+  <rect x="464" y="155" width="184" height="106" rx="11" fill="#f6f9fc" stroke="#cfdae6" stroke-width="1.4"/>
+  <circle cx="486" cy="178" r="11" fill="#e6eef7"/><text x="486" y="182" text-anchor="middle" class="small">3</text>
+  <text x="556" y="207" text-anchor="middle" class="label">读取该内容版本</text>
+  <text x="556" y="232" text-anchor="middle" class="body">Check 带回对应令牌</text>
+  <path d="M217 208H239" class="link"/><path d="M433 208H455" class="link"/>
+  <rect x="32" y="285" width="616" height="121" rx="11" fill="#fafbfd" stroke="#e1e7ee"/>
+  <text x="50" y="310" class="label">令牌约束的是检查快照的时间</text>
+  <path d="M67 344H614" stroke="#b8c6d4" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M308 344H600" stroke="#7eaa91" stroke-width="5"/>
+  <circle cx="308" cy="344" r="5" fill="#6483a5"/>
+  <path d="M308 330V358" stroke="#6483a5" stroke-width="1.5"/>
+  <text x="175" y="334" text-anchor="middle" class="small">早于下界：不能使用</text>
+  <text x="461" y="334" text-anchor="middle" class="small">下界及之后：可选择的快照</text>
+  <text x="308" y="378" text-anchor="middle" class="body">Zookie 所指时间</text>
+  <text x="614" y="379" text-anchor="end" class="small">时间 →</text>
+  <text x="340" y="433" text-anchor="middle" class="small">快照满足下界后仍须计算权限；这是 Zanzibar 论文机制，不是 OpenFGA 默认保证。</text>
+</svg>

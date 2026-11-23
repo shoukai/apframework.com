@@ -7,18 +7,18 @@ import { POSTS_PER_PAGE } from '@/lib/blogPagination'
 
 const topics = [
   {
-    title: '智能体架构与治理',
-    description: '从 Agent Loop、多智能体编排到评估、安全与运行时控制。',
+    title: 'AI Agent 架构与治理',
+    description: '从单 Agent 到多智能体编排，了解架构选型、工具授权和运行时治理。',
     href: '/tags/ai-agent',
     featuredHref: '/blog/essay/2026-10-25-agent-architecture-evolution',
     featuredTitle: '智能体系统的演进',
   },
   {
-    title: '上下文与知识工程',
-    description: '关注上下文、语义层与知识表示如何支撑可靠的智能体。',
-    href: '/tags/context-engineering',
-    featuredHref: '/blog/essay/2026-08-23-semantic-layer-for-ai-agents',
-    featuredTitle: '为 AI Agent 构建企业语义层',
+    title: '本体工程与企业语义层',
+    description: '理解本体建模与 DDD 的分工，以及语义层如何支持可信查询。',
+    href: '/tags/ontology',
+    featuredHref: '/blog/essay/2026-11-07-ontology-to-trustworthy-query',
+    featuredTitle: '从本体到可信查询',
   },
   {
     title: 'Agent 评估与生产质量',

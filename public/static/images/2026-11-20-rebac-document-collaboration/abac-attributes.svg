@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" role="img" aria-labelledby="title desc">
+  <title id="title">ABAC：属性与策略共同决定访问</title>
+  <desc id="desc">主体、资源、操作和环境四类输入，各经一条独立的水平箭头进入策略。直接分享存在且未到期时，这条路径允许读取；属性需可信来源。</desc>
+  <defs>
+    <marker id="input-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8098af"/></marker>
+    <style>text{font-family:Arial,'Noto Sans CJK SC',sans-serif;fill:#26364a}.title{font-size:20px;font-weight:700}.label{font-size:14px;font-weight:600}.body{font-size:13px}.small{font-size:12px;fill:#687b90}.card{fill:#fff;stroke:#d8e1eb;stroke-width:1.4}.input{fill:none;stroke:#8098af;stroke-width:1.6;marker-end:url(#input-arrow)}</style>
+  </defs>
+  <rect width="680" height="410" rx="16" fill="#fff"/>
+  <text x="32" y="38" class="title">ABAC：把请求条件交给策略判断</text>
+  <text x="32" y="62" class="small">四类输入分别进入策略，不把“未到期”误当成单独的授权依据</text>
+  <rect x="32" y="86" width="252" height="52" rx="10" class="card"/>
+  <text x="48" y="107" class="label">主体</text><text x="48" y="126" class="body">小周 · 外部协作者</text>
+  <rect x="32" y="152" width="252" height="52" rx="10" class="card"/>
+  <text x="48" y="173" class="label">资源与授权属性</text><text x="48" y="192" class="body">项目路线图 · 对小周的分享记录</text>
+  <rect x="32" y="218" width="252" height="52" rx="10" class="card"/>
+  <text x="48" y="239" class="label">操作</text><text x="48" y="258" class="body">read · 读取文档</text>
+  <rect x="32" y="284" width="252" height="52" rx="10" class="card"/>
+  <text x="48" y="305" class="label">环境与有效期</text><text x="48" y="324" class="body">当前时间 · 分享截止时间</text>
+  <path d="M284 112H362" class="input"/>
+  <path d="M284 178H362" class="input"/>
+  <path d="M284 244H362" class="input"/>
+  <path d="M284 310H362" class="input"/>
+  <rect x="364" y="86" width="284" height="250" rx="12" fill="#f6f9fc" stroke="#cfdae6" stroke-width="1.5"/>
+  <text x="506" y="124" text-anchor="middle" class="label">策略判断</text>
+  <path d="M390 142H622" fill="none" stroke="#dce5ee"/>
+  <text x="506" y="174" text-anchor="middle" class="body">请求读取这份文档</text>
+  <text x="506" y="201" text-anchor="middle" class="body">存在对小周的直接分享</text>
+  <text x="506" y="228" text-anchor="middle" class="body">当前时间早于分享截止时间</text>
+  <text x="506" y="260" text-anchor="middle" class="small">以上条件同时满足</text>
+  <rect x="386" y="278" width="240" height="38" rx="9" fill="#eef7f0" stroke="#d2e2d5"/>
+  <text x="506" y="302" text-anchor="middle" class="body">这条直接分享路径允许读取</text>
+  <text x="340" y="379" text-anchor="middle" class="small">属性仍需由可信来源提供；此条件只约束图中这条直接分享路径。</text>
+</svg>

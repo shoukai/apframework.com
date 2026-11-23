@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" role="img" aria-labelledby="title desc">
+  <title id="title">应用内授权与独立授权服务</title>
+  <desc id="desc">左侧两个应用实例内嵌 Casbin 并各自加载策略。右侧多个应用通过 API 共用 OpenFGA 或 SpiceDB 授权服务。</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#748392"/></marker><style>
+    text{font-family:Arial,"Noto Sans CJK SC",sans-serif;fill:#263746}.title{font-size:19px;font-weight:700}.label{font-size:15px;font-weight:700}.body{font-size:13px}.small{font-size:12px}.box{fill:#fff;stroke:#cbd5dc;stroke-width:1.5}.app{fill:#edf5f6;stroke:#8bb7b4}.lib{fill:#f1f5fb;stroke:#9db2cf}.service{fill:#faf5e9;stroke:#d7c58f}.db{fill:#f5f1f8;stroke:#b9a6c9}.line{stroke:#748392;stroke-width:2;fill:none;marker-end:url(#arrow)}
+  </style></defs>
+  <rect width="680" height="350" fill="#fff"/><text x="28" y="36" class="title">首先选择：判断放在应用内，还是交给共享服务？</text>
+  <text x="34" y="76" class="label">Casbin：应用内求值</text>
+  <rect x="32" y="94" width="254" height="176" rx="8" class="box app"/>
+  <text x="159" y="119" text-anchor="middle" class="small">应用实例 A</text>
+  <rect x="51" y="132" width="214" height="52" rx="6" class="box lib"/><text x="158" y="163" text-anchor="middle" class="label">Enforcer + 已加载策略</text>
+  <rect x="51" y="202" width="214" height="44" rx="6" class="box db"/><text x="158" y="229" text-anchor="middle" class="body">策略存储 / Adapter</text>
+  <rect x="323" y="94" width="254" height="176" rx="8" class="box app"/>
+  <text x="450" y="119" text-anchor="middle" class="small">应用实例 B</text>
+  <rect x="342" y="132" width="214" height="52" rx="6" class="box lib"/><text x="449" y="163" text-anchor="middle" class="label">Enforcer + 已加载策略</text>
+  <rect x="342" y="202" width="214" height="44" rx="6" class="box db"/><text x="449" y="229" text-anchor="middle" class="body">策略存储 / Adapter</text>
+  <path d="M266 224C292 224 306 224 338 224" class="line"/>
+  <text x="302" y="210" text-anchor="middle" class="small">通知 / 重载</text>
+  <text x="34" y="294" class="small">每个实例的策略加载与同步由应用部署负责。</text>
+  <text x="34" y="326" class="label">OpenFGA / SpiceDB：独立关系授权服务</text>
+  <rect x="32" y="340" width="162" height="52" rx="8" class="box app"/><text x="113" y="372" text-anchor="middle" class="body">应用 A / 应用 B</text>
+  <path d="M194 366H260" class="line"/>
+  <rect x="266" y="340" width="188" height="52" rx="8" class="box service"/><text x="360" y="372" text-anchor="middle" class="label">授权服务 API</text>
+  <path d="M454 366H510" class="line"/>
+  <rect x="516" y="340" width="132" height="52" rx="8" class="box db"/><text x="582" y="372" text-anchor="middle" class="small">关系存储</text>
+  <text x="34" y="405" class="small">业务数据与授权关系的同步仍由应用负责。</text>
+</svg>

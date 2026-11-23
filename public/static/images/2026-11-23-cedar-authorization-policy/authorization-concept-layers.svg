@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="490" viewBox="0 0 680 490" role="img" aria-labelledby="title desc">
+  <title id="title">授权概念分层：建模思路、实现与数据</title>
+  <desc id="desc">RBAC、ABAC、ReBAC是可以组合的建模思路，与Cedar和OpenFGA不存在排他对应。Cedar以策略求值为中心，输入包括PARC、策略和实体。OpenFGA以关系模型为中心，使用授权模型、关系元组与请求数据。</desc>
+  <style>
+    text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;fill:#263b4d}
+    .title{font-size:19px;font-weight:650}
+    .section{font-size:14px;font-weight:650;fill:#526a7c}
+    .head{font-size:16px;font-weight:650}
+    .body{font-size:14px}
+    .note{font-size:12px;fill:#607486}
+  </style>
+  <rect width="680" height="490" fill="#ffffff"/>
+  <text x="24" y="32" class="title">授权概念分层：建模思路、实现与数据</text>
+  <text x="24" y="56" class="body">共同问题：用户 U 能否对资源 R 执行动作 A？</text>
+
+  <rect x="20" y="76" width="640" height="126" rx="10" fill="#f8fafc" stroke="#d7e1e9"/>
+  <text x="36" y="100" class="section">01 建模思路 · 规则主要依据什么？</text>
+  <rect x="36" y="114" width="192" height="58" rx="7" fill="#edf4ff" stroke="#c5d7ee"/>
+  <text x="132" y="137" text-anchor="middle" class="head">RBAC · 角色</text>
+  <text x="132" y="158" text-anchor="middle" class="body">编辑者可以修改文档</text>
+  <rect x="244" y="114" width="192" height="58" rx="7" fill="#eff7f1" stroke="#c9dfcf"/>
+  <text x="340" y="137" text-anchor="middle" class="head">ABAC · 属性</text>
+  <text x="340" y="158" text-anchor="middle" class="body">MFA通过且来自公司网</text>
+  <rect x="452" y="114" width="192" height="58" rx="7" fill="#fff6e9" stroke="#e8d6b6"/>
+  <text x="548" y="137" text-anchor="middle" class="head">ReBAC · 关系</text>
+  <text x="548" y="158" text-anchor="middle" class="body">组成员继承文件夹权限</text>
+  <text x="340" y="190" text-anchor="middle" class="note">可以组合使用；不与下方引擎一一绑定。</text>
+
+  <text x="36" y="232" class="section">02 实现取向 · 如何表达规则、计算授权？</text>
+  <rect x="20" y="246" width="312" height="88" rx="10" fill="#edf4ff" stroke="#c5d7ee"/>
+  <text x="176" y="272" text-anchor="middle" class="head">Cedar · 策略求值</text>
+  <text x="176" y="297" text-anchor="middle" class="body">评估策略是否适用于当前请求</text>
+  <text x="176" y="318" text-anchor="middle" class="note">应用提供相关实体与请求数据</text>
+  <rect x="348" y="246" width="312" height="88" rx="10" fill="#fff6e9" stroke="#e8d6b6"/>
+  <text x="504" y="272" text-anchor="middle" class="head">OpenFGA · 关系查询</text>
+  <text x="504" y="297" text-anchor="middle" class="body">按授权模型查询关系事实</text>
+  <text x="504" y="318" text-anchor="middle" class="note">常见服务部署维护关系存储</text>
+
+  <text x="36" y="364" class="section">03 请求与数据 · 判断需要哪些信息？</text>
+  <rect x="20" y="378" width="312" height="88" rx="10" fill="#f6f9fe" stroke="#c5d7ee"/>
+  <text x="36" y="402" class="head">PARC + 策略 + 实体</text>
+  <text x="36" y="426" class="body">主体、操作、资源、请求上下文</text>
+  <text x="36" y="449" class="note">PARC只描述请求，不是完整求值输入</text>
+  <rect x="348" y="378" width="312" height="88" rx="10" fill="#fffaf2" stroke="#e8d6b6"/>
+  <text x="364" y="402" class="head">授权模型 + 关系元组 + 请求</text>
+  <text x="364" y="426" class="body">请求指定用户、关系与对象</text>
+  <text x="364" y="449" class="note">可带条件上下文、仅本次有效的临时关系</text>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">OpenFGA 的缓存层与一致性边界</title>
+  <desc id="desc">请求通过模型缓存解析模型，再由 resolver 计算并经 iterator cache wrapper 读取 datastore。Query cache 是 resolver 的可选结果缓存。HIGHER_CONSISTENCY 是旁路相关结果缓存的模式说明，不是额外查询阶段。启用 cache controller 后，它从 datastore 读取 changelog，并向 query 与 iterator cache 发出异步失效信号。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#53666b"/></marker>
+    <marker id="gold" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#9a7851"/></marker>
+    <marker id="bypass" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#53666b"/></marker>
+    <style>
+      .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.head{font:700 18px Arial,'Noto Sans CJK SC',sans-serif}.label{font:700 16px Arial,'Noto Sans CJK SC',sans-serif;fill:#263a3e}.body{font:14px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:13px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.box{stroke-width:2}
+    </style>
+  </defs>
+  <rect width="1200" height="660" fill="#fff"/>
+  <text class="title" x="60" y="52">缓存不是一条流水线：分清求值、读取和失效</text>
+  <text class="sub" x="60" y="82">实线是请求 / 读取；棕色虚线是 changelog 失效信号</text>
+
+  <rect class="box" x="35" y="130" width="165" height="100" rx="8" fill="#eef2f2" stroke="#829195"/>
+  <text class="head" x="117" y="168" text-anchor="middle" fill="#34484c">Check 请求</text><text class="small" x="117" y="198" text-anchor="middle">问题与模型 ID</text>
+  <path d="M200 180 H225" fill="none" stroke="#53666b" stroke-width="2.3" marker-end="url(#arrow)"/>
+  <rect class="box" x="230" y="130" width="210" height="100" rx="8" fill="#edf4f7" stroke="#6d98a7"/>
+  <text class="head" x="335" y="168" text-anchor="middle" fill="#315c6b">模型缓存</text><text class="small" x="335" y="198" text-anchor="middle">解析模型 / TypeSystem</text>
+  <path d="M440 180 H465" fill="none" stroke="#53666b" stroke-width="2.3" marker-end="url(#arrow)"/>
+  <rect class="box" x="470" y="130" width="175" height="100" rx="8" fill="#eaf2e9" stroke="#719887"/>
+  <text class="head" x="557" y="168" text-anchor="middle" fill="#3d6d5e">Resolver</text><text class="small" x="557" y="198" text-anchor="middle">关系图求值</text>
+  <path d="M645 180 H670" fill="none" stroke="#53666b" stroke-width="2.3" marker-end="url(#arrow)"/>
+  <rect class="box" x="675" y="130" width="230" height="100" rx="8" fill="#f4f1e8" stroke="#b39b63"/>
+  <text class="head" x="790" y="166" text-anchor="middle" fill="#735f31">Iterator cache wrapper</text><text class="small" x="790" y="198" text-anchor="middle">关系读取缓存（可选）</text>
+  <path d="M905 180 H930" fill="none" stroke="#53666b" stroke-width="2.3" marker-end="url(#arrow)"/>
+  <rect class="box" x="935" y="130" width="230" height="100" rx="8" fill="#f7f0e7" stroke="#b39b63"/>
+  <text class="head" x="1050" y="168" text-anchor="middle" fill="#735f31">Datastore</text><text class="small" x="1050" y="198" text-anchor="middle">tuples + changelog</text>
+
+  <rect class="box" x="470" y="285" width="175" height="92" rx="8" fill="#eaf2e9" stroke="#719887"/>
+  <text class="head" x="557" y="320" text-anchor="middle" fill="#3d6d5e">Query cache（可选）</text><text class="small" x="557" y="350" text-anchor="middle">缓存 edge / 子问题结果</text>
+  <path d="M530 230 V275" fill="none" stroke="#53666b" stroke-width="2.1" marker-end="url(#arrow)"/><text class="small" x="520" y="266" text-anchor="end">查找</text>
+  <path d="M585 285 V252 H575 V230" fill="none" stroke="#53666b" stroke-width="2.1" marker-end="url(#arrow)"/><text class="small" x="595" y="265">命中返回</text>
+
+  <rect class="box" x="35" y="285" width="365" height="92" rx="8" fill="#eef2f2" stroke="#829195"/>
+  <text class="head" x="217" y="320" text-anchor="middle" fill="#34484c">HIGHER_CONSISTENCY</text><text class="small" x="217" y="350" text-anchor="middle">模式说明：旁路相关缓存，不是查询步骤</text>
+
+  <rect class="box" x="275" y="445" width="410" height="92" rx="8" fill="#f7f3eb" stroke="#ad9470"/>
+  <text class="head" x="480" y="480" text-anchor="middle" fill="#705b3e">Cache controller（可选）</text><text class="small" x="480" y="510" text-anchor="middle">读取 changelog，并异步失效 query / iterator cache</text>
+  <path d="M1015 230 V420 H705 V480 H685" fill="none" stroke="#9a7851" stroke-width="2.2" stroke-dasharray="7 6" marker-end="url(#gold)"/>
+  <path d="M480 445 V405 H790 V230" fill="none" stroke="#9a7851" stroke-width="2.2" stroke-dasharray="7 6" marker-end="url(#gold)"/>
+  <path d="M480 405 H557 V385" fill="none" stroke="#9a7851" stroke-width="2.2" stroke-dasharray="7 6" marker-end="url(#gold)"/>
+
+  <rect class="box" x="755" y="445" width="410" height="92" rx="8" fill="#f7eeeb" stroke="#bd8574"/>
+  <text class="head" x="960" y="480" text-anchor="middle" fill="#824b3b">后端一致性边界</text><text class="small" x="960" y="510" text-anchor="middle">绕过缓存不等于数据库同步读保证</text>
+  <rect x="120" y="575" width="960" height="54" rx="8" fill="#f1f4f5" stroke="#a2afb2"/>
+  <text class="label" x="600" y="608" text-anchor="middle">默认相关 query cache、iterator cache 与 controller 关闭；先核对实际配置</text>
+</svg>

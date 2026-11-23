@@ -10,20 +10,12 @@ import SectionContainer from '@/components/SectionContainer'
 import Image from '@/components/Image'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
-import { formatDate } from 'pliny/utils/formatDate'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import Giscus from '@/components/Giscus'
 import TOC from '@/components/TOC'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 
-
-const postDateTemplate: Intl.DateTimeFormatOptions = {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-}
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -93,24 +85,19 @@ export default function PostLayout({
           <div className="xl:divide-y xl:divide-gray-200 xl:dark:divide-gray-700">
           <header className="pt-6 xl:pb-6">
             <div className="space-y-1 text-center">
-              <dl className="space-y-10">
-                <div>
-                  <dt className="sr-only">发布日期</dt>
-                  <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
-                    <time dateTime={date}>
-                      {/* Use a more controlled date format to avoid hydration errors */}
-                      {new Date(date).getFullYear()}年
-                      {new Date(date).getMonth() + 1}月
-                      {new Date(date).getDate()}日
-                    </time>
-                  </dd>
-                  {lastmod && lastmod !== date && (
-                    <dd className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      修改于 <time dateTime={lastmod}>{formatDate(lastmod, siteMetadata.locale)}</time>
-                    </dd>
-                  )}
-                </div>
-              </dl>
+              <p className="flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>
+                  <time dateTime={date}>{date.slice(0, 10)}</time> 发布
+                </span>
+                {lastmod && lastmod.slice(0, 10) !== date.slice(0, 10) && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      <time dateTime={lastmod}>{lastmod.slice(0, 10)}</time> 更新
+                    </span>
+                  </>
+                )}
+              </p>
               <div>
                 <PageTitle>{title}</PageTitle>
               </div>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">本文的金字塔式阅读路线</title>
+  <desc id="desc">顶层是核心结论：Check 由用户、关系、对象与模型、tuple、上下文共同决定。中层拆解模型与事实、关系求值、存储与控制。底层检查版本分流、缓存一致性和实验边界。</desc>
+  <style>
+    .title{font:700 28px Arial,'Noto Sans CJK SC',sans-serif;fill:#203438}.sub{font:18px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}.head{font:700 20px Arial,'Noto Sans CJK SC',sans-serif}.body{font:17px Arial,'Noto Sans CJK SC',sans-serif;fill:#34484c}.small{font:15px Arial,'Noto Sans CJK SC',sans-serif;fill:#53666b}
+  </style>
+  <rect width="1200" height="480" fill="#fff"/>
+  <text class="title" x="60" y="52">先记住结论，再拆开看依据</text>
+  <text class="sub" x="60" y="82">金字塔式阅读路线：结论在上，机制居中，工程边界在底</text>
+
+  <path d="M600 108 L820 205 H380 Z" fill="#dfece8" stroke="#719887" stroke-width="2"/>
+  <text class="head" x="600" y="151" text-anchor="middle" fill="#315d50">核心结论</text>
+  <text class="body" x="600" y="180" text-anchor="middle">问题 + 规则 + 事实 → 授权结果</text>
+
+  <path d="M340 215 H860 L960 320 H240 Z" fill="#e8f0f3" stroke="#6d98a7" stroke-width="2"/>
+  <text class="head" x="600" y="250" text-anchor="middle" fill="#315c6b">再看三类机制</text>
+  <text class="body" x="600" y="278" text-anchor="middle">模型与 tuple　→　关系求值与递归　→　存储读取与资源控制</text>
+  <text class="small" x="600" y="305" text-anchor="middle">对应第 2、3、4 节：授权根据、计算过程、执行边界</text>
+
+  <path d="M240 330 H960 L1080 435 H120 Z" fill="#f2eee4" stroke="#b39b63" stroke-width="2"/>
+  <text class="head" x="600" y="369" text-anchor="middle" fill="#735f31">最后核对适用边界</text>
+  <text class="body" x="600" y="399" text-anchor="middle">v1 / v2 分流　·　模型版本与缓存一致性　·　实验和可观测性范围</text>
+  <text class="small" x="600" y="422" text-anchor="middle">对应第 1、5、6 节：确认当前实现与你的部署是否相同</text>
+</svg>
