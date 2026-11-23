@@ -44,9 +44,10 @@ Cedar和OpenFGA不是RBAC、ABAC、ReBAC的别名，也不分别只实现其中�
 
 ### 一张图看清几层概念
 
-![授权概念分层图：RBAC、ABAC、ReBAC是可组合的建模思路；Cedar以策略求值为中心，OpenFGA以关系查询为中心，两者的请求与事实数据各有职责](/static/images/2026-11-23-cedar-authorization-policy/authorization-concept-layers.svg)
-
-*图1：建模思路、授权实现与请求数据分处不同层次；图示概括常见取向，不表示一一绑定。*
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-23-cedar-authorization-policy/authorization-concept-layers.svg" alt="授权概念分层：RBAC、ABAC、ReBAC是建模思路，Cedar与OpenFGA是不同中心的实现，请求数据各有职责" />
+  <figcaption className="w-full text-center">图 1：建模思路、授权实现与请求数据分处不同层次。</figcaption>
+</figure>
 
 输入层不是一组完全对称的格式清单。PARC（Principal、Action、Resource、Context，即主体、操作、资源、上下文）是Cedar请求中的四个核心字段；完整求值还需策略集合和相关实体数据。Context适合放本次请求特有的信息，不是所有属性的“万能容器”。OpenFGA一侧则要区分授权模型、关系元组和请求数据：模型定义类型、关系与条件；持久元组记录关系事实，若关系带条件，元组还可保存该条件所需的上下文；Check请求可另行提供本次求值的context，Contextual Tuples则只在本次请求中临时参与关系判断。它们各有职责，不能合并成一个“tuple格式”。
 
@@ -89,9 +90,10 @@ Cedar是policy-centric：策略明确主体、操作、资源的适用范围及�
 
 Cedar evaluator逐条求值策略，返回整体 `Allow` 或 `Deny`，同时给出决定性策略及错误诊断。应用还必须检查结果并执行它：允许时读取文档，拒绝时不返回文档。仅仅调用求值器、却忽略它的决定，不能保护资源。
 
-![Cedar 请求输入输出结构示意：应用收集PARC和entities，策略与实体数据交给Cedar authorizer，输出decision及diagnostics](/static/images/2026-11-23-cedar-authorization-policy/cedar-parc.svg)
-
-*图2：应用负责组织PARC与相关实体；authorizer按策略计算decision并附带diagnostics。结构示意。*
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-23-cedar-authorization-policy/cedar-parc.svg" alt="Cedar 请求输入输出结构：应用提供PARC、策略和实体，authorizer输出decision及diagnostics" />
+  <figcaption className="w-full text-center">图 2：应用组织请求与实体；authorizer给出决定和诊断。</figcaption>
+</figure>
 
 ## 6. Schema规定策略可以引用哪些类型
 
@@ -128,9 +130,10 @@ Schema的属性shape也很具体：`readers`是实体集合，`classification`�
 
 Schema供策略验证器判断策略引用了什么类型、属性和action；它不是每次授权调用都要附带的业务数据。真正进入运行时求值的，是请求本身、相关entities和context。策略验证与授权求值是两件分开的事。
 
-![Schema验证和runtime授权两条独立流程示意：策略创建时Schema进入validator；运行时请求由app提供PARC、entities和policies给authorizer](/static/images/2026-11-23-cedar-authorization-policy/cedar-schema-runtime.svg)
-
-*图3：Schema用于策略验证；授权API另行接收请求、策略与实体，不要把静态验证和运行时求值混作一个步骤。结构示意。*
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-23-cedar-authorization-policy/cedar-schema-runtime.svg" alt="Schema验证与运行时授权两条独立流程示意" />
+  <figcaption className="w-full text-center">图 3：Schema用于策略验证，运行时求值另行接收请求与实体。</figcaption>
+</figure>
 
 ## 7. 用permit表达「哪些来源能读」
 
@@ -212,9 +215,10 @@ unless {
 
 Cedar对每条策略分别求值，单条策略的结果可为true、false或error。对本次请求，先看有没有任何 `forbid` 成功，再看有没有 `permit` 成功：任一forbid为true，最终便是 `Deny`；没有命中的forbid、且至少一个permit为true，才是 `Allow`；否则为 `Deny`。没有匹配permit时的Deny就是default-deny。
 
-![Cedar策略决策矩阵示意：forbid true覆盖permit，至少一个permit且无forbid才allow，无permit默认deny，单条error被跳过并记录diagnostic](/static/images/2026-11-23-cedar-authorization-policy/cedar-decision.svg)
-
-*图4：error属于单条策略求值结果；跳过错误策略不等于跳过整次授权请求。结构示意。*
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-23-cedar-authorization-policy/cedar-decision.svg" alt="Cedar策略决策矩阵：forbid覆盖permit，无permit默认deny，单条error被跳过" />
+  <figcaption className="w-full text-center">图 4：error只跳过单条策略，不等于跳过整次授权请求。</figcaption>
+</figure>
 
 关键的细节在 `skip-on-error`。某一条策略求值发生error时，这条策略不参与最终合成；其策略ID和错误详情会出现在diagnostics中。其他策略仍然各自求值。因此，不能把「Cedar遇到任何error就整个请求自动拒绝」当作算法规则。
 
@@ -270,9 +274,10 @@ context   = { mfa: true, sourceIp: "10.20.4.18", requestTime: "2026-11-22T09:30:
 
 若求值时缺少 `context.mfa`，相关forbid可能error并被跳过；响应会把策略错误放进diagnostics，而不是把它伪装为一个命中的禁止策略。若此时组permit仍为true，算法可能仍给出Allow。应用看到错误后是否把这次决定降级为拒绝，必须由应用明确实现和测试。
 
-![《项目路线图》授权链示意：应用收集用户组和文档父关系、MFA/IP/时间context，再并行评估permit与forbid，authorizer返回decision及diagnostics，由应用决定是否提供文档](/static/images/2026-11-23-cedar-authorization-policy/cedar-document-flow.svg)
-
-*图5：关系与资源事实来自应用数据；服务端构造请求context；策略产生决定和诊断，只有应用收到Allow后才执行文档读取。案例示意。*
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-23-cedar-authorization-policy/cedar-document-flow.svg" alt="《项目路线图》授权链示意：应用收集关系事实与context，authorizer评估permit与forbid后返回决定" />
+  <figcaption className="w-full text-center">图 5：关系事实与context由应用提供，收到Allow后应用才执行读取。</figcaption>
+</figure>
 
 Cedar把策略表达与业务代码分开，却没有把可信数据、关系事实和资源执行从应用中拿走。读策略时要把两件事分开看：哪条 `permit` 给出授权来源；哪些 `forbid` 与本次请求条件冲突。部署时也要把两类检查分开：创建策略时做Schema验证；请求到来时保证实际输入可信、完整，并检查decision与diagnostics，再决定是否返回资源。
 
