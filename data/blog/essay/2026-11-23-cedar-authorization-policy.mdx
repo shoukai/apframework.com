@@ -14,7 +14,7 @@ images: ['/static/images/2026-11-23-cedar-authorization-policy/cedar-authorizati
 
 Cedar 是一门描述授权规则的专用语言，也有开源求值实现。它把「谁（principal）在什么上下文（context）下，对哪个资源（resource）执行什么操作（action）」写成策略，再将策略与请求数据交给求值器，得到 `Allow` 或 `Deny`。应用仍负责准备可信输入，并把结果落实到真正的业务操作上。
 
-在进入例子之前，先区分 Cedar 的语言与实现、它为何采用受限的策略表达方式，以及它与 OpenFGA 的不同边界。后文再沿用林岚、小周、小陈和《项目路线图》这一关系授权案例，讲解 Cedar 如何把层级关系、请求属性与策略组合起来。文中的分类、分享期限、MFA 与 IP 要求均是教学假设。
+前面的文章围绕细粒度授权，依次讨论了 OpenFGA 的关系建模、求值过程、方案比较与权限搜索。这一篇转向策略求值：除了主体与资源之间的关系，一次请求的属性条件、允许与禁止规则又如何共同形成授权决定。Cedar 不是 OpenFGA 的替代教程，也不意味着系统必须同时使用两者。后文沿用林岚、小周、小陈和《项目路线图》的案例；文中的分类、分享期限、MFA 与 IP 要求均是教学假设。
 
 ## 1. Cedar是什么：语言、开源求值器与托管服务
 
@@ -34,7 +34,7 @@ Cedar 的设计目标，是让授权规则既能独立于业务代码维护，�
 
 ## 3. 先分清访问控制模型、引擎与输入
 
-RBAC、ABAC、ReBAC、Cedar、OpenFGA、PARC 与关系元组经常被放在同一张对照表里，看起来像一排互相替代的产品。其实它们回答的问题不同： **RBAC、ABAC、ReBAC描述授权规则主要依据什么；Cedar、OpenFGA提供表达或计算授权的语言、模型与引擎；PARC、策略、实体和关系元组则是这些实现处理请求与授权事实时涉及的数据。** 这些层次有关联，却不是一一对应。
+RBAC、ABAC、ReBAC、Cedar、OpenFGA、PARC 与关系元组经常被放在同一张对照表里，看起来像一排互相替代的产品。其实它们回答的问题不同：**RBAC、ABAC、ReBAC描述授权规则主要依据什么；Cedar、OpenFGA提供表达或计算授权的语言、模型与引擎；PARC、策略、实体和关系元组则是这些实现处理请求与授权事实时涉及的数据。**这些层次有关联，却不是一一对应。
 
 先看三种常见的授权建模思路。RBAC（Role-Based Access Control，基于角色的访问控制）按用户承担的角色授予权限，例如“项目编辑者可以修改路线图”；ABAC（Attribute-Based Access Control，基于属性的访问控制）根据主体、资源或请求属性作判断，例如“只有MFA已通过且来自公司网络的请求可读机密文件”；ReBAC（Relationship-Based Access Control，基于关系的访问控制）则沿用户、组、文件夹和文档之间的关系判断，例如“研发组成员可以读取其有权访问的文件夹中的文档”。一个实际授权模型可以组合这些思路：角色本身可能由关系表达，关系路径之外也可能附加属性条件。
 
@@ -50,7 +50,7 @@ Cedar和OpenFGA不是RBAC、ABAC、ReBAC的别名，也不分别只实现其中�
 
 输入层不是一组完全对称的格式清单。PARC（Principal、Action、Resource、Context，即主体、操作、资源、上下文）是Cedar请求中的四个核心字段；完整求值还需策略集合和相关实体数据。Context适合放本次请求特有的信息，不是所有属性的“万能容器”。OpenFGA一侧则要区分授权模型、关系元组和请求数据：模型定义类型、关系与条件；持久元组记录关系事实，若关系带条件，元组还可保存该条件所需的上下文；Check请求可另行提供本次求值的context，Contextual Tuples则只在本次请求中临时参与关系判断。它们各有职责，不能合并成一个“tuple格式”。
 
-因此，用户提供的简图有一个很有用的主线——把“授权思路、计算实现、请求与关系事实”拆开看；但有三处需要加限定：
+理解这几类概念，可以沿着“授权思路、计算实现、请求与关系事实”三个层次展开；其中有三处尤其需要加以限定：
 
 - **RBAC／ABAC／ReBAC不是引擎专属的实现标签。** Cedar文档明确举例说明它可表达RBAC和ABAC；OpenFGA也将其模型语言称为一种policy，并支持Conditions和Contextual Tuples。图中的对应关系只能表示常见路径，不能画成排他归属。
 - **“ABAC主要写在Cedar的 `when`”过于狭窄。** Cedar策略的主体、操作、资源scope也能作判断，条件可访问主体属性、资源属性以及请求Context；ABAC描述的是决策依据，不是某个语法位置。
@@ -276,7 +276,7 @@ context   = { mfa: true, sourceIp: "10.20.4.18", requestTime: "2026-11-22T09:30:
 
 Cedar把策略表达与业务代码分开，却没有把可信数据、关系事实和资源执行从应用中拿走。读策略时要把两件事分开看：哪条 `permit` 给出授权来源；哪些 `forbid` 与本次请求条件冲突。部署时也要把两类检查分开：创建策略时做Schema验证；请求到来时保证实际输入可信、完整，并检查decision与diagnostics，再决定是否返回资源。
 
-下一篇可以在这个请求链上继续讨论：当同一个Agent要在多份文档、不同工具权限之间执行任务时，如何把授权结果接入工具调用边界。
+这条主线还可以继续延伸到 Agent 工具调用：当一个 Agent 要在多份文档和不同工具权限之间执行任务时，授权决定如何落实到具体的工具调用边界。
 
 ## 参考资料
 
@@ -301,3 +301,21 @@ Cedar把策略表达与业务代码分开，却没有把可信数据、关系事
 - [OpenFGA：Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)
 - [OpenFGA 官方实现](https://github.com/openfga/openfga)
 - [History for the Cedar Policy Language](https://docs.cedarpolicy.com/other/doc-history.html)
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　Cedar 授权策略：从 Schema 到 permit / forbid **（本文）**
