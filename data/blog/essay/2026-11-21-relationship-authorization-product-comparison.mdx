@@ -136,6 +136,8 @@ document:roadmap#direct_reader@user:zhou
 
 更适合做手工验收的是迁移中间态。旧实例仍在服务时，新写入的小周分享能否被它读到？两套关系并存时，撤权是否同时更新了两条路径？最后一次清理之前，应核对这些结果。
 
+**回退规则版本，不等于回滚授权数据。** 切回旧模型 ID，不会恢复已删除的旧关系，也不会撤销迁移期间的新写入；还要核对旧应用与派生索引是否兼容。切换前应约定旧关系的保留窗口，并演练当前数据能否继续按旧规则正确查询。需要补偿时，根据迁移和变更记录恢复兼容，不能直接回灌一份旧权限快照，把后来已经撤销的授权重新放回去。[OpenFGA Model Migrations](https://openfga.dev/docs/modeling/migrating/migrating-models)
+
 ## 6. 给「我的文档」分页，要同时处理权限和排序
 
 **授权引擎回答「哪些 ID 可见」，业务库负责「满足筛选条件的文档按什么顺序展示」。** 小陈想看最近更新的 20 份文档，页面还要知道下一页从哪里开始。用一次成功的 `Check` 无法得出这些结果。
@@ -207,3 +209,6 @@ document:roadmap#direct_reader@user:zhou
 ### 第三部分：策略求值与执行边界
 
 - **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)
+- **08**　[Cedar 与 OpenFGA：策略求值和关系查询如何分工](/blog/essay/2026-11-24-cedar-openfga-authorization-division)
+- **09**　[Agent 调用工具前的授权：从策略判断到执行边界](/blog/essay/2026-11-25-agent-tool-authorization)
+- **10**　[细粒度授权全景：从关系建模、策略求值到安全执行](/blog/essay/2026-11-26-fine-grained-authorization-handbook)

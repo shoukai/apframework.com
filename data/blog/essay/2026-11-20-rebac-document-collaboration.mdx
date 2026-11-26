@@ -118,6 +118,8 @@ ReBAC 是建模思路，Zanzibar 是 Google 在论文中描述的授权系统，
 
 把规则写成一句可核对的话：**能读路线图的人，是有该文档管理权的人、能读其父文件夹的人，以及收到该文档直接分享的人。** 在本文这个案例里，三条路径任一成立即可。管理权并不从读取权反推：小陈和小周都能看，不代表他们能改分享设置。这个区别也让案例能分别检查「读取」与「管理」，而不是笼统地问有没有权限。
 
+这里的「管理」还应按动作拆开：修改文档分享、增删组织成员、转移所有权，不一定由同一类人执行。新增或撤销分享前，服务端要检查操作者对这份文档的分享管理权；成员增删则检查目标组织的成员管理权。模型允许某种关系元组写入，只说明数据形状合法，不说明当前操作者有权修改它。读取接口和这些管理接口，都需要各自的授权检查。
+
 <figure className="flex flex-col items-center text-center">
 <img src="/static/images/2026-11-20-rebac-document-collaboration/document-access-paths.svg" alt="项目路线图的三条授权路径：林岚通过组织管理员角色管理并读取，小陈从研发组和文件夹继承读取，小周通过直接分享读取" />
 <figcaption className="w-full text-center">图 5：同一份文档的授权来自不同路径；小陈和小周只有读取权。</figcaption>
@@ -196,3 +198,6 @@ ReBAC 是建模思路，Zanzibar 是 Google 在论文中描述的授权系统，
 ### 第三部分：策略求值与执行边界
 
 - **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)
+- **08**　[Cedar 与 OpenFGA：策略求值和关系查询如何分工](/blog/essay/2026-11-24-cedar-openfga-authorization-division)
+- **09**　[Agent 调用工具前的授权：从策略判断到执行边界](/blog/essay/2026-11-25-agent-tool-authorization)
+- **10**　[细粒度授权全景：从关系建模、策略求值到安全执行](/blog/essay/2026-11-26-fine-grained-authorization-handbook)

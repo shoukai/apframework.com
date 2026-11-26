@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="210" viewBox="0 0 680 210" role="img" aria-labelledby="title">
+<title id="title">排队后在写入前重新检查，超时后先查状态</title>
+<rect width="680" height="210" rx="14" fill="#f4f8fa"/>
+<g font-family="PingFang SC, Microsoft YaHei, sans-serif" text-anchor="middle" fill="#24394a">
+<text x="340" y="34" font-size="18" font-weight="700">参数没变，授权依据可能已变</text>
+<rect x="25" y="55" width="180" height="75" rx="8" fill="#fff"/><rect x="250" y="55" width="180" height="75" rx="8" fill="#e8f2fa"/><rect x="475" y="55" width="180" height="75" rx="8" fill="#e1f1e9"/>
+<path d="M214 93h27m-7-6 7 6-7 6m205-6h27m-7-6 7 6-7 6" fill="none" stroke="#627d8f" stroke-width="2"/>
+<g font-size="17" font-weight="700"><text x="115" y="83">任务入队</text><text x="340" y="83">写入前复查</text><text x="565" y="83">通过后提交</text></g>
+<g font-size="16"><text x="115" y="110">记录核准参数</text><text x="340" y="110">读取当前授权事实</text><text x="565" y="110">使用同一组参数</text></g>
+<rect x="25" y="149" width="630" height="40" rx="8" fill="#fff0d9"/><text x="340" y="175" font-size="17" fill="#774300">提交超时：先查原操作状态，不把未知当作失败</text>
+</g></svg>

@@ -1,0 +1,195 @@
+---
+title: 'Agent 调用工具前的授权：从策略判断到执行边界'
+date: '2026-11-25'
+tags: ['Agent', 'Cedar', 'OpenFGA', '工具调用', '授权策略', '访问控制', '细粒度授权', '系统架构']
+draft: false
+summary: '以 Agent 移动《项目路线图》为例，说明如何准备可信的 Cedar 授权请求、处理 Allow 与策略错误，并在排队、重试和实际写入时守住执行边界。'
+images: ['/static/images/2026-11-25-agent-tool-authorization/agent-tool-authorization-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-25-agent-tool-authorization/agent-tool-authorization-cover.jpg"><img className="my-0 h-auto w-full" src="/static/images/2026-11-25-agent-tool-authorization/agent-tool-authorization-cover.jpg" alt="对话气泡送出带有文档和文件夹图标的提案卡，经过校验后，文档进入目标文件夹" width="1536" height="1024" /></a>
+  <figcaption className="w-full text-center">模型提议移动文档，服务端核准后才执行（GPT Image 2 生成）。</figcaption>
+</figure>
+
+**模型可以提议调用工具，服务端只执行经过授权的那一次操作。** 对移动文档来说，检查的是谁要移动哪份文档、移到哪个文件夹。Cedar 返回 `Allow`，也不能把这个决定沿用到另一份文档或另一个目的地。
+
+小陈能通过研发组读取《项目路线图》。这次他请 Agent 把文档移到「跨组协作」。能读不等于能移动；如果文档继承父目录的权限，移动之后，能看到它的人也可能变了。
+
+从这次移动看工具授权，可以分成三步：**核实身份和参数，判断这次移动是否允许，最后用核准的参数写入。** 前两篇讲的是 Cedar 怎样得出决定、怎样与 OpenFGA 分工；这次追问的是，服务端怎样把那个决定落实到真正的写入上。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-25-agent-tool-authorization/tool-call-boundary.svg" alt="模型提出文档和目的地，服务端解析并核实参数，Cedar 返回决定和诊断，执行端按已核准参数写入" />
+  <figcaption className="w-full text-center">图 1：模型提出动作，服务端核实、授权并控制写入。</figcaption>
+</figure>
+
+## 1. 模型提出调用，服务端决定是否执行
+
+Agent 提议调用 `moveDocument`，给出文档和目标文件夹。工具定义的 JSON Schema 可以检查字段是否齐全、类型是否正确，却不能回答小陈能否移出这份文档，或能否往目标文件夹写入。即便模型没有填错一个字，移动也可能被拒绝。
+
+把检查放在真正能改动文档的服务端入口。对话发起的移动和后台任务发起的移动，都走这条受控路径。提示词可以指导模型何时提出移动；即使它提错了，服务端也要能拦住。
+
+工具如果用服务账号访问文档系统，应尽量缩小凭证权限。服务账号能写，并不说明它可以代表小陈写。[OWASP 关于 Agent 代理权限的建议](https://owasp.org/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html)也将授权放在下游执行路径，而不是交给模型。
+
+## 2. 把工具提案变成可信的 Cedar 请求
+
+### 2.1 先核实参数，再组装 PARC
+
+服务端先按工具定义校验参数，再在当前工作区解析文档和文件夹，得到系统里的唯一 ID。同名文件夹可能分属不同工作区；授权和写入要用同一组 ID，不能各自按名字查一遍。文件夹找不到、同名无法判定或不符合工作区边界时，不进入写入流程。
+
+Cedar 用四个字段问这次移动能不能做，合称 PARC（Principal、Action、Resource、Context）：
+
+| 字段 | 在本例中怎么取 |
+| --- | --- |
+| 主体 `principal` | 小陈。来自已认证的会话和经核实的委托关系。 |
+| 动作 `action` | `moveDocument`。由服务端把已注册的工具映射到业务动作。 |
+| 资源 `resource` | 《项目路线图》。使用服务端解析出的文档 ID。 |
+| 上下文 `context` | 目标文件夹，以及移出、写入和审批的核实结果。分别从文档服务、授权数据和审批记录取得。 |
+
+本例以委托用户为主体，另外记录 Agent 和执行服务的身份。如果 Agent 是独立主体，就显式建模它的权限与委托；模型不能靠填一个用户名来选择授权主体。
+
+一次 Cedar 请求只有一个 `resource`。本例把文档作为资源，通过 `context.destination` 引用目标文件夹，并提供对应的文件夹实体供策略读取。如果下游独立控制移出和写入，也可以把两侧映射成各自的动作或资源检查。
+
+### 2.2 Schema 检查类型，服务端核实事实
+
+Cedar Schema 可以声明 `moveDocument` 接受哪些主体、资源和上下文。下面是教学示例，只展开移动动作：
+
+```cedarschema
+namespace Docs {
+    entity User;
+    entity Document { confidential: Bool };
+    entity Folder { admitsConfidential: Bool };
+
+    action moveDocument appliesTo {
+        principal: User,
+        resource: Document,
+        context: {
+            destination: Folder,
+            canMoveSource: Bool,
+            canWriteDestination: Bool,
+            approvalVerified: Bool
+        }
+    };
+}
+```
+
+策略上线前用 Schema 验证策略；运行时，应用还可以按 Schema 检查请求结构和实体属性。[Cedar 的验证文档](https://docs.cedarpolicy.com/policies/validation.html)将这两件事分开：求值不是自动验证，类型正确也不保证被引用的实体已经提供。
+
+例如，`approvalVerified` 是布尔值，不代表这次移动真的获批。服务端要核对审批记录中的操作、文档、目标文件夹、审批人和有效期，再填入这个字段。移出和写入资格也由服务端查询，不接受模型自报。
+
+## 3. 把策略决定、诊断与执行放行分开
+
+假设《项目路线图》被标记为机密。「跨组协作」允许接收机密文档时，小陈还得同时具备移出和写入资格，并拿到这次移动的审批。如果目标目录不接收机密文档，审批也不能放行。
+
+下面用一条 `permit` 写许可条件，再用一条 `forbid` 写机密限制。
+
+```cedar
+permit (
+    principal is Docs::User,
+    action == Docs::Action::"moveDocument",
+    resource is Docs::Document
+) when {
+    context.canMoveSource && context.canWriteDestination
+        && context.approvalVerified
+};
+
+forbid (
+    principal is Docs::User,
+    action == Docs::Action::"moveDocument",
+    resource is Docs::Document
+) when {
+    resource.confidential && !context.destination.admitsConfidential
+};
+```
+
+按 [Cedar 的授权语义](https://docs.cedarpolicy.com/auth/authorization.html)，单条策略可以求值为 `true`、`false` 或 `error`。这里说的「满足」是指整条策略求值为 `true`，不只是主体、动作和资源匹配。
+
+- **默认拒绝。** 没有任何满足的 `permit`，结果是 `Deny`。如果也没有满足的 `forbid`，决定性策略列表为空。
+- **禁止优先。** 只要有一条满足的 `forbid`，即使也有满足的 `permit`，结果仍是 `Deny`。
+- **跳过出错策略（`skip-on-error`）。** 出错的策略不参与决定，其余策略照常决定结果。它和正常求值为 `false` 的区别是：Cedar 会在诊断里报告这条策略及其错误。
+
+拿上面的两条策略做个对照：`permit` 的三个条件都为真，文档也确实标为机密。如果应用只把目的地 ID 放进 `context.destination`，却没把目标文件夹实体传给 Cedar，`forbid` 会在读取 `admitsConfidential` 时出错。因为 `permit` 满足、没有别的 `forbid` 满足，Cedar 返回的仍是 **`Allow`，同时附有错误诊断**。这和「目标文件夹允许接收机密文档」不是一回事。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-25-agent-tool-authorization/cedar-decision-and-enforcement.svg" alt="四种 Cedar 策略组合：默认拒绝、正常允许、禁止覆盖、禁止策略报错后跳过。最后一种可得到带错误诊断的 Allow，应用的执行规则可拦截高风险操作" />
+  <figcaption className="w-full text-center">图 2：Cedar 可以返回 Allow，本例仍不写入。</figcaption>
+</figure>
+
+**诊断解释决定，不替服务端放行。** `Allow` 的决定性策略是满足的 `permit`，显式 `Deny` 的决定性策略是满足的 `forbid`。出错的策略和错误详情也在诊断里，但它们不是决定性策略。
+
+对这次移动，服务端可以这样处理：发现缺少必要事实，就不送去求值；没拿到决定，或拿到 `Deny`，就不提交写入；即使拿到 `Allow`，只要本次移动依赖的关键护栏报错，也不写入。最后一条是**应用的执行规则**。它拦住的是应用没法确认安全的写入，并没有改写 Cedar 的决定。
+
+## 4. 让授权跟着实际执行的参数走
+
+把路线图移到「跨组协作」的审批，不能用于「外部共享」。服务端应保存这次操作的主体、动作、文档 ID 和目标文件夹 ID，并把审批与授权决定关联到同一份操作记录。执行器用这份记录提交，不再让模型拼一遍参数。
+
+动作、文档或目标文件夹变了，就按新请求重新授权；超出原审批范围的，还要重新确认。
+
+### 4.1 入队时通过，写入前还要看当前状态
+
+移动任务排了十分钟。等待期间，小陈的移出资格可能被撤销，审批可能过期，目标目录也可能不再接收机密文档。参数没变，授权依据却变了，所以写入前要重读相关事实，再决定能否执行。
+
+复查和写入之间仍有时间差。若文档服务支持条件写入，可以要求文档仍处于检查时的版本，否则停下来重新检查。版本检查能发现文档自上次读取以来有变更，却不能证明另一个系统没有刚刚撤权。跨系统时，要明确每项授权事实可以使用多久，以及无法取得足够新的数据时是否停止写入。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-25-agent-tool-authorization/queued-execution.svg" alt="入队时记录核准参数，写入前重新读取当前事实，通过后用同一组参数提交；提交超时后先查原操作状态" />
+  <figcaption className="w-full text-center">图 3：排队后重新查权限，提交超时先查结果。</figcaption>
+</figure>
+
+### 4.2 移动和通知是两次操作，重试不该做两遍
+
+移动获准不意味着发送通知也获准。每个产生副作用的步骤都要经过自己的执行检查。若文档已移动、通知却被拒绝，应记录「部分完成」，而不是把整单视为未执行。
+
+**重新授权回答「现在还能不能做」，幂等回答「会不会做两次」。** 移动请求超时，写入却可能已经成功。先按权限查询原操作的状态；已经成功，就不再执行。
+
+如果确实要再次提交，先检查当前权限。下游支持幂等且仍在去重有效期内时，同一操作沿用同一个操作键和同一组参数。若结果查不到、也无法确认重放不会重复生效，就保留「结果未知」，不要自动再写一次。参见 [AWS 的幂等重试说明](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)。
+
+换成邮件，审批要绑定收件人和附件，不能批准发给同事后换成外部地址；换成付款，确认要绑定金额、币种和收款方。三种工具检查的参数不同，但都不能只确认「允许调用工具」。
+
+## 5. 审计要能回答「最后做了什么」
+
+看到一条 `Allow` 日志，怎么确认路线图最后有没有移动？用同一个操作标识串起三条记录：
+
+- **策略决定**：谁委托哪个 Agent 移动哪份文档、目标是哪里。保留参数摘要、审批引用、策略版本，以及 Cedar 的决定、决定性策略和错误诊断。
+- **服务端放行**：是否放行这次写入。未放行时记录原因，例如权限不满足、没有拿到决定，或关键护栏报错。
+- **下游结果**：是否提交、是否成功，或结果仍未知。有下游操作 ID 时一起记录。
+
+图 2 最后一行就应留下两条不同的结论：Cedar 决定为 `Allow`，服务端因关键策略报错而未提交写入。关系、文档和审批来自不同系统时，分别记录可用的版本或读取时间，不能把它们记成一份全局快照。日志保留必要摘要和可追溯的引用，不全量记录邮件正文、令牌或支付凭证。
+
+## 6. OpenFGA 可以查关系，但不能替代动作授权
+
+[OpenFGA 的 `Check`](https://openfga.dev/docs/interacting/relationship-queries) 可以回答「小陈能不能读路线图」。如果应用已经用 OpenFGA 管理关系，也可以用它分别查询小陈能不能移出这份文档、能不能写入目标文件夹。这两种关系由业务模型定义，不能用已有的读取关系替代。
+
+在这种组合里，服务端把两次 `Check` 的结果填入 `canMoveSource` 和 `canWriteDestination`，并确保结果对应本次操作的用户、文档和目的地；Cedar 再把它们和本次审批、机密属性一起求值。`Check` 明确返回不成立，与超时没有返回结果，应分别记录。缺少必要的查询结果，本例不写入。记录模型版本有助于追溯，但版本相同不代表两次查询读到了同一时刻的关系。
+
+这是已有关系数据时的一种分工。应用若能可靠地从业务数据取得这些事实，或者一个授权系统就能表达所需规则，不必加第二个引擎。
+
+回到《项目路线图》，检验这条流程可以看三个结果：换了目的地，旧审批不能沿用；写入前查到权限已撤销，就停止写入；提交超时，先查结果。**要控制的是那一次写入，不是模型说了什么，也不是日志里有没有一条 `Allow`。**
+
+## 参考资料
+
+- Cedar：[授权求值与诊断](https://docs.cedarpolicy.com/auth/authorization.html)、[Schema 格式](https://docs.cedarpolicy.com/schema/human-readable-schema.html)、[策略与输入验证](https://docs.cedarpolicy.com/policies/validation.html)
+- OpenFGA：[关系查询与 Check](https://openfga.dev/docs/interacting/relationship-queries)
+- OWASP：[Excessive Agency](https://owasp.org/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html)
+- AWS Builders’ Library：[Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)
+- **08**　[Cedar 与 OpenFGA：策略求值和关系查询如何分工](/blog/essay/2026-11-24-cedar-openfga-authorization-division)
+- **09**　Agent 调用工具前的授权：从策略判断到执行边界 **（本文）**
+- **10**　[细粒度授权全景：从关系建模、策略求值到安全执行](/blog/essay/2026-11-26-fine-grained-authorization-handbook)

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="490" height="249" viewBox="0 0 580 295" role="img" aria-labelledby="title desc">
+  <title id="title">四种策略结果：Cedar 决定与服务端动作</title>
+  <desc id="desc">本例只有一条 permit 和一条 forbid。两条均不满足时默认拒绝，只有 permit 满足时允许，两条均满足时显式拒绝。permit 满足而关键 forbid 报错时，Cedar 允许并报告错误，服务端按本例规则不写入。</desc>
+  <rect width="580" height="295" rx="12" fill="#f5f8fa"/>
+  <g fill="#fff"><rect x="12" y="49" width="556" height="44" rx="7"/><rect x="12" y="99" width="556" height="44" rx="7"/><rect x="12" y="149" width="556" height="44" rx="7"/></g>
+  <rect x="12" y="199" width="556" height="82" rx="7" fill="#fff0d9"/>
+  <g font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="20" fill="#253748">
+    <g font-weight="700"><text x="24" y="33">本例两条策略</text><text x="235" y="33">Cedar 决定</text><text x="422" y="33">服务端动作</text></g>
+    <text x="24" y="78">两条均不满足</text><text x="235" y="78">Deny（默认）</text><text x="422" y="78">不写入</text>
+    <text x="24" y="128">仅 permit 满足</text><text x="235" y="128" fill="#106555">Allow</text><text x="422" y="128">可继续检查</text>
+    <text x="24" y="178">两条均满足</text><text x="235" y="178">Deny（禁止）</text><text x="422" y="178">不写入</text>
+    <text x="24" y="232">permit 满足</text><text x="24" y="260">forbid 报错</text>
+    <text x="235" y="232" fill="#106555" font-weight="700">Allow</text><text x="235" y="260">附错误诊断</text>
+    <text x="422" y="232" fill="#774300" font-weight="700">不写入</text><text x="422" y="260">按应用规则</text>
+  </g>
+</svg>

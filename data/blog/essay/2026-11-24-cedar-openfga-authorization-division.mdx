@@ -1,0 +1,123 @@
+---
+title: 'Cedar 与 OpenFGA：策略求值和关系查询如何分工'
+date: '2026-11-24'
+tags: ['Cedar', 'OpenFGA', '授权策略', 'ReBAC', '访问控制', '细粒度授权', '系统架构']
+draft: false
+summary: '沿同一份文档协作案例，比较 Cedar 与 OpenFGA 如何准备授权事实、判断请求、处理撤权与权限列举，并说明组合时的责任边界。'
+images: ['/static/images/2026-11-24-cedar-openfga-authorization-division/cedar-openfga-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-24-cedar-openfga-authorization-division/cedar-openfga-cover.jpg"><img className="my-0 h-auto w-full" src="/static/images/2026-11-24-cedar-openfga-authorization-division/cedar-openfga-cover.jpg" alt="左侧的用户、组与文件夹关系连接到文档，右侧以独立的关卡示意策略判断" width="1536" height="1024" /></a>
+  <figcaption className="w-full text-center">关系查询与策略求值各有分工（GPT Image 2 生成）。</figcaption>
+</figure>
+
+**先看授权事实由谁维护，再看每次请求要由谁判断。** 如果系统的难点是沿组、文件夹和文档关系查询权限，或列出用户可访问的对象，先评估 OpenFGA；如果难点是拿到可信数据后，由多条策略共同判断一次请求，先评估 Cedar。两者都能处理关系与条件；只有一套系统难以满足需求时，再考虑组合。
+
+上一篇用《项目路线图》解释了 Cedar 的 `permit` 和 `forbid`。本文沿用小陈和小周的故事，比较两种系统怎样处理同一份文档的读取请求，再看分享撤销后，更新如何到达下一次授权检查。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-24-cedar-openfga-authorization-division/reading-guide.svg" alt="阅读路线：先判断关系与策略的分工，再比较请求输入与撤权，最后决定是否组合" />
+  <figcaption className="w-full text-center">图 1：从职责分工出发，再看请求、撤权与组合。</figcaption>
+</figure>
+
+## 1. 同一份文档，两条读取路径
+
+小陈是研发组成员。研发组有权读取「研发资料」文件夹，《项目路线图》放在这个文件夹里。小周不走这条继承路径：文档所有者林岚把路线图单独分享给了他，并设置了有效期。
+
+再加一条规则：机密文档只允许已完成 MFA（多因素认证）、且来自可信网络的请求读取。于是，「小陈有没有继承权限」和「小陈这次能不能读」是两个不同的问题。对小周也一样：分享仍有效，只说明他有一条授权来源。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-24-cedar-openfga-authorization-division/document-access-paths.svg" alt="小陈经研发组和文件夹继承读取，小周获得直接分享，两条路径均须满足机密文档的请求条件" />
+  <figcaption className="w-full text-center">图 2：小陈走继承路径，小周走直接分享；机密规则对两人都适用。</figcaption>
+</figure>
+
+## 2. OpenFGA：保存关系事实，按模型查询
+
+### 2.1 模型定义路径，元组记录事实
+
+在 OpenFGA 中，授权模型定义哪些关系能推导出读取资格，关系元组（tuple）记录具体事实：谁属于哪个组、哪个组能读哪个文件夹、文档放在哪里，以及谁获得了直接分享。`Check` 接收用户、关系和对象，例如「小陈能否读取路线图」，再按模型检查组成员与文件夹继承路径。小周则可通过直接分享满足同一查询。
+
+常见服务部署会把授权元组保存在 OpenFGA 的 Store 中，但不必把所有业务数据都放进去。身份系统可以维护组成员，业务库可以维护目录层级，再将查询所需的关系同步到 OpenFGA；单份分享也可以由 OpenFGA 持有。关键是约定每条事实由谁创建、更新和撤销。
+
+### 2.2 Conditions 判断条件，Contextual Tuples 补充临时关系
+
+[Conditions（条件）](https://openfga.dev/docs/modeling/conditions)可以限制小周的分享有效期：元组保存授予时间和时长，服务端查询时提供当前时间。OpenFGA 会合并元组 context 与请求 context；同名字段冲突时，元组中持久化的值优先。因此，不能依赖请求 context 覆盖元组里的授权参数。
+
+[Contextual Tuples（上下文元组）](https://openfga.dev/docs/interacting/contextual-tuples)适用于只在本次请求中成立的可信关系。应用可随查询传入，不写入 Store。两类输入的区别是：**请求 context 提供条件值，Contextual Tuples 提供临时关系。** MFA 状态、请求 IP、服务端时间和设备状态应由服务端从可信来源取得，不能直接采用客户端自报值。
+
+## 3. Cedar：把相关事实交给策略求值器
+
+[Cedar 的授权请求](https://docs.cedarpolicy.com/auth/authorization.html)由主体（Principal）、操作（Action）、资源（Resource）和上下文（Context）组成，简称 PARC。求值还需要适用的策略与相关实体。Schema 用于验证策略，不会在运行时替应用补齐事实。
+
+小陈读取路线图时，应用可在实体层级中提供组成员关系和文档所在文件夹。策略检查小陈是否属于研发组、路线图是否位于该目录，再由 `permit` 授予读取。对小周，应用从分享记录取出授权事实，交给相应策略判断。文档分类可放在资源实体中；MFA 和来源网络等请求信息由服务端放入 Context。
+
+关系仍参与求值，**但查齐关系的责任在应用侧**。调用方要提供策略所需的实体和属性；可按请求挑选相关数据，不必把整个组织和文档目录送入求值器。应用还要管理策略部署，并在收到结果后决定是否交付文档。
+
+## 4. 两个检验点：撤权何时生效，权限如何列举
+
+### 4.1 撤销小周的分享后，下一次检查读到了什么？
+
+**写入撤销，不代表下一次检查一定已读到撤销。** 若分享元组存于 OpenFGA，撤销时需删除对应元组；若权威记录在业务库，还要等变化同步到 OpenFGA。[一致性文档](https://openfga.dev/docs/interacting/consistency)说明：缓存开启时，`MINIMIZE_LATENCY` 可能读到尚未反映删除的缓存结果；`HIGHER_CONSISTENCY` 绕过缓存查数据库，增加延迟和系统性能成本。缓存默认关闭；关闭时，各一致性模式下的查询均为强一致性。绕过缓存不会替代外部业务库到 OpenFGA 的同步。OpenFGA 目前没有 Zanzibar 的 Zookie 一致性令牌；官方将类似功能列为未来考虑。
+
+在 Cedar 中，分享若作为实体输入，撤销何时可见取决于应用何时读到更新；若分享规则写在策略中，则取决于策略何时更新并分发。两者都要检查从写入到下次授权判断的完整链路。撤销小周的**直接分享**，不会移除他可能拥有的其他授权路径。
+
+### 4.2 列出小周能读的文档，是否等于搜索文档？
+
+OpenFGA 的 [`ListObjects`](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to) 按用户、关系和对象类型列出符合授权关系的对象。结果无序，数量受执行时限和上限约束，所以它不是稳定分页的全文搜索。标题、相关度和排序仍由业务检索负责；应用可以在候选结果筛选或实际读取时检查授权。
+
+Cedar 的标准授权调用针对已知资源。要找出用户可见的所有文档，应用通常先检索候选资源、准备对应实体，再逐项做授权判断或使用其他查询机制。比较两者时，要看**谁找候选、谁查询关系、每次请求需要准备多少数据**。
+
+## 5. 按主要问题选型，再判断是否组合
+
+| 当前主要难点 | 可先评估 | 先验证什么 |
+| --- | --- | --- |
+| 多跳继承、跨资源分享、按人列举可见文档 | OpenFGA | 关系权威来源、目标规模下的查询范围、撤权可见性 |
+| 应用已有可信实体数据，需要统一管理多条请求策略 | Cedar | 相关实体能否取齐、策略如何部署、诊断如何处置 |
+| 既需要独立查询关系图，又需要统一的请求级策略 | 候选：两者组合 | 职责是否能分开，是否值得付出同步、故障处理和审计成本 |
+
+一种组合方式是由 OpenFGA 判断文档读取的**关系资格**，再由 Cedar 根据机密分类、MFA 和来源网络判断本次请求**是否允许读取**。应用把 OpenFGA 的 `Check` 结果绑定到已认证的主体、操作和资源，并附上可信上下文交给 Cedar；不能相信客户端自报的资格。两次判断都通过后，应用才返回文档。
+
+这只是候选架构，不是开箱即用的集成。若 OpenFGA 的模型和条件已能满足需求，就不必再接 Cedar。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-24-cedar-openfga-authorization-division/combined-authorization.svg" alt="应用准备可信输入，OpenFGA 检查对应关系资格，Cedar 评估此次访问，应用在文档出口执行决定" />
+  <figcaption className="w-full text-center">图 3：先查关系资格，再做策略判断，最后由应用执行。</figcaption>
+</figure>
+
+## 6. 组合后，哪些责任不能交给引擎？
+
+**同一条规则只维护一份。** 如果分享期限由 OpenFGA 条件关系判断，Cedar 接收判断结果即可，不要再复制一套期限规则。还要记录 OpenFGA 模型和 Cedar 策略版本，以及关系与资源属性的来源。两次判断之间若发生撤权或文档变更，两个结果并不自动基于同一份数据快照。
+
+**拒绝和出错要分开处理。** OpenFGA 返回 `allowed: false`，表示关系判断不成立；超时或无效请求则是调用错误。Cedar 的 `skip-on-error` 会跳过出错的单条策略并记录诊断。若出错的是 `forbid`，其他有效的 `permit` 仍可能让结果为 `Allow`。应用应定义机密读取的故障策略：关键输入缺失、关系查询失败或关键策略求值出错时，不返回文档，并区分可重试错误和明确拒绝。
+
+**日志应能解释最终动作。** 用同一个请求标识关联关系检查结果、模型与策略版本、诊断信息和应用动作。OpenFGA 的布尔结果本身不等于完整的关系路径证明；若审计要求说明命中路径，需要另行记录相应证据。
+
+回到小陈和小周，先用一次读取和一次撤权验证设计：事实写在哪里、下一次检查读到什么、出错时谁阻止文档返回。**只有这些职责确实需要分开，才考虑组合两套引擎。** 若要比较性能，应固定关系规模、请求结构、缓存和一致性要求做端到端测试；架构职责不同本身不能说明延迟或成本谁高谁低。
+
+## 参考资料
+
+- Cedar：[Authorization](https://docs.cedarpolicy.com/auth/authorization.html)、[Terminology](https://docs.cedarpolicy.com/overview/terminology.html)、[Authorization Patterns](https://docs.cedarpolicy.com/bestpractices/bp-authorization-patterns.html)
+- OpenFGA：[Check](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization)、[ListObjects](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to)、[Conditions](https://openfga.dev/docs/modeling/conditions)、[Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)、[Consistency](https://openfga.dev/docs/interacting/consistency)
+- OpenFGA：[Source of Truth](https://openfga.dev/docs/best-practices/source-of-truth)、[Adoption Patterns](https://openfga.dev/docs/best-practices/adoption-patterns)、[Policy Engines vs. Relationship Engines](https://openfga.dev/docs/learn/policy-engine)、[ABAC vs. ReBAC](https://openfga.dev/docs/learn/abac-vs-rebac)
+
+## 细粒度授权：从关系建模到策略执行
+
+### 第一部分：关系建模与 OpenFGA
+
+- **01**　[OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](/blog/essay/2026-11-17-openfga-relationship-authorization-overview)
+- **02**　[把 OpenFGA 跑起来：模型、授权查询与性能观察](/blog/essay/2026-11-18-openfga-hands-on)
+- **03**　[一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](/blog/essay/2026-11-19-openfga-check-deep-dive)
+- **04**　[什么是 ReBAC？用一份文档讲清关系授权](/blog/essay/2026-11-20-rebac-document-collaboration)
+
+### 第二部分：选型与权限查询
+
+- **05**　[OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](/blog/essay/2026-11-21-relationship-authorization-product-comparison)
+- **06**　[OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](/blog/essay/2026-11-22-openfga-permission-aware-search)
+
+### 第三部分：策略求值与执行边界
+
+- **07**　[Cedar 授权策略：从 Schema 到 permit / forbid](/blog/essay/2026-11-23-cedar-authorization-policy)
+- **08**　Cedar 与 OpenFGA：策略求值和关系查询如何分工 **（本文）**
+- **09**　[Agent 调用工具前的授权：从策略判断到执行边界](/blog/essay/2026-11-25-agent-tool-authorization)
+- **10**　[细粒度授权全景：从关系建模、策略求值到安全执行](/blog/essay/2026-11-26-fine-grained-authorization-handbook)

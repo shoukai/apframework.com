@@ -1,0 +1,856 @@
+---
+title: '细粒度授权全景：从关系建模、策略求值到安全执行'
+date: '2026-11-26'
+tags: ['细粒度授权', '访问控制', 'ReBAC', 'OpenFGA', 'Cedar', '授权策略', 'Agent', '系统架构']
+draft: false
+summary: '从细粒度授权的概念出发，用同一份文档串起关系建模、权限查询、策略求值、撤权与 Agent 工具执行，并提供系列章节索引和官方资料阅读路线。'
+images: ['/static/images/2026-11-26-fine-grained-authorization-handbook/authorization-handbook-cover.jpg']
+---
+
+<figure className="flex flex-col items-center text-center">
+  <a href="/static/images/2026-11-26-fine-grained-authorization-handbook/authorization-handbook-cover.jpg"><img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/authorization-handbook-cover.jpg" alt="用户与群组关系经过分层规则和执行关口，只有被允许的路径到达文档" width="1536" height="1024" /></a>
+  <figcaption className="w-full text-center">从关系建模到策略求值与执行</figcaption>
+</figure>
+
+**细粒度授权决定的是：哪个主体，在什么条件下，可以对哪一个资源执行哪一个动作。** 粒度细不细，要看它能否区分业务在意的边界：同一用户能否读这一份文档和另一份文档，能否读取却不能转发，换了组织、时间或认证状态后答案是否变化。它不等同于某种产品，也不要求把所有权限逐条写出来。
+
+完整的授权链还要回答三个问题：**用哪些可信事实和规则作出决定，在哪里执行这个决定，事实变化后下一次操作何时看得到。** 这也是本文区分建模、查询、执行和撤权的主线。
+
+<a id="chapter-1"></a>
+
+## 1. 基础概念：授权依据什么，决定如何生效
+
+### 1.1 什么是细粒度授权
+
+**身份认证确认请求者是谁；授权判断请求者能否做这件事；执行控制负责真的放行或拦截。** 认证通过不代表拥有权限，得到允许也不代表操作已经完成。
+
+一条授权请求至少要说清**主体、动作、资源**。主体是以什么身份申请操作的用户或服务；动作是读取、编辑、分享等业务操作；资源是操作所针对的对象，可以是一份文档、一条记录，也可以是一个组织。**请求上下文**是本次判断用到的额外信息，比如认证会话状态或请求时间。多资源操作可能需要分别检查源和目标；它们不必硬塞进一次引擎调用。
+
+细粒度是对**业务边界**的描述。若产品只需区分“能不能进入后台”，模块级权限可能就够了；若业务要区分“能编辑哪条记录、能否把它发给谁”，资源和动作就要表达得更具体。表达够用即可，不必把每个页面按钮都建成一条规则。
+
+### 1.2 RBAC、ABAC、ReBAC 有什么区别
+
+三者区分的是**规则主要依赖哪类事实**，不是三种只能选其一的部署方式：
+
+- **RBAC（基于角色的访问控制）**：先把操作权限授给角色，再把角色分配给主体。规则关心“请求者担任什么职责”；职责也可以限定在某个组织、项目或资源范围。
+- **ABAC（基于属性的访问控制）**：按主体、资源、动作或环境的属性判断。规则关心“数据与请求满足哪些条件”，如资源的敏感等级、主体的部门或当前会话是否通过额外认证。
+- **ReBAC（基于关系的访问控制）**：用成员、所有、分享、父子等关系表达访问依据，规则可以按明确的路径推导权限。并非关系图上能走通就算允许；哪些关系可组合、哪些权限能继承，由模型决定。
+
+角色不天然等于全局权限，关系也不等于不使用属性。同一系统可以用角色表达职责，用关系缩小可访问对象的范围，再让请求条件限制本次操作。模型基础可对照 [NIST RBAC 项目页](https://csrc.nist.gov/projects/role-based-access-control)、[NIST ABAC 指南](https://doi.org/10.6028/NIST.SP.800-162)和[关系授权概念](https://openfga.dev/docs/concepts)。
+
+### 1.3 事实、规则、决定和执行分别是什么
+
+**模型或策略记录判断方法；事实记录当前状态。** 事实变了，不一定要改规则；规则变了，即使数据没动，判断结果也可能不同。可以把一次授权看作：给定请求、可信事实和一套规则，先求得决定，再由应用控制实际操作。
+
+- **事实**提供角色分配、关系、属性和当前请求条件；字段类型合法，不等于事实可信。
+- **规则**定义关系如何推导、条件何时成立、多个结果怎样组合；它不是当前用户权限的静态清单。
+- **决定**对本次请求求得允许或拒绝，并按实现返回诊断或错误；调用成功，不等于决定允许。
+- **执行**在数据出口或写入入口，根据决定和应用约束放行或拦截；决定允许，不等于操作已成功。
+
+做决定的逻辑常称**策略决策点（PDP）**，实际拦截请求或控制内容交付的逻辑常称**策略执行点（PEP）**。两者是职责，可以同在一个服务里。超时、断连或缺必要输入时，应用可能拿不到可信决定；这种未知不能用于放行，也不应记成引擎正常返回的拒绝。不同实现可能在返回决定的同时报告错误，第 6 章以 Cedar 具体说明。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/authorization-chain.svg" alt="身份和资源解析、可信事实、规则求值、决定与实际执行组成授权链路，事实变化沿同步和索引路径影响后续请求" />
+  <figcaption className="w-full text-center">图 1：授权从可信输入延伸到实际执行。结构示意。</figcaption>
+</figure>
+
+### 1.4 数据可信和规则正确是两件事
+
+策略可以严谨地计算一份错误输入。客户端自报自己属于研发组、模型填写 `mfa: true`、旧索引声称分享仍有效，都可能具有正确的字段类型，却不具有可信的事实来源。
+
+因此，授权设计先要标出每项输入的来源。成员关系来自组织系统，文档组织和父目录来自文档服务，MFA 来自已经验证的认证会话，来源地址来自可信代理链，当前时间来自服务端。输入经过几个系统转发，还应知道它对应哪个对象、读取于何时，以及允许使用多久。
+
+这与把所有数据集中到同一个数据库无关。集中可以减少散落的推导代码，也会增加同步责任。分散可以复用现有权威数据，也会增加请求时收集事实的工作。先画清责任，再决定部署形态，才能避免“接入一个引擎，就把安全交给它”的错觉。
+
+### 1.5 检查必须位于真正的资源边界
+
+页面隐藏按钮只改善交互，不保护后端。正文、附件、导出、搜索摘要、后台任务和工具写入，都可能是独立的访问入口。只在列表检查，不能替代详情检查；只在 Agent 编排层检查，不能替代下游工具服务检查。
+
+[OWASP 授权指南](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)强调默认拒绝及对请求执行授权检查。落到系统里，关键不是让每层机械地重复同一次查询，而是确保每个能交付敏感数据或产生副作用的入口，都有不可绕过的执行控制，并且检查的动作与真实操作相符。
+
+接下来先不讨论选哪一家产品。用一份可验收的业务规则，规定这些入口究竟应该允许谁。
+
+<a id="chapter-2"></a>
+
+## 2. 从一份文档写出可验收的业务规则
+
+上一章定义了概念：请求由主体、动作、资源和上下文描述；系统依据可信事实与规则作出决定，再在执行点落实。现在用一个案例把这些抽象项落到明确、可复核的业务规则上。
+
+### 2.1 三个人，三条读取路径
+
+**先规定正确答案，再选择模型语法。** 甲组织有研发组、产品组，以及“研发资料”“产品资料”两个文件夹。《项目路线图》最初位于研发资料。案例只讨论本组织内的移动，移动保留文档 ID 和直接分享。
+
+林岚是甲组织的文档管理员，负责本组织文档管理。本例规定管理文档的人也可以读取。小陈属于研发组，该组可以读取研发资料；文档显式继承父文件夹读取权限。小周不属于这两个组，但单独获得了路线图的读取分享。
+
+| 人物 | 能读的依据 | 能否管理路线图 |
+| --- | --- | --- |
+| 林岚 | 文档属于甲组织，她是该组织管理员 | 能 |
+| 小陈 | 研发组成员 → 研发资料读者 → 文档继承 | 不能 |
+| 小周 | 针对这份文档的直接读取分享 | 不能 |
+
+这里的“管理”先表示本案例的文档管理资格，不是一个自动包含所有危险动作的万能权限。真实系统可以继续拆成改变分享、移出文档、转移所有者等动作；组织成员管理则是组织资源上的另一项权限。
+
+读取与管理的方向必须明确：**本例允许从 `manage` 推出 `read`，不允许从 `read` 反推 `manage`。** 小周得到分享，不会顺便拥有再次分享、删除或移动的资格；林岚能够读取，也不是她获得管理权的原因。
+
+### 2.2 让连续变化成为验收矩阵
+
+小陈先退出研发组、加入产品组；林岚随后把路线图移到产品资料；最后撤销小周的直接分享。三件事连续发生，不能每一步都偷偷回到初始数据。
+
+| 阶段 | 本次改变 | 林岚：读／管理 | 小陈：读 | 小周：读 |
+| --- | --- | --- | --- | --- |
+| 初始 | 路线图在研发资料 | 可／可 | 可 | 可 |
+| 小陈换组 | 删除研发成员关系，新增产品成员关系 | 可／可 | 不可 | 可 |
+| 文档移动 | 父文件夹由研发资料改为产品资料 | 可／可 | 可 | 可 |
+| 撤销分享 | 删除小周对路线图的直接读取关系 | 可／可 | 可 | 不可 |
+
+这张表描述查询已经看到相关变更之后的预期。它验证规则语义，不代表撤权在所有线上入口立即可见。后面还要单独定义同步、缓存和长任务的新鲜度要求。
+
+反例同样重要。乙组织管理员不能因为同名角色访问甲组织文档；小周拿到路线图分享，不能读同目录的研发预算；小陈换组不应影响小周；移动文档不应改变林岚的组织管理资格。如果小周后来也加入产品组，撤销直接分享之后，他仍可能沿文件夹路径读取。撤销一项授权来源，不等于保证此人再无任何访问路径。
+
+### 2.3 把概念变成业务规则
+
+现在可以把前一章的三种授权依据放回案例：组织管理员是有组织范围的角色；研发组成员及文档所在文件夹是关系路径；MFA 状态或分享截止时间则是属性和请求条件。同一个决定可以组合这些依据，不能简单按“关系引擎”或“属性策略”把需求切成互不相干的两边。
+
+RBAC 可以有组织、项目乃至资源实例作用域。不能把“RBAC 不能做单份文档权限”当作采用 ReBAC 的前提。更实际的区别是维护方式：大量单对象例外若都变成临时角色，管理成本可能高于直接维护分享关系；少量稳定职责则不必为了关系模型而拆成复杂图。
+
+案例仍需定义哪些动作共用资格：本例允许管理员读取，也允许文件夹读者继承读取；但改变分享、移出文档、转移所有者和管理组织成员未必能合成一个通用 `manage`。条件也有作用范围：分享到期，只使该分享路径失效；若要求所有读取都通过 MFA，条件就不能只附在小周的分享路径上。
+
+概念来源可对照 [NIST 的 RBAC 背景](https://csrc.nist.gov/projects/role-based-access-control)、[ABAC 指南](https://doi.org/10.6028/NIST.SP.800-162)及 [OpenFGA 关系授权概念](https://openfga.dev/docs/concepts)。
+
+<a id="chapter-3"></a>
+
+## 3. 关系建模：哪些是事实，哪些是推导
+
+### 3.1 先把可以写入的关系和计算结果分开
+
+**关系事实记录“现在有什么连接”，模型规定“哪些连接可以推出哪项权限”。** 路线图有父文件夹，不代表父文件夹读者必然能读它；小陈和林岚同属一个组织，也不代表两人能互相管理资源。必须由模型明确使用这些事实。
+
+下面给出覆盖上述案例的最小 OpenFGA 模型，使用便于阅读的 FGA DSL。DSL 不是原生 HTTP 请求体，调用创建模型 API 前需经 CLI 或相应 SDK 工具转换为 API JSON。它是本文的教学模型，未作为新实验运行；实际接入时仍需按目标版本执行模型校验与断言测试。
+
+模型包含用户、组、组织、文件夹和文档。`direct_reader`、`org`、`parent` 等关系允许保存元组；`manage`、`read` 和 `manage_members` 只通过规则计算。文件夹允许父文件夹递归继承，文档只关联文件夹。
+
+```fga
+model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user]
+
+type organization
+  relations
+    define admin: [user]
+    define manage_members: admin
+
+type folder
+  relations
+    define org: [organization]
+    define parent: [folder]
+    define direct_reader: [user, group#member]
+    define manage: admin from org
+    define read: manage or direct_reader or read from parent
+
+type document
+  relations
+    define org: [organization]
+    define parent: [folder]
+    define direct_reader: [user, group#member]
+    define manage: admin from org
+    define read: manage or direct_reader or read from parent
+```
+
+`manage: admin from org` 沿组织关系查管理员，`read: manage or direct_reader or read from parent` 合并三种读取来源。组织上的 `manage_members` 仍属于组织，不从任一文档的读取关系派生；此教学模型将它简化为与 `admin` 等价的计算关系，没有演示可单独授予的成员管理角色或更细管理范围。
+
+`admin from org`、`read from parent` 属于 tuple-to-userset：先沿对象关系找到组织或文件夹，再检查那个对象上的管理员或读者关系。这里 `from` 右侧的 `org`、`parent` 必须是直接对象关系，不能换成计算关系，其允许类型也不能改成 `group#member` 这样的 userset 或类型通配符。
+
+### 3.2 把案例事实写进去，再发出 Check
+
+创建 Store、上传模型后，以返回值替换请求中的 `{store_id}` 和 `{authorization_model_id}`。以下写入九条事实：林岚是甲组织管理员；小陈属于研发组；两个组分别读取对应文件夹；两个文件夹及路线图属于甲组织；路线图位于研发资料；小周获得单篇分享。
+
+```http
+POST /stores/{store_id}/write
+Content-Type: application/json
+
+{
+  "authorization_model_id": "{authorization_model_id}",
+  "writes": {"tuple_keys": [
+    {"user":"user:lin","relation":"admin","object":"organization:a"},
+    {"user":"user:chen","relation":"member","object":"group:a-engineering"},
+    {"user":"organization:a","relation":"org","object":"folder:a-research"},
+    {"user":"organization:a","relation":"org","object":"folder:a-product"},
+    {"user":"group:a-engineering#member","relation":"direct_reader","object":"folder:a-research"},
+    {"user":"group:a-product#member","relation":"direct_reader","object":"folder:a-product"},
+    {"user":"organization:a","relation":"org","object":"document:a-roadmap"},
+    {"user":"folder:a-research","relation":"parent","object":"document:a-roadmap"},
+    {"user":"user:zhou","relation":"direct_reader","object":"document:a-roadmap"}
+  ]}
+}
+
+POST /stores/{store_id}/check
+Content-Type: application/json
+
+{
+  "authorization_model_id": "{authorization_model_id}",
+  "tuple_key": {
+    "user": "user:chen",
+    "relation": "read",
+    "object": "document:a-roadmap"
+  },
+  "consistency": "HIGHER_CONSISTENCY"
+}
+```
+
+请求路径是 API 相对路径；部署时另行配置服务地址及认证信息。按这些规则与事实，小陈的读取预期允许，管理预期拒绝。把主体换成林岚，`manage` 与 `read` 都预期允许；换成小周则只有 `read` 允许。这些是待测试的模型断言，不是本次运行回执。
+
+`group:a-engineering#member` 是 userset，表示该组的成员集合，不是一个用户名。将这个集合授予文件夹的 `direct_reader` 后，小陈只需保有成员关系，就能参与相应读取推导。文件夹没有保存一条“小陈读者”的展开副本，成员更新却可能改变多份文档的答案。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/relationship-paths.svg" alt="林岚从组织管理员关系获得文档管理并读取，小陈经研发组成员和父文件夹继承读取，小周通过直接分享读取；读取不反推管理" />
+  <figcaption className="w-full text-center">图 2：三条读取路径具有不同的事实来源。结构示意。</figcaption>
+</figure>
+
+### 3.3 并集、交集、差集改变证据要求
+
+上面的读取规则使用并集：任一有效路径成立即可。如果业务规定“收到分享且仍是组织成员”，就是交集，两项都要成立；若规定“有读取来源且不在暂停访问名单”，还包含排除条件。对这些规则，找到一条连通路径未必足以允许。
+
+[OpenFGA 配置语言](https://openfga.dev/docs/configuration-language)既描述关系组合，也限制哪些主体类型可以直接写入。例如允许 `group#member`，不表示可以把任意组织对象写成读者。本模型的 `read`、`manage` 等关系没有直接赋值入口，不能为了省事硬写元组；能否直接写入，取决于该关系是否声明了相应的直接类型限制。
+
+但类型约束不等于全部业务约束。此模型不会自动保证文档只有一个父文件夹、资源只有一个所属组织、父子属于同一租户，或层级无环。若为路线图同时保存两个父级，规则可能从两边继承，权限就被扩张。写入流程必须维护唯一父级、单一组织归属、租户匹配及允许的层级结构，并对缺失和异常数据有明确处理。
+
+资源 ID 带上组织前缀便于辨认，却不是租户隔离证明。事实写错组织，或错误连接跨组织父目录，仍可能产生不该有的路径。应用应从可信业务记录解析归属，不接受客户端任意指定 `org` 关系。本模型也没有为组声明组织归属，`group#member` 分享同样可能跨组织；写入服务还要核对组的实际归属和可分享范围，不能只检查文档的 `org` 与 `parent`。
+
+### 3.4 Conditions 约束关系，Contextual Tuples 提供临时事实
+
+给小周的分享加有效期，可以使用 [Conditions](https://openfga.dev/docs/modeling/conditions)：模型声明条件及参数类型，带条件元组保存授予时间、时长等参数，请求提供可信当前时间，求值时判断该关系是否生效。普通命名条件合并上下文时，元组中已提供的同名值优先，不能靠请求覆盖持久授权参数。
+
+条件为假，表示这条路径不成立。必要条件参数缺失或求值出错，则不能直接解释成正常的未授权；应用需要识别实际 API 的错误语义。还要记住条件的作用范围：分享过期不一定影响管理员路径。要求所有路径都满足的护栏，必须在总体决定中正确组合。
+
+[Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)则是随当前查询提供、不会持久保存的关系事实。它们仍受模型校验，不是跳过类型约束的后门。请求 `context` 提供条件所需的值，Contextual Tuples 提供关系，这两类输入不要混为一个“上下文”。
+
+临时不代表可信。若把客户端提交的“我是组织管理员”原样当作上下文元组，求值器即使正确工作，结果也已经失去依据。同一主体、关系和对象同时存在存储元组与上下文元组时，请求中的上下文元组优先，更需要控制构造来源。若根据尚未过期的令牌声明构造成员关系，底层成员已经撤销也不意味着该声明自动失效，还要处理令牌生命周期与撤销。采用这种方式的前提，是调用方能够可靠证明并绑定该关系，同时承担请求时收集数据的成本。
+
+<a id="chapter-4"></a>
+
+## 4. 从一次 Check 到可见集合
+
+### 4.1 根据问题选择接口
+
+**单点判断、集合枚举和读取原始事实，是不同的查询。** 不要因为一个接口能返回 ID，就把它当作所有权限需求的共同出口。
+
+| 查询 | 适合的问题 | 不能据此直接推断 |
+| --- | --- | --- |
+| `Check` | 小陈能读取路线图吗 | 他能读的完整文档集合 |
+| `BatchCheck` | 这批候选中哪些可以读 | 搜索排序和下一页位置 |
+| `ListObjects` | 某主体对哪些指定类型对象有某关系 | 全文检索、稳定业务分页 |
+| `ListUsers` | 指定对象与关系下有哪些过滤类型的主体 | 所有身份资料已完整展开 |
+| `Read` | 当前保存了哪些匹配元组 | 所有推导权限 |
+| `Expand` | 目标关系的 userset 推导结构是什么 | 当前用户完整的授权证明 |
+
+`Read` 看到的是关系记录，不会自动把组成员和继承结果全部展开。`Expand` 有助于理解关系结构，也不能替代包含当前主体、上下文和条件的实际检查。审计若需要说明具体命中依据，应设计相应证据记录，不能假设布尔型 Check 已经附送完整推导路径。
+
+### 4.2 成功、拒绝和错误要保留区别
+
+Check 成功返回 `allowed: false`，是一次确定的否定结果。请求无效、模型不兼容、网络超时或求值失败，则是不同原因。应用最终都可能不返回内容，但排障、重试、告警和产品提示不能一概记成“用户没权限”。
+
+批量检查更容易丢失这个区别。应以批次内唯一标识把每项结果映射回候选，并识别单项错误、缺失结果及整批失败。不能读取一个默认值为 `false` 的字段，就把所有异常压成拒绝；也不能用完成顺序替代原候选顺序。
+
+安全策略通常要求没有可靠允许就不交付内容，但这是一条执行规则，不意味着“未知”和“拒绝”的含义相同。保留三态，后面的分页才有机会区分“这个候选应该略过”和“这个候选还没有检查完”。
+
+### 4.3 模型版本不固定关系数据
+
+OpenFGA 的授权模型写入后不可变，新规则获得新的模型 ID。生产调用显式带上 ID，可以避免发布新模型后，未准备好的调用方自动切换规则。[不可变模型指南](https://openfga.dev/docs/getting-started/immutable-models)说明了这一选择。
+
+**模型 ID 固定规则，不固定数据快照。** 同一模型下，成员、分享和父文件夹仍会变化。连续两次 Check 使用相同 ID，不代表两次读到同一时刻的元组；同一页拆成多个批次，也不能据此宣称使用统一授权快照。
+
+### 4.4 性能要按完整业务操作测量
+
+一次读取包含身份解析、必要事实获取、授权和内容读取。一页可见列表还包含候选扫描、批量检查及补页。撤权验证则包含从业务变更到其他实例采用新事实的整个过程。单次函数调用时延无法代表三者。
+
+实际评估应固定版本、模型、关系深度与扇出、数据库、网络、缓存和一致性要求，同时记录错误及资源消耗。允许和拒绝可能走不同路径，小可见集合与大范围枚举也可能有不同成本。前面系列的本机实验可以帮助理解测量方法，但不能被转换成不同产品之间的性能排名，更不能替代目标环境容量测试。
+
+<a id="chapter-5"></a>
+
+## 5. 列表、搜索和 RAG：授权改变了数据流
+
+### 5.1 目标是有序可见子序列，不是过滤首批结果
+
+**搜索负责找相关内容，授权负责决定能否交付，应用负责把二者组织成完整、可继续的结果。** 搜索返回前 20 个候选，小周只能看 3 个，不说明查询只有 3 个可见结果。若产品承诺尽量填满一页，就需要继续向后扫描。
+
+设同一搜索会话中的候选按稳定相关性顺序排列。应用分批取得候选，批量检查，再按原顺序消费：允许就加入结果，明确拒绝就略过；页面填满、候选耗尽、预算用完或遇到未知时停止。并发检查可以乱序完成，展示顺序不能跟着乱。这里的“完整可见前缀”以固定候选序列和各项检查实际观察到的状态为准，不代表整页共享同一授权快照。
+
+最容易漏项的是批中停点。假设前两批得到 13 条，第三批读取位置 41—60，到 49 时刚好满 20 条。那么下一页必须保留 50—60，不能从 60 之后开始。已经预取、甚至已经检查，不等于已经被某一页消费。
+
+实现可保存未消费候选缓冲，也可以在稳定搜索快照上从实际消费位置续读。两者都需要区分“搜索已取到哪里”和“用户结果已决定到哪里”。跨页缓冲保存候选即可，不应把旧的允许结果当作长期通行证。
+
+### 5.2 未知会影响完整性，不只是可用性
+
+如果候选 27 检查超时，28 已知允许，能否先返回 28？对于声称返回“完整可见前缀”的方案，不能。27 若后来允许，本应排在 28 前面；静默跳过就产生漏项。
+
+一种保守方案是消费到 26，保留 27 及后续候选，下次重新检查。业务也可以接受带明确缺项标记的部分结果，但不能把超时当拒绝，再声称完整。无论选择哪一种，未知项都不能进入返回内容。
+
+停止原因也应分开：满页、候选耗尽、扫描预算耗尽和异常。预算不足不是“没有更多”，尚有候选也不代表必有下一条可见结果。接口可以分别表达候选是否仍可继续，以及本次结果是否完整，避免一个 `has_more` 承担互相矛盾的含义。
+
+游标还要绑定主体、租户、查询、排序、搜索会话和必要的规则版本及上下文范围。不透明服务端句柄或经过认证保护的令牌，都比裸露的客户端 JSON 更合适。候选缓冲可能含不可见文档 ID 和标题，不应为了续页泄露给调用者。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/search-context-boundary.svg" alt="先搜索再授权、先列可见ID再搜索、派生授权索引三条路线最终都在内容交付和模型上下文前设置检查边界" />
+  <figcaption className="w-full text-center">图 3：候选来源可以不同，内容出口仍须受控。结构示意。</figcaption>
+</figure>
+
+### 5.3 三条搜索路线，交换的是维护成本
+
+[OpenFGA 权限搜索指南](https://openfga.dev/docs/interacting/search-with-permissions)给出了几类组合方式。选路线时，不只看 API 调用次数，更要看完整性、新鲜度和恢复责任。
+
+| 路线 | 适合的起点 | 必须证明什么 |
+| --- | --- | --- |
+| 先搜索，再批量检查 | 搜索能明显缩小候选，可见密度尚可 | 稳定续读、批中尾部、未知和预算处理正确 |
+| 先枚举可见 ID，再搜索 | 可见集合小，能可靠取得 | ID 集合完整且适用，搜索在过滤后排序及截断 |
+| 派生授权索引，再复核 | 集合大而稀疏，前两者成本过高 | 依赖展开、变更同步、索引版本、对账及重建 |
+
+先枚举并非天然更完整。[ListObjects 接口](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to)的结果不提供业务相关性顺序，并受到执行期限及结果限制；不能按通用分页想象补出一个续页循环，也不能只凭 HTTP 成功或返回数量小于上限，就证明取得了全集。应核对实际版本、接口与终止语义，再决定能否承担精确集合过滤。
+
+即使 ID 拿全，搜索也必须先按集合过滤，再形成所需的 top-K。全库先截出前 20 条，再与可见 ID 相交，仍可能丢失本应入选的后续可见文档。分面、计数和下一页也应采用一致的可见范围，不能让统计泄露另一个集合的信息。
+
+### 5.4 派生索引不是元组的一份简单副本
+
+研发组成员变化可能影响很多文档。把“删除一条成员元组”直接当作“删除一个文档可见项”，无法维护这样的依赖。[ReadChanges](https://openfga.dev/docs/interacting/read-tuple-changes)提供元组变化，不自动展开 userset，也不包含所有模型规则变更。因此，变化流不能直接等同于有效权限变化的完整增量。
+
+索引必须知道由哪版规则推导、处理到哪个水位，以及成员、层级、分享变化分别影响哪些资源。模型切换即使不修改任何元组，也可能需要重算；时间条件到期可能没有删除事件，也需要查询时求值或其他失效安排。
+
+索引滞后有两种不同后果。旧的允许项还在候选中，足够新的后置 Check 可以剔除，减少撤权残留。新的允许项尚未进入索引，则连候选都没有，后置 Check 无法凭空补回。因此，安全复核不等于召回完整；新授权可见性还依赖索引更新。
+
+上线这条路线前，还要设计全量初始化与增量衔接、重复消费幂等、更新与 checkpoint 提交、重放、对账和重建。只有快速查询，没有恢复流程的索引，不是一条完整运行链路。
+
+### 5.5 RAG 的闸门在模型输入之前
+
+RAG 把内容交给模型之前就要完成相应授权。未授权预算已经进入上下文，最后隐藏引用链接也不能保证答案不使用它。[官方 RAG 指南](https://openfga.dev/docs/modeling/agents/rag-authorization)中的候选过滤与 ID 前置约束，都应服从这条边界。
+
+每个片段应携带可信的文档 ID、租户和内容版本。按文档授权时，可以合并同文档检查，但片段排序与文档去重要按产品目标处理。“取 20 个片段”和“取 20 份文档”不是同一任务；重排、相邻片段扩展、正文补全引入的新文档，也必须过闸门。
+
+内容索引和权限索引还会各自滞后。允许读取某文档，不等于已经删除的旧片段仍可返回；再查授权服务，也不能修复业务源尚未同步给该服务的撤权。缓存答案复用同样需要检查依赖文档及内容版本，按用户划分缓存也不自动处理该用户后来失权。
+
+最终应审计实际进入上下文的文档集合，而不只记录最初召回集合。流式生成开始后，已经发出的文字无法撤回；长期生成应约定重新检查与中止边界，不承诺一次检查永久覆盖整个任务。
+
+<a id="chapter-6"></a>
+
+## 6. Cedar：让关系和条件成为一次明确求值
+
+### 6.1 PARC、实体、策略和 Schema 各管什么
+
+**Cedar 的核心是依据可信输入求值策略，不是替应用发现和持久化所有事实。** 一次请求用 PARC 表达：Principal 是主体，Action 是动作，Resource 是资源，Context 是本次请求的信息。完整求值还需要策略集合和相关实体。
+
+小陈读取路线图时，主体是小陈，动作是 `read`，资源是路线图，Context 可以包含可信 MFA 状态、来源地址和请求时间。实体集合提供组成员、文档父级、分类等策略会用到的信息。应用可以按请求收集相关子集，不必每次交出整个组织图，但不能缺少求值真正依赖的事实。
+
+Schema 声明类型、允许的层级、属性和动作适用范围，用于验证策略及相关输入结构。它与运行时请求不是同一份东西，静态策略验证也不是一次授权决定。Cedar 语言、开源求值实现与基于它构建的托管服务，还应分别理解，不能把某个服务的策略存储功能当成语言本身的必备能力。
+
+### 6.2 关系也能进入 Cedar，但要由应用提供
+
+小陈的继承路径可以用实体层级表示。比如用户属于研发组，文档位于研发资料，策略再限定主体与资源均处于相应范围：
+
+```cedar
+permit (
+    principal is Docs::User in Docs::Group::"a-engineering",
+    action == Docs::Action::"read",
+    resource is Docs::Document in Docs::Folder::"a-research"
+);
+```
+
+这条策略只演示研发路径，不是把上面的完整 OpenFGA 模型自动翻译了一遍。实际还要分别表达管理员和单篇分享，提供相关实体，并验证所有规则。`in` 判断使用所提供的层级，不会自己查询组织数据库；任意存在的父级关系，也不会自动成为读取来源。
+
+对机密文档，还可以规定 MFA 未通过就禁止读取。若这项要求适用于所有来源，就把它放在总体策略组合中，而不是只附在某一条分享许可上。使用 `when` 或 `unless` 时，应按真假条件逐项推演，避免把“除非通过 MFA，否则禁止”写反。
+
+### 6.3 Allow 不意味着没有策略错误
+
+[Cedar 的授权语义](https://docs.cedarpolicy.com/auth/authorization.html)有三个关键点：没有成功的 `permit` 就默认拒绝；任一成功的 `forbid` 覆盖许可；单条策略求值错误会被跳过并进入诊断，即 `skip-on-error`。
+
+| 策略求值情况 | Cedar 决定 | 应用还要关心 |
+| --- | --- | --- |
+| 无成功的 permit | Deny | 是正常未匹配，还是缺事实导致错误 |
+| 有 permit，无成功 forbid | Allow | 是否仍存在关键策略错误 |
+| 有成功 forbid | Deny | 命中的禁止及业务解释 |
+| permit 成功，关键 forbid 出错 | 仍可能 Allow | 护栏没有成功求值，不能当成检查通过 |
+
+例如移动路线图时，许可策略确认源和目标资格，禁止策略读取目标文件夹是否接收机密文档。若只传目标实体引用，却漏掉实体数据，禁止策略访问属性时可能出错；这条策略被跳过，另一条许可仍可能使整体 `Allow`。因此，决定与诊断必须一起看。
+
+高风险操作可以约定：必要事实缺失、未得到决定，或关键护栏求值错误，都不提交。那是应用的执行规则，而不是 Cedar 遇到任意错误自动全局拒绝。日志也应如实记录“Cedar Allow，应用未放行”，不能篡改为引擎 Deny。
+
+### 6.4 验证通过不证明引用实体都存在
+
+[策略验证](https://docs.cedarpolicy.com/policies/validation.html)能发现很多类型与属性使用问题，但不负责证明每个业务 ID 对应的实体都已提供。一个字段具有 Folder 类型，只说明它应该引用这种实体，不表示对应文件夹存在，或当前实体集合带齐了其属性。
+
+请求和实体的运行时检查、可信事实收集、可选属性的存在性判断，以及对错误诊断的处置，仍需单独实现。策略版本、Schema 与生产数据契约也要匹配。形式化语义和严格验证提高的是对语言及实现行为的信心，不会替团队证明业务授权规则及其输入天然正确。
+
+<a id="chapter-7"></a>
+
+## 7. 单引擎还是组合：先决定谁管理事实
+
+### 7.1 比标签更重要的是查询和运行边界
+
+**能用一套实现满足需求，就不必为了架构完整性组合两套。** 先回答关系由谁维护、调用时要提供什么、是否需要反向枚举、怎样撤权，以及团队愿意承担什么运维责任。
+
+| 实现 | 常见中心抽象与运行方式 | 需要重点评估的应用责任 |
+| --- | --- | --- |
+| Casbin | 应用内 Enforcer，按模型和已加载策略匹配请求 | 策略持久化与加载、多实例更新、复杂事实的取得 |
+| OpenFGA | 模型加关系元组，通常通过服务查询 | 关系写入与同步、模型选择、集合接口及错误处理 |
+| SpiceDB | relation 记录事实，permission 推导权限 | 关系维护、Schema 迁移、查询及一致性令牌衔接 |
+| Cedar | 策略结合请求与实体求值 | 实体和上下文收集、策略部署、诊断与执行控制 |
+
+表格描述常见取向，不是排他能力清单。Casbin 可表达多种模型，Cedar 可使用实体层级，OpenFGA 可加入条件和临时关系；部署方式也存在库集成或托管选择。比较时仍要落到目标版本和实际接口，不能由“进程内”或“独立服务”直接推出性能胜负。
+
+单个应用、有限直接分享、少数稳定角色，现有共用逻辑或授权库可能已经足够。多个服务反复推导同一成员和层级路径、还需要按人列出资源时，独立关系查询更值得评估。应用已有可信实体，主要困难是多条请求规则的组合与审阅，则可以先评估策略求值。
+
+### 7.2 组合要产生真正不同的职责
+
+一种候选架构是：OpenFGA 查询小陈对路线图的关系资格，Cedar 再结合机密分类、MFA 和请求环境决定本次读取，应用最后执行。这不是开箱即用的双引擎集成，也不是采用 Cedar 的必经步骤。
+
+组合的首要要求是同一规则有清楚归属。分享期限已由 OpenFGA 条件关系决定，就不应再在 Cedar 复制一份不同截止时间。两边都维护组成员和父级，也会产生“各自正确、合起来错误”的可能。架构划分应减少重复事实和规则，而不是仅把同一判断分成两次调用。
+
+应用传递关系结果时，要绑定主体、动作、资源及必要请求范围。一个不带来源的 `eligible: true` 很容易被错误复用；客户端自报的资格则不能作为信任起点。还应保留模型、策略版本和相关读取信息，但不能把两次调用包装成并不存在的全局原子快照。
+
+### 7.3 组合增加的是运行责任
+
+双引擎带来调用顺序、超时预算、错误合并、重试、观测和降级设计。关系查询失败不能填一个 `false` 当作正常拒绝，更不能为了可用性填 `true`；策略返回 Allow 也要按关键诊断规则决定是否执行。
+
+评估组合是否值得，可以问：如果去掉其中一个，哪项明确需求无法满足？若答案只是“关系适合一个，属性适合另一个”，还不够。应拿复杂查询、规则管理或运行隔离的真实需求证明边界，同时评估新增故障点是否可控。
+
+<a id="chapter-8"></a>
+
+## 8. 撤权与一致性：答案还取决于什么时候
+
+### 8.1 撤权经过的是一条变化链
+
+**撤权写成功，不等于下一次内容交付已经采用撤权后的事实。** 分享可能先在业务库删除，再同步到关系服务，随后失效结果缓存、派生索引、页面缓存及已签发链接。不同路径有不同的滞后。
+
+团队需要把承诺写具体：点击撤销后哪些新请求必须失败，已经排队的导出能否继续，正在下载的内容如何处理，先前生成的缓存答案何时失效。仅说“最终一致”或“实时撤权”，无法据此验收。
+
+尤其要区分授权数据源和授权缓存。如果业务源的删除尚未同步，绕过授权结果缓存也只能读到关系服务仍保存的旧事实。要满足更严格的新鲜度要求，可能需要等待同步确认、携带版本水位，或在关键操作中读取权威源；具体机制取决于系统能力。
+
+### 8.2 新敌人问题是权限和内容时间错位
+
+[Zanzibar 论文](https://www.usenix.org/system/files/atc19-pang.pdf)讨论的 New Enemy 问题，可以用路线图说明：先撤销小周，再发布新内容；若系统用旧权限判断新内容，小周就可能得到他不该看到的更新。
+
+Zanzibar 的 Zookie 用于表达后续授权检查不能早于某个时间点。论文的内容变更流程将令牌与内容版本关联，后续检查至少使用该下界的数据状态。令牌不是访问凭证，也不是“历史上允许过，所以现在直接允许”；权限仍需要重新求值。
+
+这一思想提醒我们把内容版本与授权新鲜度一起设计，但不能把 Zanzibar 机制直接当作任何受其启发产品的默认保证。
+
+### 8.3 几种新鲜度机制不能互换
+
+[OpenFGA 一致性偏好](https://openfga.dev/docs/interacting/consistency)中的 `HIGHER_CONSISTENCY` 用于绕过相关缓存、直接查询数据库。它不同于携带一个修订点下界，也不替代外部同步，更不保证跨多次查询固定授权快照。实际写入可见性还要结合部署数据库及读写路径确认。
+
+[SpiceDB 的 ZedToken](https://authzed.com/docs/spicedb/concepts/consistency)可以与 `at_least_as_fresh` 配合，要求查询不早于指定修订点。若要确保包含刚发生的撤权，就需要该撤权或之后的有效下界；更早取得的令牌不要求系统一定纳入后来的变化。固定精确快照则是另一种选择，也受保留窗口及跨系统数据版本约束。
+
+Casbin 的持久化策略更新之后，其他实例的 Enforcer 何时采用变化，取决于加载、Watcher 和应用同步逻辑。Cedar 若使用缓存实体或本地策略包，也需要自己的更新与版本检查。这里比较的是变化怎样进入下一次求值，而不是宣布某类部署天然更安全。
+
+### 8.4 长操作要定义失效边界
+
+缓存键应纳入主体、资源、动作、规则版本和会影响决定的上下文，但键足够细也不等于失效及时。组成员撤销会影响多份资源，单对象分享删除与层级移动的依赖范围也不同。TTL 是时间折中，不是立即撤权证明。
+
+长导出、流式输出和预签名下载链接都可能越过一次检查的时间窗口。可以缩短凭证有效期、分段重新检查、让下载经过受控代理，或在任务执行前重授权；每一种方案都要说明保护边界。已经交付的字节不能被后续检查收回，跨系统检查与执行也不会因“再查一次”自动成为原子操作。
+
+<a id="chapter-9"></a>
+
+## 9. 管理权限的权限：谁可以改变下一次答案
+
+### 9.1 写关系比读关系多一层责任
+
+**能够读取资源，不意味着能够修改授权来源；能够调用关系写入 API，也不意味着业务上有权修改任意关系。** 关系服务接受合法元组，只能说明它符合模型和服务调用约束，不能替应用证明林岚有权把这个人加入这个组。
+
+授权管理接口需要先检查业务调用者及动作，再构造允许范围内的关系变更。不能提供一个面向普通用户的通用入口，把客户端传来的 `user`、`relation`、`object` 原样转交给高权限服务账号。
+
+可把管理动作进一步拆开：
+
+| 动作 | 需要核实的核心范围 |
+| --- | --- |
+| 分享或撤销分享 | 调用者对该文档的分享管理资格，目标主体和可授予权限 |
+| 添加或移除组成员 | 对该组或其组织的成员管理资格 |
+| 改变父文件夹 | 对源文档的移出资格、对目标的写入资格、租户和层级约束 |
+| 转移所有者 | 转移权、目标可接收资格，以及必要确认 |
+| 授予管理员 | 更高等级的授权管理与审计要求 |
+
+即便本例林岚同时拥有多项管理能力，也应分别建模业务动作，避免将文档管理不经审阅地扩大成组织成员管理。
+
+### 9.2 限制“能授予什么”，不只限制“能打开分享框”
+
+分享操作至少涉及调用者、资源、受益主体、授予动作及期限。业务可以规定管理者只授予读取，不得授予管理；外部协作者只允许在指定范围内；有效期不能超过组织限制。此类约束应在服务端执行，不能靠页面选项隐藏。
+
+能否把自己拥有的权限再授给别人，也不能只用“当前能做什么”回答。有的权限可使用但不可转授；有的管理资格只在特定作用域有效。直接把读取结果当成再授权依据，容易让临时分享升级为持续扩散。
+
+移除关系时同样要讲清产品语义。删除直接分享只撤掉那条来源；若要承诺“让此人无法访问”，就需要识别其他有效路径，并确定是否允许改变它们。禁止名单或显式拒绝可以成为某些业务的方案，但它会改变整体模型，需要明确作用范围，而不是偷偷替代路径分析。
+
+### 9.3 检查与写入之间还有竞态
+
+林岚通过管理检查之后、写入分享之前，管理员资格可能被撤销，文档也可能换到其他组织。一次先查后写不能自动证明写入提交时所有条件仍成立。
+
+同一数据系统内可以利用事务、锁或条件更新维护相关不变量；跨系统时，则要评估版本条件、短执行窗口、可信操作记录及补偿流程。它们各有边界，不能把两个 API 顺序调用称作原子授权事务。
+
+对于外部分享、所有者转移等高风险动作，可以增加审批或二次确认。审批必须绑定具体操作范围和有效期；“此用户通过审批”这种宽泛布尔值，无法阻止换对象、换目标后复用。管理接口本身也需要测试负例，而不只是验证最终的读取接口。
+
+<a id="chapter-10"></a>
+
+## 10. Agent 工具执行：把允许绑定到具体操作
+
+### 10.1 工具定义不是授权边界
+
+**模型可以提议动作，服务端只执行经过核准的那一次操作。** 小陈请 Agent 把路线图移到“跨组协作”。工具 JSON Schema 能检查字段类型，不能证明小陈有权移出文档，或向目标写入，更不能证明该位置允许接收机密内容。
+
+Agent 使用服务账号，不意味着可以借用服务账号的全部能力。需要核实委托用户、Agent 和执行服务的身份，以及委托范围、有效期和下游实际权限。把所有请求都以一个强权限机器人身份授权，会丢失真正的业务主体。
+
+[OWASP 关于 Excessive Agency 的说明](https://owasp.github.io/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html)将控制放在下游执行路径。提示词可以指导模型少犯错，不能替代真正掌握凭证和数据写入能力的服务端检查。
+
+### 10.2 授权参数与执行参数必须是同一份
+
+先在当前租户和工作区解析文档、目标文件夹，得到唯一 ID。名称重复或边界不清，就不继续。授权之后不能重新按名称解析另一遍，也不能让模型修改目的地后沿用旧决定。
+
+移动同时影响源和目标：有权读路线图，不代表能移出；能移出，不代表能写入任意目标。可以分别检查源动作与目标动作，再由策略合并机密限制、审批等要求。Cedar 一次请求有一个 Resource 时，可以把源文档作为资源、目标实体引用放入 Context，并提供必要目标实体；也可以使用两个明确的资源检查。
+
+审批和决定都应绑定委托主体、动作、源资源、目标资源以及其他会影响授权的规范化参数。改变任一关键项，就成为新请求。邮件应绑定收件人和附件；文档移动应绑定文档和目的地。不能只批准“允许调用某个工具”。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/execution-binding.svg" alt="工具提案经过参数解析与授权绑定，排队后执行前重新检查，按同一参数提交；超时后查询原操作状态，区分重授权和幂等" />
+  <figcaption className="w-full text-center">图 4：批准的参数必须跟随实际写入。结构示意。</figcaption>
+</figure>
+
+### 10.3 入队、执行和重试是三个不同时间点
+
+下面是应用层流程伪代码，强调状态与边界，不代表某个 SDK 的现成接口：
+
+```text
+收到工具提案：
+    验证用户、Agent 与委托范围
+    在可信租户内解析源与目标，规范化关键参数
+    取得源动作资格、目标动作资格、必要属性与审批
+    求值；没有可靠允许或关键诊断出错时停止
+    保存不可变操作记录：主体、动作、源、目标、参数摘要、审批引用
+
+真正执行前：
+    读取操作记录，而不是重新接受模型参数
+    重新核实当前委托、资格、属性、审批与有效期
+    重新授权；不满足则记录未提交
+    使用相同核准参数及可用的版本条件提交
+
+提交超时或响应丢失：
+    先按权限查询原操作状态
+    已成功则不重复提交
+    确认可重试时，先重授权，再在幂等约定内复用原操作键与参数
+    无法确认结果或重放安全性时，保留结果未知并进入恢复流程
+```
+
+任务排队十分钟后，原资格可能已撤销，审批可能过期，目的地也可能改变机密接收规则。入队时通过不够，执行前需要重新取得足够新的事实。条件写入可帮助发现文档版本变化，但不能证明另一个系统没有刚刚撤权。
+
+重授权回答“现在还能不能做”，幂等回答“这次会不会重复生效”。两者不能互换。根据 [AWS 幂等 API 说明](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)，操作键需要稳定表达同一意图；复用同一键却改参数，会破坏这个约定。下游去重窗口过期、状态不可查时，更不能盲目重放。
+
+### 10.4 超时不是未执行，Allow 不是已成功
+
+提交可能已经成功，只是响应没有返回。因此状态机至少需要分清未提交、提交中、成功、已知失败和结果未知。恢复时先确认原状态；查询状态也应有对应权限，不能因为操作未知就开放所有结果读取。
+
+多步工具任务还会部分完成：移动成功，通知被拒绝；正文读取成功，外发导出不允许。应逐项授权并记录，不把一次总括许可延伸到后续所有副作用，也不把第二步失败说成第一步从未发生。
+
+审计用同一操作标识关联三类记录：策略决定及诊断、应用是否放行、下游实际结果。保存主体、源与目标、关键参数摘要、审批引用和可用版本即可，不为追踪而复制全部敏感内容或凭证。这样才能从一条 Allow 继续回答：最后是否提交，提交了什么，以及结果是否仍不确定。
+
+<a id="chapter-11"></a>
+
+## 11. 授权变更是一项发布工程
+
+### 11.1 同时变化的是四类对象
+
+**授权发布不只是上传模型。** 一次把直接读者关系改名的迁移，通常会同时涉及规则、关系事实、应用代码和派生索引。
+
+| 对象 | 变更示例 | 典型风险 |
+| --- | --- | --- |
+| 规则 | 新增关系、收窄继承、调整禁止条件 | 老数据在新规则下扩大或丢失权限 |
+| 事实 | 回填新关系、删除旧关系、修改归属 | 漏删、重复路径、跨租户连接 |
+| 应用 | 改用新动作、模型 ID、字段和错误处理 | 新旧实例对同一数据解释不同 |
+| 派生索引 | 按新规则构建可见集合 | 规则切了，索引仍是旧含义 |
+
+OpenFGA 的不可变模型让旧规则仍可被选择，但关系数据继续变化。SpiceDB 的 Schema 迁移也需要考虑旧关系和客户端兼容。Cedar Schema 更新则要重新验证受影响策略，并核对生产实体契约。不同机制都不能免除兼容窗口设计。
+
+### 11.2 回归要包括负例、不变项和集合
+
+先把第 2 章矩阵写成断言，再加入跨租户、读不推管理、不同授权来源并存、条件边界、缺必要输入等负例。不只验证“管理员还能读”，还要验证小陈换组时小周不受影响、移动时林岚仍能管理。
+
+集合查询需要单独断言：某人可以读哪些文档、不该出现哪些对象，排序分页是否漏项，未知是否被静默消费。单点 Check 全通过，不证明 ListObjects 的使用方式、搜索补页和派生索引都正确。
+
+[OpenFGA 的模型测试](https://openfga.dev/docs/modeling/testing)与 Store 文件可以组织模型、事实和正负断言。策略静态验证适合提前发现类型错误；集成测试则验证事实获取、接口错误、撤权和执行。两种测试互补，不能用语法通过取代业务结果验证。
+
+<figure className="flex flex-col items-center text-center">
+  <img className="my-0 h-auto w-full" src="/static/images/2026-11-26-fine-grained-authorization-handbook/change-release.svg" alt="规则、关系事实、应用和派生索引共同经过扩展、迁移、切换与清理，测试和回退检查贯穿发布" />
+  <figcaption className="w-full text-center">图 5：授权发布需要协调四类版本。结构示意。</figcaption>
+</figure>
+
+### 11.3 用扩展、迁移、切换、清理降低中间态风险
+
+一种常用做法是先扩展兼容规则，使新旧关系都可被识别；随后回填并按需要双写；确认存量和新增数据已追齐后，逐步切换调用方和索引；最后在兼容窗口结束后清理旧关系及代码。可参考 [SpiceDB 的迁移指南](https://authzed.com/docs/spicedb/modeling/migrating-schema)，但具体步骤仍应按所用系统设计。
+
+中间态往往比最终态更危险。新分享是否同时对旧实例有效？撤权是否删除所有仍被旧模型识别的路径？双写部分失败如何补偿？回填期间新增数据会不会被遗漏？这些问题要在切换前有答案，而不是等线上出现一半允许一半拒绝再解释。
+
+灰度和 shadow 可以帮助对比新旧结果。对差异分类：新允许旧拒绝可能是预期扩权，也可能是漏洞；新拒绝旧允许可能是预期收窄，也可能是漏迁数据；错误不能当成第三种普通权限结果。观察路径不应意外执行两次真实副作用，也不应用两套允许结果的并集来“保障可用性”。
+
+### 11.4 回退模型 ID 不会恢复整个系统
+
+**切回旧模型，只是重新选择旧规则，不会自动恢复关系元组、应用代码和派生索引。** 如果迁移已删除旧关系，旧模型可能再也找不到原路径；如果新数据只能由新模型理解，旧调用方也可能失效。
+
+回退预案应列出兼容条件、保留多久的旧数据、索引切换方式和哪些动作不可直接逆转。需要数据修复时使用可审阅的变更记录及对账依据，不能把“撤回发布”当作恢复数据库快照。恢复也不能盲目回灌旧快照，重新授予快照之后已经撤销的权限。
+
+同样，模型 ID 不是历史事实版本。事故后只记录该 ID，无法精确重现当时授权状态；还需关联关系变更、业务资源版本、相关输入及执行记录。审计信息要足以解释，但不应假装存在系统没有提供的统一快照。
+
+<a id="chapter-12"></a>
+
+## 12. 上线前，把承诺写成检查清单
+
+### 12.1 先守住六项安全不变量
+
+**能上线的授权设计，应当能明确说明它保证什么、不能保证什么，以及故障时在哪里停止。** 可以把下列不变量直接转成评审和自动化用例。
+
+- **身份不可自选。** 主体来自认证与有效委托，不来自模型或客户端填写的用户 ID。
+- **范围不可漂移。** 租户、资源、动作、源与目标由服务端解析；批准范围与执行参数一致。
+- **权限不反推。** 读取不自动获得管理；管理接口另外检查调用者及可授予范围。
+- **未知不放行。** 缺必要事实、调用失败和关键策略错误不被包装为成功允许。
+- **变化有路径。** 成员、分享、层级和规则变化都有同步、失效、索引及恢复安排。
+- **内容出口受控。** 正文、附件、搜索摘要、RAG 上下文和工具副作用都经过各自操作的执行边界。
+
+### 12.2 再把故障语义写进接口
+
+详情接口要区分明确拒绝和服务异常；搜索要区分候选耗尽、预算耗尽和检查未完成；工具要区分未提交、已失败和结果未知。可以面向用户采用适当隐藏资源存在性的提示，但内部记录不能丢掉真实原因。
+
+为每类操作规定新鲜度：分享后立即读取、撤权后读取新版本、下一页翻页、长任务提交，未必使用相同约束。若某条路径无法达到承诺，就缩小承诺或停止该路径，而不是用“已经查过权限”代替说明。
+
+还要演练授权服务不可达、同步积压、索引重建、关键实体缺失和下游响应丢失。恢复流程与正常流程应使用同一套权限边界，不能为了修复故障开放一个无限权限的旁路。
+
+### 12.3 用可解释的业务指标逐步落地
+
+单点检查观察延迟、拒绝、错误和必要的数据读取；搜索观察候选扫描量、可见密度、满页率、未知与停止原因；撤权观察从权威变更到受保护入口生效的时延；工具观察放行、提交、部分完成和未知状态。指标要能对应承诺，而不只是展示一个平均 Check 耗时。
+
+落地顺序可以从最小闭环开始：先用路线图矩阵确认规则与事实，再让详情和附件走统一受控入口；随后接入搜索及 RAG，最后扩展到管理和 Agent 写入。业务需要不同，也可以调整顺序，但每一步都应具备可回归的负例和可执行的恢复方案。
+
+做到这里，细粒度授权不再只是“选哪种模型”或“调用哪个引擎”。它成为一组可解释的工程约定：这次允许依据什么，哪些变化会使它失效，哪一层负责停止，以及实际发生了什么。接下来的系列深读索引与官方资料导航，可以按这些具体问题继续查下去。
+
+<a id="chapter-13"></a>
+## 13. 系列深读索引：按问题找到具体文章和章节
+
+这九篇文章从关系授权的基本概念一路走到 Agent 工具执行。若想先建立整体认识，可以按下面的顺序阅读；若你正卡在某个工程问题上，下方按问题列出文章与具体章节，可沿链接继续深读。
+
+### 九篇阅读路线
+
+| 顺序 | 文章与适合的起点 |
+| --- | --- |
+| 01 | [OpenFGA 是什么：ReBAC 细粒度授权模型与应用边界](https://apframework.com/blog/essay/2026-11-17-openfga-relationship-authorization-overview)——先认识关系、模型、元组，以及授权服务和业务系统各自保存什么。 |
+| 02 | [把 OpenFGA 跑起来：模型、授权查询与性能观察](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on)——看一个固定环境下的模型、查询和性能实验如何复现，以及数字的适用边界。 |
+| 03 | [一次 OpenFGA Check 如何完成：从请求、关系图到存储查询](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive)——深入一次 Check 的求值路径、存储访问、缓存和执行控制。 |
+| 04 | [什么是 ReBAC？用一份文档讲清关系授权](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration)——用文档协作案例理解 RBAC、ABAC、ReBAC，以及关系变化如何改变读取结果。 |
+| 05 | [OpenFGA、Casbin、SpiceDB 怎么选：从同一份文档权限说起](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison)——围绕同一业务规则比较产品职责、迁移、分页与撤权问题。 |
+| 06 | [OpenFGA 权限搜索：前 20 条只剩 3 条，怎样补齐一页](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search)——处理候选搜索、权限过滤、续页、索引和 RAG 上下文边界。 |
+| 07 | [Cedar 授权策略：从 Schema 到 permit / forbid](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy)——从 PARC 和 Schema 读懂策略求值、permit / forbid 与错误。 |
+| 08 | [Cedar 与 OpenFGA：策略求值和关系查询如何分工](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division)——对照关系查询与请求策略，判断何时单用、何时组合。 |
+| 09 | [Agent 调用工具前的授权：从策略判断到执行边界](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization)——把授权决定和实际参数、重授权、幂等及审计联系起来。 |
+
+### 按问题定位
+
+#### 我还不清楚授权系统在回答什么
+
+- **角色之外，权限怎样沿组织、文件夹和文档关系传播？** 从第01篇《角色之外，权限还沿关系传播》及《一套模型，加上一组关系事实》开始，建立 ReBAC、模型与元组的基本图景。接着看第04篇 §1.3《[ReBAC：对这份文档，他到底有什么关系？](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#13-rebac对这份文档他到底有什么关系)》，用同一案例区分角色、属性和关系。
+- **授权模型和关系事实有什么不同？OpenFGA 的 Store 放什么？** 第01篇《Store：组织授权模型和关系数据》与《OpenFGA 存什么，业务系统仍需存什么》分别说明模型与元组的组织方式及业务数据边界；第03篇 §2.1《[授权模型不是一份权限清单](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#21-授权模型不是一份权限清单)》再解释模型如何描述推导路径。
+- **关系、属性和策略判断能否同时出现？** 第04篇 §1.1《[RBAC：先给角色分配权限，再把角色分给人](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#11-rbac先给角色分配权限再把角色分给人)》、§1.2《[ABAC：允许与否，取决于哪些条件成立](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#12-abac允许与否取决于哪些条件成立)》、§1.3《[ReBAC：对这份文档，他到底有什么关系？](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#13-rebac对这份文档他到底有什么关系)》可并读；要看两种引擎如何分工，转到第08篇 §2《[OpenFGA：保存关系事实，按模型查询](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division#2-openfga保存关系事实按模型查询)》和 §3《[Cedar：把相关事实交给策略求值器](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division#3-cedar把相关事实交给策略求值器)》。
+
+#### 我想建模或排查一次授权判断
+
+- **Check 请求带什么，如何固定使用的模型版本？** 第03篇 §1.1《[Check 请求携带什么](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#11-check-请求携带什么)》与 §1.2《[先确定模型版本](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#12-先确定模型版本)》从请求入口讲起；想先看可运行示例，可对照第02篇 §1《[环境与授权模型](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#1-环境与授权模型)》、§2.1《[通过服务 API 查看授权结果](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#21-通过服务-api-查看授权结果)》。
+- **一次 Check 如何沿关系图得出允许或拒绝？** 第03篇 §3.1《[一个 Check 会拆成若干子问题](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#31-一个-check-会拆成若干子问题)》、§3.2《[Union：任一分支成立即可](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#32-union任一分支成立即可)》、§3.3《[Intersection 与 exclusion：所有条件都要对上](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#33-intersection-与-exclusion所有条件都要对上)》、§3.4《[递归关系与循环保护](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#34-递归关系与循环保护)》依次展开求值逻辑。
+- **条件关系和临时上下文应该放在哪里？** 第02篇 §2.2《[条件关系和模型版本也要放进测试](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#22-条件关系和模型版本也要放进测试)》给出实验入口；第03篇 §2.2《[条件在查询时结合上下文](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#22-条件在查询时结合上下文)》解释条件求值，第08篇 §2.2《[Conditions 判断条件，Contextual Tuples 补充临时关系](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division#22-conditions-判断条件contextual-tuples-补充临时关系)》比较两类输入。
+- **Check、ListObjects 与列表查询有什么区别？** 第01篇《Check 与 List：判断和枚举不是一回事》先厘清接口用途；第08篇 §4.2《[列出小周能读的文档，是否等于搜索文档？](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division#42-列出小周能读的文档是否等于搜索文档)》再讨论枚举结果与业务搜索之间的差别。
+- **求值变慢、读存储多或触发回退时从哪里查？** 第03篇 §4.1《[求值器到底向存储读什么](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#41-求值器到底向存储读什么)》、§4.2《[并发、深度、查询与超时不是同一个限制](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#42-并发深度查询与超时不是同一个限制)》、§4.3《[缓存有不同对象，也有一致性代价](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#43-缓存有不同对象也有一致性代价)》适合排查资源与缓存；源码路径可继续看 §5.1《[三个相似名字，三种不同流程](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#51-三个相似名字三种不同流程)》和 §5.2《[主路径分流与回退](https://apframework.com/blog/essay/2026-11-19-openfga-check-deep-dive#52-主路径分流与回退)》。
+- **性能数字能说明什么，实验如何复现？** 第02篇 §3.1《[怎么测](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#31-怎么测)》及 §3.2《[关系数量变化](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#32-关系数量变化)》、§3.3《[关系继承深度](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#33-关系继承深度)》、§3.4《[Check 与 ListObjects 的单次对照](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#34-check-与-listobjects-的单次对照)》呈现实验维度；阅读结论时同时查看 §4.1《[这些数字没有测到什么](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#41-这些数字没有测到什么)》和 §4.2《[可复现材料与参考资料](https://apframework.com/blog/essay/2026-11-18-openfga-hands-on#42-可复现材料与参考资料)》。
+
+#### 我在做产品选型、搜索或撤权
+
+- **Casbin、OpenFGA、SpiceDB 的职责差别是什么？** 第05篇 §1《[Casbin 如何在应用内做一次授权判断](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#1-casbin-如何在应用内做一次授权判断)》、§2《[SpiceDB 如何沿着关系推导权限](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#2-spicedb-如何沿着关系推导权限)》、§4《[同一个业务规则，责任落在哪里](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#4-同一个业务规则责任落在哪里)》逐项介绍；最后看 §9《[按应用愿意承担的责任来选](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#9-按应用愿意承担的责任来选)》，不要把它当成性能排名。
+- **模型或规则迁移期间，怎样避免切换和回退出错？** 第05篇 §5《[发布新规则时，应用能固定什么](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#5-发布新规则时应用能固定什么)》及 §9《[按应用愿意承担的责任来选](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#9-按应用愿意承担的责任来选)》讨论版本和选型；迁移中间态看 §5 中“更适合做手工验收的是迁移中间态”起的段落，回退边界紧接其后。
+- **搜索结果被权限过滤后，如何补齐一页并正确续页？** 第06篇 §2《[路线一：先搜索，再 BatchCheck，按原序补齐](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#2-路线一先搜索再-batchcheck按原序补齐)》，重点看 §2.2《[分页推演：用同一文档池看两页](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#22-分页推演用同一文档池看两页)》、§2.3《[分页状态：为什么停、下一次接哪里](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#23-分页状态为什么停下一次接哪里)》和 §2.4《[扫描成本：可见密度与预算](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#24-扫描成本可见密度与预算)》。
+- **应先枚举可见对象、维护权限索引，还是边搜边检查？** 第06篇 §3《[路线二：先 ListObjects，再按可见 ID 搜索](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#3-路线二先-listobjects再按可见-id-搜索)》、§4《[路线三：维护派生授权索引，再复核](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#4-路线三维护派生授权索引再复核)》对照两条路径；索引撤权残留与新增漏召回见 §4.1《[撤权残留与新增漏召回，不是同一种问题](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#41-撤权残留与新增漏召回不是同一种问题)》。
+- **RAG 片段进入模型上下文前应该在哪授权？** 第06篇 §5《[RAG 延伸：片段进入模型上下文前授权](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#5-rag-延伸片段进入模型上下文前授权)》专门讨论授权边界；完整搜索方案的验证方法见 §6《[验证与选择：检查完整一页，而不只是一次鉴权](https://apframework.com/blog/essay/2026-11-22-openfga-permission-aware-search#6-验证与选择检查完整一页而不只是一次鉴权)》。
+- **撤权写成功后，下一次检查为何可能仍看到旧状态？** 第05篇 §7《[撤权写成功，下一次查询凭什么看到它](https://apframework.com/blog/essay/2026-11-21-relationship-authorization-product-comparison#7-撤权写成功下一次查询凭什么看到它)》从新鲜度和一致性切入；第08篇 §4.1《[撤销小周的分享后，下一次检查读到了什么？](https://apframework.com/blog/essay/2026-11-24-cedar-openfga-authorization-division#41-撤销小周的分享后下一次检查读到了什么)》用案例呈现问题，第04篇 §4.3《[撤销分享：小周不再能看](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#43-撤销分享小周不再能看)》回到业务关系变化。
+- **文档换组、移动或撤销分享，分别影响谁的读取？** 第04篇 §4《[换组、移动、撤销分享：谁还能看？](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#4-换组移动撤销分享谁还能看)》，尤其 §4.1《[小陈换组：先失去读取权限](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#41-小陈换组先失去读取权限)》、§4.2《[文档移动：小陈又能看了](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#42-文档移动小陈又能看了)》与 §4.3《[撤销分享：小周不再能看](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#43-撤销分享小周不再能看)》。
+
+#### 我在接入 Cedar、管理写入或 Agent 工具
+
+- **Cedar 的请求由哪些字段构成，Schema 能检查什么？** 第07篇 §5《[Cedar把一次请求写成PARC](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#5-cedar把一次请求写成parc)》与 §6《[Schema规定策略可以引用哪些类型](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#6-schema规定策略可以引用哪些类型)》介绍结构；可信输入和验证边界见 §10《[Schema验证降低风险，但不替运行时把关](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#10-schema验证降低风险但不替运行时把关)》。
+- **permit、forbid、条件和策略错误如何合成决定？** 第07篇 §7《[用permit表达「哪些来源能读」](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#7-用permit表达哪些来源能读)》、§8《[用when和unless约束本次请求](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#8-用when和unless约束本次请求)》、§9《[Permit、forbid与策略错误怎样合成决定](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#9-permitforbid与策略错误怎样合成决定)》按求值过程阅读；完整案例见 §11《[把一次路线图读取完整走完](https://apframework.com/blog/essay/2026-11-23-cedar-authorization-policy#11-把一次路线图读取完整走完)》。
+- **分享、加组或改父关系，谁有权写入授权事实？** 第04篇 §3《[回到〈项目路线图〉：同一份文档，三条读取路径](https://apframework.com/blog/essay/2026-11-20-rebac-document-collaboration#3-回到项目路线图同一份文档三条读取路径)》区分读取路径；结合其中“管理权并不从读取权反推”的说明，以及本收官篇第9章关于管理操作与写入者授权的展开。关系合法不等于操作者获准写入。
+- **Agent 提出工具调用后，怎样确保授权绑定到真正执行的动作？** 第09篇 §1《[模型提出调用，服务端决定是否执行](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#1-模型提出调用服务端决定是否执行)》、§2《[把工具提案变成可信的 Cedar 请求](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#2-把工具提案变成可信的-cedar-请求)》、§4《[让授权跟着实际执行的参数走](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#4-让授权跟着实际执行的参数走)》；重试、幂等与排队后的状态变化见 §4.1《[入队时通过，写入前还要看当前状态](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#41-入队时通过写入前还要看当前状态)》及 §4.2《[移动和通知是两次操作，重试不该做两遍](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#42-移动和通知是两次操作重试不该做两遍)》。
+- **审计记录应该覆盖授权决定还是最终副作用？** 第09篇 §3《[把策略决定、诊断与执行放行分开](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#3-把策略决定诊断与执行放行分开)》与 §5《[审计要能回答「最后做了什么」](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#5-审计要能回答最后做了什么)》可连读；若关系查询与动作授权容易混淆，再看 §6《[OpenFGA 可以查关系，但不能替代动作授权](https://apframework.com/blog/essay/2026-11-25-agent-tool-authorization#6-openfga-可以查关系但不能替代动作授权)》。
+
+> 实验和复现材料的范围各不相同：第02篇记录固定版本下的 OpenFGA 实操；第03篇的源码分析不是第02篇运行环境的版本声明；第06篇包括算法测试，不等同真实搜索服务压测；第09篇的 Cedar 求值验证也不代表跨系统端到端执行测试。需要复现时请以各篇列出的环境和材料为准。
+
+<a id="chapter-14"></a>
+## 14. Awesome 细粒度授权：官方与权威资料导航
+
+这份目录按问题组织，不是产品排行榜。遇到具体问题时，先看“适用问题”，再沿“阅读路径”进入相应章节。基础论文适合理解模型与设计动机；产品文档适合核对接口和配置；源码结论则需要固定版本或提交。文档会更新，接口、参数与部署限制应以实际选定版本为准。
+
+### 14.1 模型基础与系统原点
+
+1. **[NIST：Role Based Access Control](https://csrc.nist.gov/projects/role-based-access-control)**  
+   **适用问题：** RBAC中的用户、角色、权限分别是什么，角色层级与约束解决什么问题？  
+   **阅读路径：** 先读`Background`，再从项目页进入`RBAC FAQ`，检索`Role assignment`、`Role authorization`、`Transaction authorization`。该项目已归档，适合查模型基础与历史，不作为当前产品现状的证据。
+
+2. **[NIST SP 800-162：Guide to Attribute Based Access Control (ABAC) Definition and Considerations](https://doi.org/10.6028/NIST.SP.800-162)**  
+   **适用问题：** 属性来自主体、对象、动作还是环境；PDP、PEP、PIP、PAP各承担什么责任？  
+   **阅读路径：** DOI进入NIST原文；先读第2章`Understanding ABAC`，再读第3章`ABAC Enterprise Considerations`，在PDF内检索`Policy Decision Point`、`Policy Enforcement Point`与`attribute`。它提供定义和实施考虑，不是RBAC与ABAC的产品胜负结论。
+
+3. **[Zanzibar: Google’s Consistent, Global Authorization System（USENIX ATC 2019）](https://www.usenix.org/conference/atc19/presentation/pang)**；[USENIX论文PDF](https://www.usenix.org/system/files/atc19-pang.pdf)  
+   **适用问题：** 关系元组、userset重写、一致性令牌和内容变更检查，为什么必须共同考虑？  
+   **阅读路径：** 在原论文中检索`Relation Tuples`、`Consistency`、`Configurations`、`userset`、`zookie`与`Content-change checks`，沿数据模型、权限推导、一致性及内容变更的顺序阅读。论文里的规模与延迟只属于当年Zanzibar的系统及负载，不能移植给其他引擎。
+
+### 14.2 OpenFGA：从建模到查询
+
+4. **[Concepts](https://openfga.dev/docs/concepts)**  
+   **适用问题：** store、type、object、relation、relationship tuple和userset分别是什么？  
+   **阅读路径：** 按术语逐项阅读，检索`Authorization Model`、`Relationship Tuple`、`Userset`，再对照Check、ListObjects、ListUsers的查询方向。
+
+5. **[Configuration Language](https://openfga.dev/docs/configuration-language)**  
+   **适用问题：** `[user]`与计算关系有什么差别；`or`、`and`、`but not`、`from`怎样改变允许集合？  
+   **阅读路径：** 先看type与relation定义，再读集合运算及tuple-to-userset示例；带着一个用户和对象手工推导允许集合，再运行模型测试。
+
+6. **[Parent-Child Objects](https://openfga.dev/docs/modeling/parent-child)**  
+   **适用问题：** 文件属于目录，是否就自动继承目录权限？  
+   **阅读路径：** 对照`parent`关系与`viewer from parent`等规则，将“对象之间有关联”与“模型显式规定权限继承”分开检查。
+
+7. **[Check user authorization](https://openfga.dev/docs/api/service/relationship-queries/check-user-authorization)**  
+   **适用问题：** 怎样判断某主体对某对象是否满足指定关系；错误响应与`allowed: false`有什么差别？  
+   **阅读路径：** 先看请求中的`tuple_key`、`authorization_model_id`，再看成功响应`allowed`与错误响应；需要动态输入时，继续核对`context`及`contextual_tuples`。
+
+8. **[Check multiple authorizations in a single request](https://openfga.dev/docs/api/service/relationship-queries/check-multiple-authorizations-in-a-single-request)**  
+   **适用问题：** 一批候选对象如何分别授权，怎样把结果映射回原候选？  
+   **阅读路径：** 检索`checks`、`correlation_id`、`result`与`error`；分别处理允许、拒绝和单项错误，不把批量请求成功当成所有项目均获允许。
+
+9. **[List objects a user is related to](https://openfga.dev/docs/api/service/relationship-queries/list-objects-a-user-is-related-to)**  
+   **适用问题：** 已知用户、对象类型和关系，怎样寻找对象？  
+   **阅读路径：** 对照`type`、`relation`、`user`与响应`objects`，核对执行期限和结果数量限制。结果无稳定业务排序，不应将它当成业务数据库的有序分页查询接口。
+
+10. **[List all users with a relationship to an object](https://openfga.dev/docs/api/service/relationship-queries/list-all-users-with-a-relationship-to-an-object)**  
+   **适用问题：** 已知对象与关系，怎样找出对应主体？  
+   **阅读路径：** 先读`user_filters`，再区分响应中的具体对象、userset与type-bound wildcard；不要默认结果等于一份已完全展开的人名名单。
+
+11. **[Conditions](https://openfga.dev/docs/modeling/conditions)**  
+   **适用问题：** 临时授权、到期时间等条件怎样附着在关系上，请求时属性怎样参与判断？  
+   **阅读路径：** 从模型中的`condition`定义读到元组携带条件，再看查询`context`；检查参数类型、缺失参数与条件求值错误，而不只测试条件为真的路径。
+
+12. **[Contextual Tuples](https://openfga.dev/docs/interacting/contextual-tuples)**  
+   **适用问题：** 哪些临时关系只应在本次请求成立，哪些关系应同步并持久化？  
+   **阅读路径：** 读`How Contextual Tuples Work`、`Common Use Cases`与`Important Considerations`；核对请求期有效、不持久化、与存储元组冲突时的处理，以及token声明变化的滞后边界。可信输入的构造仍是应用责任。
+
+### 14.3 OpenFGA：测试、演进与应用边界
+
+13. **[Testing Models](https://openfga.dev/docs/modeling/testing)**；[Store File Format](https://openfga.dev/docs/modeling/store-file-format)  
+   **适用问题：** 怎样把权限规则变成可回归测试的模型、元组与断言？  
+   **阅读路径：** 先读`.fga.yaml`结构，再看`check`、`list_objects`、`list_users`与`Running tests`；检索`fga model test`。至少包含正例、反例与条件context边界。
+
+14. **[Immutable Authorization Models](https://openfga.dev/docs/getting-started/immutable-models)**  
+   **适用问题：** 发布新模型为什么产生新ID，生产请求为什么应固定模型ID？  
+   **阅读路径：** 读`How to target a particular model`、`Benefits of passing in an authorization model ID`及渐进发布示例；分开记录模型版本、关系数据与应用代码的变化。
+
+15. **[Model Migrations](https://openfga.dev/docs/modeling/migrating/migrating-models)**；[Migrating Relations](https://openfga.dev/docs/modeling/migrating/migrating-relations)  
+   **适用问题：** 增删或重命名type与relation时，怎样安排模型、元组和应用调用的发布顺序？  
+   **阅读路径：** 先用Model Migrations区分变更类型，再读Migrating Relations中的兼容中间模型与数据迁移示例；创建新模型不会自动替旧元组改名。
+
+16. **[Query Consistency Modes](https://openfga.dev/docs/interacting/consistency)**  
+   **适用问题：** 刚撤权后应该选择什么读取模式，缓存怎样影响检查？  
+   **阅读路径：** 对照`MINIMIZE_LATENCY`与`HIGHER_CONSISTENCY`及其缓存说明，核对实际部署配置。绕过相关查询缓存，不等于授权库、业务库与搜索索引自动获得同一事务快照；底层读取语义仍受datastore及配置约束。
+
+17. **[Search With Permissions](https://openfga.dev/docs/interacting/search-with-permissions)**  
+   **适用问题：** 搜索后检查、权限ID集后搜索、本地权限索引后搜索应怎样选择？  
+   **阅读路径：** 依次看三个`Option`、`Choosing the best option`与`Summary`，按候选数量、可访问对象数量及占比判断路线。业务过滤、排序由数据库负责；索引展开、同步滞后与返回前复查仍须设计。具体API边界回到当前接口文档核对。
+
+18. **[RAG Authorization](https://openfga.dev/docs/modeling/agents/rag-authorization)**  
+   **适用问题：** 文档授权应放在向量检索、候选过滤、模型上下文的哪一段？  
+   **阅读路径：** 读`Filtering approaches`下的`Post-filtering`、`Pre-filtering`，再读`Choosing an approach`与`Framework integration`；检查文档ID元数据，以及内容进入LLM上下文前的授权过滤，不只过滤最终引用。
+
+19. **[How to get tuple changes](https://openfga.dev/docs/interacting/read-tuple-changes)**；[Get all tuple changes](https://openfga.dev/docs/api/service/relationship-tuples/get-all-tuple-changes)  
+   **适用问题：** 怎样增量消费关系变化，为派生索引或同步流程提供输入？  
+   **阅读路径：** 先看交互指南，再核对API的`continuation_token`、`type`、变更操作与时间字段；另行处理计算关系展开和模型变化，不能把原始关系变更流当成完整有效权限变更流。
+
+20. **[When to use OpenFGA as the 'source of truth' for authorization data](https://openfga.dev/docs/best-practices/source-of-truth)**  
+   **适用问题：** 权限事实应该由业务系统还是授权系统拥有，复制后谁对一致性负责？  
+   **阅读路径：** 逐类核对数据所有权与source of truth建议；画出写入方、消费方及失败恢复路径，再决定哪些事实复制、哪些在请求时提供。
+
+21. **[OpenFGA Adoption Patterns](https://openfga.dev/docs/best-practices/adoption-patterns)**  
+   **适用问题：** 已有系统怎样渐进引入独立授权层，而不是一次搬走全部权限逻辑？  
+   **阅读路径：** 按现有数据所在位置与同步方式阅读采用模式，对照同步元组和contextual tuples的取舍，先选择边界明确的业务动作验证。
+
+22. **[OpenFGA官方服务仓库](https://github.com/openfga/openfga)**  
+   **适用问题：** 文档之外，怎样核查一次Check的求值、递归、缓存及服务配置实现？  
+   **阅读路径：** 先读README与开发说明，再用GitHub仓库内搜索`Check`、`ListObjects`、`ListUsers`定位代码与测试；做源码结论时固定commit，区分API契约与实现细节。
+
+23. **[Use the FGA CLI](https://openfga.dev/docs/getting-started/cli)**；[OpenFGA CLI官方仓库](https://github.com/openfga/cli)  
+   **适用问题：** 怎样创建store、导入模型与元组、执行查询并在本地跑模型测试？  
+   **阅读路径：** 文档先看`Configuration`与`Basic operations`；仓库README再查`Validate an Authorization Model`、`Run Tests on an Authorization Model`及关系查询命令。安装要求以选定CLI版本为准。
+
+### 14.4 Cedar：策略、输入与静态检查
+
+24. **[How Cedar authorization works](https://docs.cedarpolicy.com/auth/authorization.html)**  
+   **适用问题：** 多条permit与forbid怎样组合，默认拒绝与求值错误如何处理？  
+   **阅读路径：** 依次读`Request creation`、`Algorithm`、`Discussion`、`Policy satisfaction`；重点看`default deny`、`forbid overrides permit`、`skip on error`与诊断。单条策略报错会被跳过，不等于所有请求自动整体拒绝。
+
+25. **[Cedar schema](https://docs.cedarpolicy.com/schema/schema.html)**；[Cedar schema format](https://docs.cedarpolicy.com/schema/human-readable-schema.html)  
+   **适用问题：** 哪些主体与资源类型能执行哪些动作，成员关系、属性及context形状怎样声明？  
+   **阅读路径：** 先读`What is a schema`，再看`Entity types`、`Membership relation`、`Actions`；语法页重点读`appliesTo`与`Schema types`，将声明约束与具体运行时实体数据分开。
+
+26. **[Cedar policy validation against schema](https://docs.cedarpolicy.com/policies/validation.html)**  
+   **适用问题：** 静态验证能发现什么，为什么验证通过仍不能保证运行时输入完整？  
+   **阅读路径：** 读`Supported validation checks`、`Request validation expectations`与`Benefits of validation and schemas`；确认策略、请求及实体验证各自是否执行。请求验证与基于schema的解析也不确认实体存在，仍需关注运行时输入和错误诊断。
+
+27. **[Entities and context syntax](https://docs.cedarpolicy.com/auth/entities-syntax.html)**；[Entities in Cedar](https://docs.cedarpolicy.com/policies/syntax-entity.html)  
+   **适用问题：** 实体UID、attrs、parents及请求context怎样编码，层级成员关系从哪里来？  
+   **阅读路径：** 在JSON语法页按`uid`、`attrs`、`parents`、`Context`、`Schema-based parsing`阅读，再看实体页的`in`、`has`与属性访问。UID中的命名字符串不是系统自动识别的业务层级。
+
+28. **[Cedar官方实现仓库](https://github.com/cedar-policy/cedar)**；[Cedar security](https://docs.cedarpolicy.com/other/security.html)  
+   **适用问题：** 怎样嵌入授权与验证引擎，接入后哪些安全责任仍属于应用？  
+   **阅读路径：** README从`cedar-policy`与`cedar-policy-cli`读起，再读安全页的`Shared responsibility`、`Security of applications using Cedar`、`Input Validation`及最佳实践。正确策略、完整且可信的相关输入仍是应用责任；源码结论固定版本或commit。
+
+29. **[Start using Cedar：官方实践资源页](https://docs.cedarpolicy.com/overview/resources.html)**  
+   **适用问题：** 接入业务前，怎样用小策略、实体数据与请求交互验证允许和拒绝预期？  
+   **阅读路径：** 从资源页进入`Cedar playground`进行实验，或沿`cedar-examples`与`tinytodo`进入示例应用；用同一场景依次改变主体、动作、资源及context，比较决定与诊断。演示通过不代替业务权限回归测试。
+
+### 14.5 Casbin与SpiceDB：按集成形态对照
+
+30. **[Casbin：Overview](https://casbin.apache.org/docs/overview/)**  
+   **适用问题：** 应用内授权库的Enforcer、模型、policy及adapter怎样分工？  
+   **阅读路径：** 先看`What is Casbin?`、`What Casbin Does`与`What Casbin Does Not Do`，再对照语言能力表；接口存在，不代表目标语言已有对应实现。
+
+31. **[Casbin：What is ReBAC? Relationship-Based Access Control with Examples](https://casbin.apache.org/docs/rebac/)**  
+   **适用问题：** Casbin怎样表达用户与资源关系，将关系模型落到匹配规则？  
+   **阅读路径：** 按页面ReBAC示例对照模型、策略与请求；逐项列出关系维护方式、加载范围及业务资源继承，而不只比较语法能否表达一个示例。
+
+32. **[Casbin：Watchers](https://casbin.apache.org/docs/watchers/)**  
+   **适用问题：** 多个Enforcer实例怎样获知策略变化，本地内存何时刷新？  
+   **阅读路径：** 先看通知和回调机制，再看目标语言及后端实现，检索`SetUpdateCallback`、`LoadPolicy`、`WatcherEx`。通知机制不等于所有节点已经同步完成的屏障承诺。
+
+33. **[SpiceDB：Schema Language Reference](https://authzed.com/docs/spicedb/concepts/schema)**  
+   **适用问题：** relation与permission怎样区分，如何沿关系推导权限？  
+   **阅读路径：** 按`Definitions`→`Relations`→`Permissions`→`Operations`阅读，再看`Arrows vs Subject Relations`及`Common Patterns`；先弄清哪些事实被写入、哪些权限被计算。
+
+34. **[SpiceDB：Querying Data](https://authzed.com/docs/spicedb/concepts/querying-data)**  
+   **适用问题：** 单次检查、批量检查、找资源、找主体及读取原始关系分别选哪个接口？  
+   **阅读路径：** 对照`Check Permission`、`CheckBulkPermissions`、`LookupResources`、`LookupSubjects`、`ReadRelationships`及`Watch`；先固定查询问题，再比较接口，避免将读取关系当成有效权限查询。
+
+35. **[SpiceDB：Consistency](https://authzed.com/docs/spicedb/concepts/consistency)**  
+   **适用问题：** ZedToken怎样表达读取修订边界，一致性等级和缓存如何权衡？  
+   **阅读路径：** 读`Defaults`、`Levels`、`ZedTokens`、`Storing ZedTokens`与`Ignoring ZedTokens`；区分至少某修订点与固定快照，并明确token保存在哪里、何时传递。
+
+36. **[SpiceDB：Migrating a Schema in SpiceDB](https://authzed.com/docs/spicedb/modeling/migrating-schema)**  
+   **适用问题：** 什么schema变更可直接发布，哪些操作必须先迁移已有关系？  
+   **阅读路径：** 先读`Safe Migrations`与`Contingent Migrations`，再看`Removing a relation`、`Removing an allowed subject type`及`Migrating data from one relation to another`；不要与底层datastore升级迁移混为一谈。
+
+### 14.6 执行边界、Agent与副作用
+
+37. **[OWASP：Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)**  
+   **适用问题：** 授权检查应放在哪里，怎样避免漏查、默认放行及权限测试缺口？  
+   **阅读路径：** 从`Recommendations`进入，检索`Enforce Least Privileges`、`Deny by Default`、`Validate the Permissions on Every Request`，再对照项目的失败处理、日志与自动化测试。
+
+38. **[OWASP：LLM06:2025 Excessive Agency](https://owasp.github.io/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html)**  
+   **适用问题：** 为什么模型会选工具，不代表它有权代表用户执行任意参数和副作用？  
+   **阅读路径：** 在`Prevention and Mitigation Strategies`中重点读`Minimize extension permissions`、`Execute extensions in user’s context`、`Require user approval`与`Complete mediation`；下游系统仍应执行自己的授权，不能让模型自行判定是否放行。
+
+39. **[AWS Builders’ Library：Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)**  
+   **适用问题：** 工具请求超时后怎样安全重试，如何区分同一次操作与另一次参数相同的操作？  
+   **阅读路径：** 读`Reducing client complexity`、`Retries and semantic equivalence`、`Late arriving requests`与`Same client request ID, different intent`；检索`unique caller-provided client request identifier`、`parameter mismatch`及`retention`。幂等键、参数绑定与保留期需要服务端契约支持，不会自动赋予任意跨服务工作流全局事务。

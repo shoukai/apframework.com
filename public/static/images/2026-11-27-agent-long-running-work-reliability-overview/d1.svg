@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="262" viewBox="0 0 760 262" role="img" aria-labelledby="title desc">
+  <title id="title">工单已写入，执行器还没保存工单号</title>
+  <desc id="desc">执行器发起创建，工单服务完成写入，执行器在持久化结果之前退出。重启后从本地记录无法判定远端是否已创建。</desc>
+  <rect width="760" height="262" fill="#fff"/>
+  <g font-family="system-ui, sans-serif" fill="#203044">
+    <text x="32" y="34" font-size="16" font-weight="600">外部提交与本地确认之间的故障窗口</text>
+    <rect x="397" y="54" width="282" height="145" fill="#fff4e4" rx="8"/>
+    <text x="32" y="99" font-size="15">执行器</text>
+    <text x="32" y="167" font-size="15">工单服务</text>
+    <path d="M141 94H724M141 162H724" fill="none" stroke="#b3bdc9" stroke-width="1"/>
+    <path d="M210 94L395 162" fill="none" stroke="#336d8b" stroke-width="2"/>
+    <circle cx="210" cy="94" r="5" fill="#336d8b"/>
+    <circle cx="397" cy="162" r="5" fill="#336d8b"/>
+    <text x="210" y="78" text-anchor="middle" font-size="15">发起创建</text>
+    <text x="397" y="184" text-anchor="middle" font-size="15">工单已写入</text>
+    <path d="M401 161L566 95" fill="none" stroke="#a05821" stroke-width="2" stroke-dasharray="5 5"/>
+    <path d="M560 88l12 12m0-12l-12 12" fill="none" stroke="#a05821" stroke-width="2"/>
+    <text x="566" y="78" text-anchor="middle" font-size="15">进程退出</text>
+    <text x="566" y="119" text-anchor="middle" font-size="14">工单号未持久化</text>
+    <text x="32" y="235" font-size="15" fill="#77441e">重启后：本地没有完成记录，先确认结果，再决定是否重试。</text>
+  </g>
+</svg>

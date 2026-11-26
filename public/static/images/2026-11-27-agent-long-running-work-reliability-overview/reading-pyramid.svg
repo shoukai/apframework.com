@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="276" viewBox="0 0 760 276" role="img" aria-labelledby="title desc">
+<title id="title">Agent 长任务总纲：金字塔式阅读路线</title>
+<desc id="desc">先读结论，再看持久执行、遥测与评测的边界，最后结合工单故障核验业务结果。</desc>
+<rect width="760" height="276" fill="#fff"/>
+<g font-family="system-ui, 'PingFang SC', sans-serif" text-anchor="middle" fill="#203044">
+<path d="M380 21L539 100H221Z" fill="#dcebf4" stroke="#94b5c9"/>
+<text x="380" y="69" font-size="15" font-weight="600">核心结论</text><text x="380" y="89" font-size="14">能续跑，不等于任务已完成</text>
+<path d="M203 109H557L662 171H98Z" fill="#e8f2f3" stroke="#acc9cb"/>
+<text x="380" y="134" font-size="15" font-weight="600">三个并列问题</text><text x="380" y="157" font-size="14">持久执行：怎么继续　　遥测：发生了什么　　评测：行为是否符合预期</text>
+<path d="M84 180H676L726 238H34Z" fill="#f2f5f7" stroke="#c0ccd6"/>
+<text x="380" y="205" font-size="15" font-weight="600">工单案例与检查方法</text><text x="380" y="226" font-size="14">查业务结果，再判断补记、重试还是保留「待确认」</text>
+<text x="380" y="262" font-size="13" fill="#4b6172">从上到下是阅读顺序，不是系统分层或部署顺序。</text>
+</g></svg>

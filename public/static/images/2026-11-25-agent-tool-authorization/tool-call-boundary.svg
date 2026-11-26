@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="168" viewBox="0 0 680 168" role="img" aria-labelledby="title">
+<title id="title">从模型提案到服务端写入</title>
+<rect width="680" height="168" rx="14" fill="#f4f8fa"/>
+<g font-family="PingFang SC, Microsoft YaHei, sans-serif" text-anchor="middle" fill="#24394a">
+<text x="80" y="35" font-size="15">模型输出</text><text x="418" y="35" font-size="15" font-weight="700">服务端执行路径</text>
+<rect x="20" y="53" width="120" height="89" rx="8" fill="#fff" stroke="#cbd8e0"/>
+<rect x="172" y="53" width="144" height="89" rx="8" fill="#e8f2fa"/><rect x="344" y="53" width="144" height="89" rx="8" fill="#e8f2fa"/><rect x="516" y="53" width="144" height="89" rx="8" fill="#e1f1e9"/>
+<path d="M145 98h21m-6-5 6 5-6 5M322 98h16m-6-5 6 5-6 5M494 98h16m-6-5 6 5-6 5" fill="none" stroke="#627d8f" stroke-width="2"/>
+<g font-size="17" font-weight="700"><text x="80" y="90">提出移动</text><text x="244" y="90">核实请求</text><text x="416" y="90">判断权限</text><text x="588" y="90">控制写入</text></g>
+<g font-size="16" fill="#40596b"><text x="80" y="117">文档和目标</text><text x="244" y="117">核对身份与参数</text><text x="416" y="117">读取决定与诊断</text><text x="588" y="117">按核准参数写入</text></g>
+</g></svg>

@@ -9,7 +9,7 @@ export default function BaiduAnalytics() {
         var _hmt = _hmt || [];
         (function() {
           var hm = document.createElement("script");
-          hm.src = "https://hm.baidu.com/hm.js?70280fa191231708a092ffd9ecad59ec";
+          hm.src = "https://hm.baidu.com/hm.js?85b635a42aeddc5a634899ed4a4984b3";
           var s = document.getElementsByTagName("script")[0]; 
           s.parentNode.insertBefore(hm, s);
         })();
